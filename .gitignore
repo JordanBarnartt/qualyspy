@@ -1,3 +1,6 @@
+# qualysapi config file
+qualysapi.conf
+
 # Visual Studio Code
 .vscode/
 
