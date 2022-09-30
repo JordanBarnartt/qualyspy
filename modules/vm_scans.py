@@ -2,7 +2,6 @@ import dataclasses
 import datetime
 import ipaddress
 import typing
-import lxml.objectify
 
 
 @dataclasses.dataclass
@@ -45,10 +44,10 @@ class Scan:
     launch_datetime: datetime.datetime
     duration: datetime.timedelta
     processed: bool
-    target: typing.List[typing.Union[ipaddress.IPv4Address,
-                                     ipaddress.IPv6Address,
-                                     ipaddress.IPv4Network,
-                                     ipaddress.IPv6Network]]
+    target: typing.Set[typing.Union[ipaddress.IPv4Address,
+                                    ipaddress.IPv6Address,
+                                    ipaddress.IPv4Network,
+                                    ipaddress.IPv6Network]]
     id: str = None
     scan_type: typing.Optional[str] = None
     processing_priority: typing.Optional[str] = None
@@ -66,9 +65,11 @@ def get_scans(raw, filter=None, modifiers=None):
         # Convert elements to expected types
         scan_elements["_type"] = scan_elements["type"]
         scan_elements.pop("type")
-        scan_elements["launch_datetime"] = datetime.fromisoformat(scan_elements["launch_datetime"])
+        scan_elements["launch_datetime"] = datetime.fromisoformat(
+            scan_elements["launch_datetime"])
         duration = [int(n) for n in scan_elements["duration"].split(":")]
-        scan_elements["duration"] = datetime.timedelta(hours=duration[0], minutes=duration[1], seconds=duration[2])
+        scan_elements["duration"] = datetime.timedelta(
+            hours=duration[0], minutes=duration[1], seconds=duration[2])
         scan_elements["processed"] = bool(scan_elements["processed"])
         targets = []
         for target in scan_elements["target"].split(","):
@@ -76,12 +77,13 @@ def get_scans(raw, filter=None, modifiers=None):
                 targets.append(ipaddress.ip_address(target))
             else:
                 start_ip, end_ip = target.split("-")
-                ip = ipaddress.ip_address(ip)
+                ip = ipaddress.ip_address(start_ip)
                 while ip <= ipaddress.ip_address(end_ip):
                     targets.append(ip)
                     ip += 1
-        scan_elements["target"] = targets
+        scan_elements["target"] = set(targets)
         if "asset_group_title" in scan_elements:
-            scan_elements["asset_group_title"] = [agt for agt in scan_elements["asset_group_title"].split(",")]
+            scan_elements["asset_group_title"] = [
+                agt for agt in scan_elements["asset_group_title"].split(",")]
 
         scans.append(Scan(**scan_elements))
