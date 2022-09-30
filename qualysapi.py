@@ -1,8 +1,10 @@
 import configparser
-import dataclasses
-import datetime
+import re
 import requests
-import lxml
+import lxml.objectify
+import lxml.etree
+
+import modules.vm_scans
 
 CONFIG_FILE = 'qualysapi.conf'
 
@@ -22,7 +24,10 @@ class Connection:
             API_ROOT + "fo/session/", headers=self.headers, data=data)
         if conn.status_code == requests.codes.ok:
             self.cookies = {"QualysSession": conn.cookies["QualysSession"]}
+            with open('debug/cookies.txt', 'a') as f:
+                f.write(str(conn.cookies["QualysSession"]) + "\n")
         else:
+            print(conn.headers)
             conn.raise_for_status()
 
     def __del__(self):
@@ -30,36 +35,22 @@ class Connection:
         requests.post(API_ROOT + "fo/session/",
                       data=data, cookies=self.cookies)
 
-    def request(self, path):
-        conn = requests.get(path, headers=self.headers, cookies=self.cookies)
-        return lxml.objectify(conn.text)
+    def request(self, path, params=None):
+        conn = requests.get(API_ROOT + path, headers=self.headers,
+                            cookies=self.cookies, params=params)
+        return lxml.objectify.fromstring(re.split("\n", conn.text, 1)[1])
 
     def get_scans(self, filter=None, modifiers=None):
         self.scans = []
-        output = self.request("o/scan/?action=list")
-        for scan in output["SCAN_LIST_OUTPUT"]["RESPONSE"]["SCAN_LIST"]:
-            scan_elements = {element.tag.tolower(
-            ): scan[element] for element in scan}
-            self.scans.append(Scan(**scan_elements))
-
-
-@dataclasses.dataclass
-class Scan:
-    ref: str
-    _type: str
-    title: str
-    user_login: str
-    launch_datetime: datetime.datetime
-    duration: datetime.timedelta
-    processed: str
-    target: str
-    id: str = None
-    scan_type: str = None
-    processing_priority: str = None
-    status: str = None
-    asset_group_title_list: str = None
-    option_profile: str = None
+        output = self.request("fo/scan/?action=list")
+        for scan in output["RESPONSE"]["SCAN_LIST"].iterchildren():
+            scan_elements = {
+                child.tag.lower(): child.text for child in scan.iterchildren()}
+            scan_elements["_type"] = scan_elements["type"]
+            scan_elements.pop("type")
+            self.scans.append(modules.vm_scans.Scan(**scan_elements))
 
 
 if __name__ == "__main__":
     conn = Connection(**CREDENTIALS)
+    conn.get_scans()

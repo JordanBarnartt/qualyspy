@@ -1,0 +1,12 @@
+HTTP/1.1 401 Unauthorized
+Date: Wed, 28 Sep 2022 14:45:43 GMT
+Server: Qualys
+Strict-Transport-Security: max-age=63072000;
+X-XSS-Protection: 1; mode=block
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+Transfer-Encoding: chunked
+Content-Type: text/xml;charset=UTF-8
+X-Xss-protection: 1;mode=block
+
