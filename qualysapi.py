@@ -2,7 +2,6 @@ import configparser
 import re
 import requests
 import lxml.objectify
-import lxml.etree
 
 import modules.vm_scans
 
@@ -41,14 +40,8 @@ class Connection:
         return lxml.objectify.fromstring(re.split("\n", conn.text, 1)[1])
 
     def get_scans(self, filter=None, modifiers=None):
-        self.scans = []
         output = self.request("fo/scan/?action=list")
-        for scan in output["RESPONSE"]["SCAN_LIST"].iterchildren():
-            scan_elements = {
-                child.tag.lower(): child.text for child in scan.iterchildren()}
-            scan_elements["_type"] = scan_elements["type"]
-            scan_elements.pop("type")
-            self.scans.append(modules.vm_scans.Scan(**scan_elements))
+        self.scans = modules.vm_scans.get_scans(output, filter, modifiers)
 
 
 if __name__ == "__main__":
