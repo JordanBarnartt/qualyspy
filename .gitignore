@@ -1,5 +1,6 @@
 # Debugging
 debug/cookies.txt
+debug/qualysapi.conf
 
 # qualysapi config file
 qualysapi.conf

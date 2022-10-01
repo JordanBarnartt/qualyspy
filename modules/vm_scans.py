@@ -1,6 +1,8 @@
 import dataclasses
 import datetime
+import dateutil.parser
 import ipaddress
+import re
 import typing
 
 
@@ -42,7 +44,7 @@ class Scan:
     title: str
     user_login: str
     launch_datetime: datetime.datetime
-    duration: datetime.timedelta
+    duration: typing.Union[datetime.timedelta, str]
     processed: bool
     target: typing.Set[typing.Union[ipaddress.IPv4Address,
                                     ipaddress.IPv6Address,
@@ -56,6 +58,18 @@ class Scan:
     option_profile: typing.Optional[str] = None
 
 
+DURATION_RE = re.compile("(\\d+)*( day[s]* )*(\\d\\d):(\\d\\d):(\\d\\d)")
+
+
+def parse_duration(duration):
+    match = DURATION_RE.match(duration)
+    days = int(match.group(1)) if match.group(1) else 0
+    hours = int(match.group(2)) if match.group(2) else 0
+    minutes = int(match.group(3)) if match.group(3) else 0
+    seconds = int(match.group(4)) if match.group(4) else 0
+    return datetime.timedelta(hours=hours + 24 * days, minutes=minutes, seconds=seconds)
+
+
 def get_scans(raw, filter=None, modifiers=None):
     scans = []
     for scan in raw["RESPONSE"]["SCAN_LIST"].iterchildren():
@@ -65,11 +79,11 @@ def get_scans(raw, filter=None, modifiers=None):
         # Convert elements to expected types
         scan_elements["_type"] = scan_elements["type"]
         scan_elements.pop("type")
-        scan_elements["launch_datetime"] = datetime.fromisoformat(
+        scan_elements["launch_datetime"] = dateutil.parser.isoparse(
             scan_elements["launch_datetime"])
-        duration = [int(n) for n in scan_elements["duration"].split(":")]
-        scan_elements["duration"] = datetime.timedelta(
-            hours=duration[0], minutes=duration[1], seconds=duration[2])
+        if scan_elements["duration"] != "Pending":
+            scan_elements["duration"] = parse_duration(
+                scan_elements["duration"])
         scan_elements["processed"] = bool(scan_elements["processed"])
         targets = []
         for target in scan_elements["target"].split(","):

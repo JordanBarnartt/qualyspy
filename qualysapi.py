@@ -31,7 +31,7 @@ class Connection:
 
     def __del__(self):
         data = {"action": "logout"}
-        requests.post(API_ROOT + "fo/session/",
+        requests.post(API_ROOT + "fo/session/", headers=self.headers,
                       data=data, cookies=self.cookies)
 
     def request(self, path, params=None):
@@ -47,3 +47,4 @@ class Connection:
 if __name__ == "__main__":
     conn = Connection(**CREDENTIALS)
     conn.get_scans()
+    print(conn.scans)
