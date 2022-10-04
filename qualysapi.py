@@ -1,9 +1,7 @@
 import configparser
+import lxml.objectify
 import re
 import requests
-import lxml.objectify
-
-import modules.vm_scans
 
 CONFIG_FILE = 'qualysapi.conf'
 
@@ -17,8 +15,9 @@ CREDENTIALS = {"username": config['AUTHENTICATION']['username'],
 class Connection:
     headers = {"X-Requested-With": "qualysapi python package"}
 
-    def __init__(self, username, password):
-        data = {"action": "login", "username": username, "password": password}
+    def __init__(self):
+        data = {"action": "login",
+                "username": CREDENTIALS["username"], "password": CREDENTIALS["password"]}
         conn = requests.post(
             API_ROOT + "fo/session/", headers=self.headers, data=data)
         if conn.status_code == requests.codes.ok:
@@ -39,12 +38,8 @@ class Connection:
                             cookies=self.cookies, params=params)
         return lxml.objectify.fromstring(re.split("\n", conn.text, 1)[1])
 
-    def get_scans(self, filter=None, modifiers=None):
-        output = self.request("fo/scan/?action=list")
-        self.scans = modules.vm_scans.get_scans(output, filter, modifiers)
-
-
-if __name__ == "__main__":
-    conn = Connection(**CREDENTIALS)
-    conn.get_scans()
-    print(conn.scans)
+    def run(self, func, params=None):
+        if params is not None:
+            return func(self, **params)
+        else:
+            return func(self)

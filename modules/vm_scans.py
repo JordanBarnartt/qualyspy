@@ -58,7 +58,7 @@ class Scan:
     option_profile: typing.Optional[str] = None
 
 
-DURATION_RE = re.compile("(\\d+)*( day[s]* )*(\\d\\d):(\\d\\d):(\\d\\d)")
+DURATION_RE = re.compile("(\\d+)*(?: day[s]* )*(\\d\\d):(\\d\\d):(\\d\\d)")
 
 
 def parse_duration(duration):
@@ -70,7 +70,8 @@ def parse_duration(duration):
     return datetime.timedelta(hours=hours + 24 * days, minutes=minutes, seconds=seconds)
 
 
-def get_scans(raw, filter=None, modifiers=None):
+def get_scans(conn, filter=None, modifiers=None):
+    raw = conn.request("fo/scan/?action=list")
     scans = []
     for scan in raw["RESPONSE"]["SCAN_LIST"].iterchildren():
         scan_elements = {
@@ -101,3 +102,4 @@ def get_scans(raw, filter=None, modifiers=None):
                 agt for agt in scan_elements["asset_group_title"].split(",")]
 
         scans.append(Scan(**scan_elements))
+    return scans
