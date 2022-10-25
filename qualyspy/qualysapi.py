@@ -3,9 +3,9 @@
 This is the main file of the wrapper which includes the functionality to establish a connection to
 the API endpoint and use the other modules.
 
-Typical usage examples:
-
+Example:
     conn = qualysapi.Connection()
+
     scans = conn.run(modules.vm_scans.get_scans)
 """
 
@@ -15,7 +15,7 @@ import re
 import requests
 
 from collections.abc import Mapping
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 CONFIG_FILE = "../qualysapi.conf"
 
@@ -39,6 +39,7 @@ class Connection:
     """
 
     headers = {"X-Requested-With": "qualysapi python package"}
+    """A dictionary containing the headers passed into API requests."""
 
     def __init__(self):
         """Instantiates a Connection object.
@@ -98,7 +99,18 @@ class Connection:
         )
         return lxml.objectify.fromstring(re.split("\n", conn.text, 1)[1])
 
-    def run(self, func, params=None):
+    def run(
+        self,
+        func: Callable[..., Any],
+        params: Optional[Mapping[str, Any]] = None,
+    ):
+        """Runs a function which calls the API and returns the output.
+
+        Args:
+            func: A function which takes the Connection object as input (along with any additional)
+                and returns the output of an API call as a Pythonic object.
+            params: Additional parameters to pass to func.
+        """
         if params is not None:
             return func(self, **params)
         else:
