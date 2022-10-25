@@ -13,10 +13,14 @@ class Filter:
     state: typing.Optional[typing.List[str]] = None
     processed: typing.Optional[bool] = None
     _type: typing.Optional[str] = None
-    target: typing.List[typing.Union[ipaddress.IPv4Address,
-                                     ipaddress.IPv6Address,
-                                     ipaddress.IPv4Network,
-                                     ipaddress.IPv6Network]] = None
+    target: typing.List[
+        typing.Union[
+            ipaddress.IPv4Address,
+            ipaddress.IPv6Address,
+            ipaddress.IPv4Network,
+            ipaddress.IPv6Network,
+        ]
+    ] = None
     user_login: typing.Optional[str] = None
     launched_after_datetime: typing.Optional[datetime.datetime] = None
     launched_before_datetime: typing.Optional[datetime.datetime] = None
@@ -46,10 +50,14 @@ class Scan:
     launch_datetime: datetime.datetime
     duration: typing.Union[datetime.timedelta, str]
     processed: bool
-    target: typing.Set[typing.Union[ipaddress.IPv4Address,
-                                    ipaddress.IPv6Address,
-                                    ipaddress.IPv4Network,
-                                    ipaddress.IPv6Network]]
+    target: typing.Set[
+        typing.Union[
+            ipaddress.IPv4Address,
+            ipaddress.IPv6Address,
+            ipaddress.IPv4Network,
+            ipaddress.IPv6Network,
+        ]
+    ]
     id: str = None
     scan_type: typing.Optional[str] = None
     processing_priority: typing.Optional[str] = None
@@ -74,17 +82,16 @@ def get_scans(conn, filter=None, modifiers=None):
     raw = conn.request("fo/scan/?action=list")
     scans = []
     for scan in raw["RESPONSE"]["SCAN_LIST"].iterchildren():
-        scan_elements = {
-            child.tag.lower(): child.text for child in scan.iterchildren()}
+        scan_elements = {child.tag.lower(): child.text for child in scan.iterchildren()}
 
         # Convert elements to expected types
         scan_elements["_type"] = scan_elements["type"]
         scan_elements.pop("type")
         scan_elements["launch_datetime"] = dateutil.parser.isoparse(
-            scan_elements["launch_datetime"])
+            scan_elements["launch_datetime"]
+        )
         if scan_elements["duration"] != "Pending":
-            scan_elements["duration"] = parse_duration(
-                scan_elements["duration"])
+            scan_elements["duration"] = parse_duration(scan_elements["duration"])
         scan_elements["processed"] = bool(scan_elements["processed"])
         targets = []
         for target in scan_elements["target"].split(","):
@@ -99,7 +106,8 @@ def get_scans(conn, filter=None, modifiers=None):
         scan_elements["target"] = set(targets)
         if "asset_group_title" in scan_elements:
             scan_elements["asset_group_title"] = [
-                agt for agt in scan_elements["asset_group_title"].split(",")]
+                agt for agt in scan_elements["asset_group_title"].split(",")
+            ]
 
         scans.append(Scan(**scan_elements))
     return scans
