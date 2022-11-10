@@ -15,7 +15,7 @@ import re
 import requests
 
 from collections.abc import Mapping
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 CONFIG_FILE = "../qualysapi.conf"
 
@@ -98,20 +98,3 @@ class Connection:
             API_ROOT + path, headers=self.headers, cookies=self.cookies, params=params
         )
         return lxml.objectify.fromstring(re.split("\n", conn.text, 1)[1])
-
-    def run(
-        self,
-        func: Callable[..., Any],
-        params: Optional[Mapping[str, Any]] = None,
-    ):
-        """Runs a function which calls the API and returns the output.
-
-        Args:
-            func: A function which takes the Connection object as input (along with any additional)
-                and returns the output of an API call as a Pythonic object.
-            params: Additional parameters to pass to func.
-        """
-        if params is not None:
-            return func(self, **params)
-        else:
-            return func(self)
