@@ -17,7 +17,7 @@ import requests
 from collections.abc import Mapping
 from typing import Any, Optional
 
-CONFIG_FILE = "../qualysapi.conf"
+CONFIG_FILE = "qualysapi.conf"
 
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
@@ -41,7 +41,7 @@ class Connection:
     headers = {"X-Requested-With": "qualysapi python package"}
     """A dictionary containing the headers passed into API requests."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Instantiates a Connection object.
 
         Using the credentials in the configuration file, connect to the Qualys API endpoint
@@ -65,7 +65,7 @@ class Connection:
             print(conn.headers)
             conn.raise_for_status()
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Deletes a Connection object.
 
         Perform an API request to logout of the session to avoid API limits.
@@ -78,7 +78,9 @@ class Connection:
             cookies=self.cookies,
         )
 
-    def request(self, path: str, params: Optional[Mapping[str, Any]] = None):
+    def request(
+        self, path: str, params: Optional[Mapping[str, Any]] = None
+    ) -> lxml.objectify.ObjectifiedDataElement:
         """Performs an API request to the connection for a given API path and returns the result.
 
         Normally, it is not intended that this function be called manually.  Instead, most requests
