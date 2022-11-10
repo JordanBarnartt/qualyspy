@@ -3,14 +3,14 @@ import datetime
 import dateutil.parser
 import ipaddress
 import re
-from collections.abc import Sequence, Set
-from typing import Optional, Union
+from collections.abc import Sequence, Set, Mapping
+from typing import Any, Optional, Union
 
 
 @dataclasses.dataclass
 class Filter:
-    """A filter to restrict the scan list output.  Passed as a parameter to get_scans().
-    """
+    """A filter to restrict the scan list output.  Passed as a parameter to get_scans()."""
+
     scan_ref: Optional[str] = None
     """Show only a scan with a certain scan reference code.
             When unspecified, the scan list is not restricted to a certain scan.\n
@@ -34,7 +34,13 @@ class Filter:
     """Specify False to show only scans that are not processed.
             Specify True to show only scans that have been processed. When not
             specified, the scan list output is not filtered based on the
-            processed status."""
+            processed status.
+    """
+    type_: Optional[str] = None
+    """Show only a certain scan type. By default, the scan list
+            is not restricted to a certain scan type. A valid value is:
+            On-Demand, Scheduled, or API.
+    """
     scan_type: Optional[str] = None
     """Show only a certain scan type. By default, the scan list
             is not restricted to a certain scan type. A valid value is:
@@ -49,7 +55,7 @@ class Filter:
         ]
     ] = None
     """Show only one or more target IP addresses. By default,
-            the scan list includes all scans on all IP addresses. 
+            the scan list includes all scans on all IP addresses.
     """
     user_login: Optional[str] = None
     """Show only a certain user login. The user login
@@ -58,30 +64,88 @@ class Filter:
             login name for a valid Qualys user account.
     """
     launched_after_datetime: Optional[datetime.datetime] = None
-    """ Show only scans launched after a certain date and
-            time. The date/time is specified in YYYY-MM-
-            DD[THH:MM:SSZ] format (UTC/GMT), like “2007-07-01” or “2007-
-            01-25T23:12:00Z”.\n
+    """Show only scans launched after a certain date and
+            time.\n
             When launched_after_datetime and launched_before_datetime
             are unspecified, the service selects scans launched within the
             past 30 days.\n
             A date/time in the future returns an empty scans list.
     """
     launched_before_datetime: Optional[datetime.datetime] = None
+    """Show only scans launched before a certain date and
+            time.\n
+            When launched_after_datetime and launched_before_datetime
+            are unspecified, the service selects scans launched within the
+            past 30 days.\n
+            A date/time in the future returns a list of all scans (not limited to
+            scans launched within the past 30 days).
+    """
     scan_type: Optional[str] = None
+    """Can be set to one of:\n
+            - "certview": List CertView in VM scans only. This option will be
+                supported when CertView GA is released and enabled for your
+                account.
+            - "ec2certview": List EC2 CertView VM scans only.
+    """
     client_id: Optional[str] = None
+    """Id assigned to the client (Consultant type
+            subscriptions).\n
+            Mutually exclusive with client_name.
+    """
     client_name: Optional[str] = None
+    """Name of the client (Consultant type subscriptions).\n
+            Mutually exclusing with client_id.
+    """
 
-    def __post_init__(self):
-        good_states = set("Running", "Paused", "Canceled", "Finished", "Error", "Queued", "Loading")
+    def params(self) -> Mapping[str, Any]:
+        """Returns a mapping of Filter parameters to be passed to an API request."""
+        params = {
+            "scan_ref": self.scan_ref,
+            "scan_id": self.scan_id,
+            "state": self.state,
+            "processed": 1 if self.processed else 0,
+            "type": self.type_,
+            "target": self.target,
+            "user_login": self.user_login,
+            "launched_after_datetime": self.launched_after_datetime,
+            "launched_before_datetime": self.launched_before_datetime,
+            "scan_type": self.scan_type,
+            "client_id": self.client_id,
+            "client_name": self.client_name,
+        }
+        return params
+
+    def __post_init__(self) -> None:
+        self._check_parameters()
+
+    def __setattr__(self, __name: str, __value: Any) -> None:
+        super().__setattr__(__name, __value)
+        self._check_parameters()
+
+    def _check_parameters(self) -> None:
+        """Confirms that any value with additional restrictions meets those restrictions."""
+        good_states = set(
+            None,
+            "Running",
+            "Paused",
+            "Canceled",
+            "Finished",
+            "Error",
+            "Queued",
+            "Loading",
+        )
         for state in self.states:
             if state not in good_states:
                 raise ValueError(f"{state} not one of {good_states}")
 
-        good_scan_types = set("On-Demand", "Scheduled", "API")
-        if self.scan_type not in good_scan_types:
-            raise ValueError(f"{self.scan_type} not one of {good_scan_types}")
+        good_types = set(None, "On-Demand", "Scheduled", "API")
+        if self.type_ not in good_types:
+            raise ValueError(f"{self.scan_type} not one of {good_types}")
 
+        if self.client_id and self.client_name:
+            raise ValueError(
+                "client_id and client_name cannot both be defined in the same Filter"
+            )
 
 
 @dataclasses.dataclass
@@ -99,7 +163,7 @@ class Option_Profile:
 @dataclasses.dataclass
 class Scan:
     ref: str
-    _type: str
+    type_: str
     title: str
     user_login: str
     launch_datetime: datetime.datetime
@@ -124,7 +188,7 @@ class Scan:
 DURATION_RE = re.compile("(\\d+)*(?: day[s]* )*(\\d\\d):(\\d\\d):(\\d\\d)")
 
 
-def parse_duration(duration):
+def _parse_duration(duration):
     match = DURATION_RE.match(duration)
     days = int(match.group(1)) if match.group(1) else 0
     hours = int(match.group(2)) if match.group(2) else 0
@@ -134,19 +198,19 @@ def parse_duration(duration):
 
 
 def get_scans(conn, filter=None, modifiers=None):
-    raw = conn.request("fo/scan/?action=list")
+    raw = conn.request("fo/scan/?action=list", params=filter)
     scans = []
     for scan in raw["RESPONSE"]["SCAN_LIST"].iterchildren():
         scan_elements = {child.tag.lower(): child.text for child in scan.iterchildren()}
 
         # Convert elements to expected types
-        scan_elements["_type"] = scan_elements["type"]
+        scan_elements["type_"] = scan_elements["type"]
         scan_elements.pop("type")
         scan_elements["launch_datetime"] = dateutil.parser.isoparse(
             scan_elements["launch_datetime"]
         )
         if scan_elements["duration"] != "Pending":
-            scan_elements["duration"] = parse_duration(scan_elements["duration"])
+            scan_elements["duration"] = _parse_duration(scan_elements["duration"])
         scan_elements["processed"] = bool(scan_elements["processed"])
         targets = []
         for target in scan_elements["target"].split(","):
