@@ -1,10 +1,14 @@
 import dataclasses
 import datetime
-import dateutil.parser
 import ipaddress
+import json
 import re
-from collections.abc import Sequence, Set, Mapping
+from collections.abc import Mapping, Sequence, Set
 from typing import Any, Optional, Union
+
+import dateutil.parser
+
+URLS = json.load("./urls.json")
 
 
 @dataclasses.dataclass
@@ -198,7 +202,7 @@ def _parse_duration(duration):
 
 
 def get_scans(conn, filter=None, modifiers=None):
-    raw = conn.request("fo/scan/?action=list", params=filter)
+    raw = conn.request(URLS["VM Scan List"], params=filter)
     scans = []
     for scan in raw["RESPONSE"]["SCAN_LIST"].iterchildren():
         scan_elements = {child.tag.lower(): child.text for child in scan.iterchildren()}
