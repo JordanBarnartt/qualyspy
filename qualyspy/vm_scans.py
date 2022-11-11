@@ -399,6 +399,8 @@ def get_scan_list(
             Several parameters allow you to set filters to restrict the scan list output. When no
             filters are specified, the service returns all scans launched by all users within the
             past 30 days.
+        show_hide_information:
+            These parameters specify whether certain information will be shown in the output.
 
 
     Returns:
@@ -458,69 +460,17 @@ def get_scan_list(
         scans.append(Scan(**scan_elements))
     return scans
 
+class Scanner_Appliance():
+    """Scanner appliance"""
+
 
 def launch_scan(
-    scan_title: Optional[str] = "",
-    target_from: str = "assets",
-    ip: Optional[
-        Union[
-            ipaddress.IPv4Address,
-            ipaddress.IPv6Address,
-            ipaddress.IPv4Network,
-            ipaddress.IPv6Network,
-            MutableSequence[
-                Union[
-                    ipaddress.IPv4Address,
-                    ipaddress.IPv6Address,
-                    ipaddress.IPv4Network,
-                    ipaddress.IPv6Network,
-                ]
-            ],
-        ]
-    ] = None,
-    asset_groups: Optional[Union[str, MutableSequence[str]]] = None,
-    asset_group_ids: Optional[Union[str, MutableSequence[str]]] = None,
-    exclude_ip_per_scan: Optional[
-        Union[
-            ipaddress.IPv4Address,
-            ipaddress.IPv6Address,
-            ipaddress.IPv4Network,
-            ipaddress.IPv6Network,
-            MutableSequence[
-                Union[
-                    ipaddress.IPv4Address,
-                    ipaddress.IPv6Address,
-                    ipaddress.IPv4Network,
-                    ipaddress.IPv6Network,
-                ]
-            ],
-        ]
-    ] = None,
-    tag_include_selector: str = "any",
-    tag_exclude_selector: str = "any",
-    tag_set_by: str = "id",
-    tag_set_include: Optional[Union[str, MutableSequence[str]]] = None,
-    tag_set_exclude: Optional[Union[str, MutableSequence[str]]] = None,
-    use_ip_nt_range_tags_include: bool = False,
-    use_ip_nt_range_tags_exclude: bool = False,
-    iscanner_id: Optional[Union[str, MutableSequence[str]]] = None,
-    iscanner_name: Optional[Union[str, MutableSequence[str]]] = None,
-    default_scanner: bool = False,
-    scanners_in_ag: bool = False,
-    scanners_in_target: bool = False,
-    scanners_in_network: bool = False,
-    option_title: Optional[str] = None,
-    option_id: Optional[str] = None,
-    priority: int = 0,
-    connector_name: Optional[str] = None,
-    ec2_endpoint: Optional[str] = None,
-    ec2_instance_ids: Optional[str] = None,
-    ip_network_id: int = 0,
-    runtime_http_header: Optional[str] = None,
-    scan_type: Optional[str] = None,
-    fqdn: Optional[Union[str, MutableSequence[str]]] = None,
-    client: Optional[Client] = None,
-    include_agent_targets: bool = False,
+    conn: qualysapi.Connectionm,
+    scan_title: str,
+    option_profile: Option_Profile,
+    scanner_appliance: Scanner_Appliance,
+    asset_ips_groups: Union[]
+    processing_priority: int = 0
 ):
     """Launch vulnerability scan in the user's account.
 
