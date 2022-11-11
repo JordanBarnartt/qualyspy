@@ -250,8 +250,13 @@ class Status:
 class Option_Profile:
     """A set of options specified for a scan."""
 
-    title: str
-    """The option profile title specified for the scan."""
+    title: Optional[str] = ""
+    """The title of the option profile.  When creating an Option_Profile, only one of title or id
+        should be defined."""
+
+    id: Optional[int] = None
+    """The ID of the option profile.  When creating an Option_Profile, only one of title or id
+        should be defined."""
 
     default_flag: Optional[bool] = None
     """A flag that specifies whether the option profile was defined as the default
@@ -459,39 +464,3 @@ def get_scan_list(
 
         scans.append(Scan(**scan_elements))
     return scans
-
-class Scanner_Appliance():
-    """Scanner appliance"""
-
-
-def launch_scan(
-    conn: qualysapi.Connectionm,
-    scan_title: str,
-    option_profile: Option_Profile,
-    scanner_appliance: Scanner_Appliance,
-    asset_ips_groups: Union[]
-    processing_priority: int = 0
-):
-    """Launch vulnerability scan in the user's account.
-
-    Notes:
-        The Launch Scan API is asynchronous. When you make a request to launch a scan using
-        this API, the service will return a scan reference ID right away and the call will quit
-        without waiting for the complete scan results.
-
-        When you launch a VM scan using the API, we check to see if the IPs in the scan target
-        are available to the user making the scan request. To determine this, Qualys checks that
-        each IP is in the subscription, in the VM license, and in the user's assigned scope. If any
-        IP in the target is not available to the user, then it will be skipped from the scan job.
-
-        For example, let's say you specify the IP range 10.10.10.100-10.10.10.120, but IPs
-        10.10.10.115 and 10.10.10.120 are not available to you. In this case, Qualys will launch
-        the scan on 10.10.10.100-10.10.10.114, 10.10.10.116-10.10.10.119, and Qualys will skip
-        10.10.10.115 and 10.10.10.120.
-
-        Using networks? Choose the Global Default Network to scan IPs on your network
-        perimeter.
-
-    Args:
-        scan_title:
-    """

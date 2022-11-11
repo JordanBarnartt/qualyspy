@@ -1,4 +1,4 @@
-"""Python API wrapper for the Qualys API.
+"""Python wrapper for the Qualys API.
 
 This is the main file of the wrapper which includes the functionality to establish a connection to
 the API endpoint and use the other modules.
