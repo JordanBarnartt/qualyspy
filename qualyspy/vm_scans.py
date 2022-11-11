@@ -5,9 +5,9 @@ import json
 import re
 from collections.abc import MutableMapping, MutableSequence, Set
 from typing import Any, Optional, Union
-import lxml
 
 import dateutil.parser
+import lxml
 
 import qualyspy.qualysapi as qualysapi
 
@@ -16,7 +16,7 @@ URLS = json.load(open("qualyspy/urls.json", "r"))
 
 @dataclasses.dataclass
 class Filter:
-    """A filter to restrict the scan list output.  Passed as a parameter to get_scans()."""
+    """A filter to restrict the scan list output."""
 
     scan_ref: Optional[str] = None
     """Show only a scan with a certain scan reference code.
@@ -56,6 +56,7 @@ class Filter:
     target: Optional[
         MutableSequence[
             Union[
+                str,
                 ipaddress.IPv4Address,
                 ipaddress.IPv6Address,
                 ipaddress.IPv4Network,
@@ -248,10 +249,9 @@ class Scan:
 
     target: Set[
         Union[
+            str,
             ipaddress.IPv4Address,
             ipaddress.IPv6Address,
-            ipaddress.IPv4Network,
-            ipaddress.IPv6Network,
         ]
     ]
     """The scan target hosts. This element does not appear when API request
@@ -312,35 +312,37 @@ def _parse_elements(
     return elements
 
 
-def _parse_ips(
+def _parse_targets(
     ips: str,
 ) -> Set[
     Union[
+        str,
         ipaddress.IPv4Address,
         ipaddress.IPv6Address,
-        ipaddress.IPv4Network,
-        ipaddress.IPv6Network,
     ]
 ]:
     """Parse a comma delineated list of IPs and IP ranges represented as <Start IP>-<End IP> into a
     list of IPAddress objects.
     """
 
-    targets = []
+    targets: list[Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address]] = []
     for target in ips.split(","):
-        if "-" not in target:
-            targets.append(ipaddress.ip_address(target))
-        else:
-            start_ip, end_ip = target.split("-")
-            ip = ipaddress.ip_address(start_ip)
-            while ip.compressed <= ipaddress.ip_address(end_ip).compressed:
-                targets.append(ip)
-                ip += 1
+        try:
+            if "-" not in target:
+                targets.append(ipaddress.ip_address(target))
+            else:
+                start_ip, end_ip = target.split("-")
+                ip = ipaddress.ip_address(start_ip)
+                while ip.compressed <= ipaddress.ip_address(end_ip).compressed:
+                    targets.append(ip)
+                    ip += 1
+        except ValueError:
+            targets.append(target)
     targets_set = set(targets)
     return targets_set
 
 
-def get_scans(
+def get_scan_list(
     conn: qualysapi.Connection,
     filter: Optional[Filter] = None,
     show_ags: bool = False,
@@ -413,16 +415,21 @@ def get_scans(
         if scan_elements["duration"] != "Pending":
             scan_elements["duration"] = _parse_duration(scan_elements["duration"])
         scan_elements["processed"] = bool(scan_elements["processed"])
-        scan_elements["target"] = _parse_ips(scan_elements["target"])
+        scan_elements["target"] = _parse_targets(scan_elements["target"])
         if "client" in scan_elements:
             scan_elements["client"] = Client(
                 id=scan_elements["client"]["id"], name=scan_elements["client"]["name"]
             )
         if "status" in scan_elements:
-            scan_elements["status"] = Status(
-                state=scan_elements["status"]["state"],
-                sub_state=scan_elements["status"]["sub_state"],
-            )
+            if "sub_state" in scan_elements["status"]:
+                scan_elements["status"] = Status(
+                    state=scan_elements["status"]["state"],
+                    sub_state=scan_elements["status"]["sub_state"],
+                )
+            else:
+                scan_elements["status"] = Status(
+                    state=scan_elements["status"]["state"],
+                )
         if "asset_group_title_list" in scan_elements:
             scan_elements["asset_group_title_list"] = [
                 agt for agt in scan_elements["asset_group_title_list"].split(",")
