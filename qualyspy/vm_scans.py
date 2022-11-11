@@ -11,7 +11,7 @@ import dateutil.parser
 import lxml
 import qualyspy.qualysapi as qualysapi
 
-URLS = json.load(importlib.resources.files('qualyspy').joinpath('urls.json').open())
+URLS = json.load(importlib.resources.files("qualyspy").joinpath("urls.json").open())
 
 
 @dataclasses.dataclass
@@ -166,6 +166,54 @@ class Filter:
             raise ValueError(
                 "client_id and client_name cannot both be defined in the same Filter"
             )
+
+
+@dataclasses.dataclass
+class Show_Hide_Information:
+    """Specify whether certain information will be included in the output of a scan list."""
+
+    show_ags: bool = False
+    """Specify True to show asset group information for each scan in the XML output. By
+            default, asset group information is not shown.
+    """
+
+    show_op: bool = False
+    """Specify True to show option profile information for each scan in the XML output. By
+            default, option profile information is not shown.
+    """
+
+    show_status: bool = True
+    """Specify False to not show scan status for each scan in the XML output. By default, scan
+            status is shown.
+    """
+
+    show_last: bool = False
+    """Specify True to show only the most recent scan (which meets all other search filters in
+            the request) in the XML output. By default, all scans are shown in the XML output.
+    """
+
+    pci_only: bool = False
+    """Specify True to show only external PCI scans in the XML output. External PCI scans are
+            vulnerability scans run with the option profile “Payment Card Industry (PCI) Options”.
+            When pci_only=True is specified, the XML output will not include other types of scans
+            run with other option profiles.
+    """
+
+    ignore_target: bool = False
+    """Specify True to hide target information from the scan list. Specify False to display the
+            target information.
+    """
+
+    def params(self) -> MutableMapping[str, int]:
+        params = {
+            "show_ags": int(self.show_ags),
+            "show_op": int(self.show_op),
+            "show_status": int(self.show_status),
+            "show_last": int(self.show_last),
+            "pci_only": int(self.pci_only),
+            "ignore_target": int(self.ignore_target),
+        }
+        return params
 
 
 @dataclasses.dataclass
@@ -339,12 +387,7 @@ def _parse_targets(
 def get_scan_list(
     conn: qualysapi.Connection,
     filter: Optional[Filter] = None,
-    show_ags: bool = False,
-    show_op: bool = False,
-    show_status: bool = True,
-    show_last: bool = False,
-    pci_only: bool = False,
-    ignore_target: bool = False,
+    show_hide_information: Optional[Show_Hide_Information] = None,
 ) -> MutableSequence[Scan]:
     """List vulnerability scans in the user's account. By default, the output lists scans launched
         in the past 30 days.
@@ -356,44 +399,22 @@ def get_scan_list(
             Several parameters allow you to set filters to restrict the scan list output. When no
             filters are specified, the service returns all scans launched by all users within the
             past 30 days.
-        show_args:
-            Specify True to show asset group information for each scan in the XML output. By
-            default, asset group information is not shown.
-        show_op:
-            Specify True to show option profile information for each scan in the XML output. By
-            default, option profile information is not shown.
-        show_status:
-            Specify False to not show scan status for each scan in the XML output. By default, scan
-            status is shown.
-        show_last:
-            Specify True to show only the most recent scan (which meets all other search filters in
-            the request) in the XML output. By default, all scans are shown in the XML output.
-        pci_only:
-            Specify True to show only external PCI scans in the XML output. External PCI scans are
-            vulnerability scans run with the option profile “Payment Card Industry (PCI) Options”.
-            When pci_only=True is specified, the XML output will not include other types of scans
-            run with other option profiles.
-        ignore_target:
-            Specify True to hide target information from the scan list. Specify False to display the
-            target information.
+
 
     Returns:
         A list of Scan objects.  Each object represents a single Qualys scan matching the parameters
         of the filter supplied.
+
+    Example:
+        conn = qualysapi.Connection()\n
+        scans = vm_scans.get_scan_list(conn)
     """
 
-    show_hide_information = {
-        "show_ags": int(show_ags),
-        "show_op": int(show_op),
-        "show_status": int(show_status),
-        "show_last": int(show_last),
-        "pci_only": int(pci_only),
-        "ignore_target": int(ignore_target),
-    }
+    params: MutableMapping[str, int] = dict()
     if filter:
-        params = filter.params().update(show_hide_information)
-    else:
-        params = show_hide_information
+        params.update(filter.params())
+    if show_hide_information:
+        params.update(show_hide_information.params())
     raw = conn.request(URLS["VM Scan List"], params=params)
 
     scans = []
@@ -436,3 +457,91 @@ def get_scan_list(
 
         scans.append(Scan(**scan_elements))
     return scans
+
+
+def launch_scan(
+    scan_title: Optional[str] = "",
+    target_from: str = "assets",
+    ip: Optional[
+        Union[
+            ipaddress.IPv4Address,
+            ipaddress.IPv6Address,
+            ipaddress.IPv4Network,
+            ipaddress.IPv6Network,
+            MutableSequence[
+                Union[
+                    ipaddress.IPv4Address,
+                    ipaddress.IPv6Address,
+                    ipaddress.IPv4Network,
+                    ipaddress.IPv6Network,
+                ]
+            ],
+        ]
+    ] = None,
+    asset_groups: Optional[Union[str, MutableSequence[str]]] = None,
+    asset_group_ids: Optional[Union[str, MutableSequence[str]]] = None,
+    exclude_ip_per_scan: Optional[
+        Union[
+            ipaddress.IPv4Address,
+            ipaddress.IPv6Address,
+            ipaddress.IPv4Network,
+            ipaddress.IPv6Network,
+            MutableSequence[
+                Union[
+                    ipaddress.IPv4Address,
+                    ipaddress.IPv6Address,
+                    ipaddress.IPv4Network,
+                    ipaddress.IPv6Network,
+                ]
+            ],
+        ]
+    ] = None,
+    tag_include_selector: str = "any",
+    tag_exclude_selector: str = "any",
+    tag_set_by: str = "id",
+    tag_set_include: Optional[Union[str, MutableSequence[str]]] = None,
+    tag_set_exclude: Optional[Union[str, MutableSequence[str]]] = None,
+    use_ip_nt_range_tags_include: bool = False,
+    use_ip_nt_range_tags_exclude: bool = False,
+    iscanner_id: Optional[Union[str, MutableSequence[str]]] = None,
+    iscanner_name: Optional[Union[str, MutableSequence[str]]] = None,
+    default_scanner: bool = False,
+    scanners_in_ag: bool = False,
+    scanners_in_target: bool = False,
+    scanners_in_network: bool = False,
+    option_title: Optional[str] = None,
+    option_id: Optional[str] = None,
+    priority: int = 0,
+    connector_name: Optional[str] = None,
+    ec2_endpoint: Optional[str] = None,
+    ec2_instance_ids: Optional[str] = None,
+    ip_network_id: int = 0,
+    runtime_http_header: Optional[str] = None,
+    scan_type: Optional[str] = None,
+    fqdn: Optional[Union[str, MutableSequence[str]]] = None,
+    client: Optional[Client] = None,
+    include_agent_targets: bool = False,
+):
+    """Launch vulnerability scan in the user's account.
+
+    Notes:
+        The Launch Scan API is asynchronous. When you make a request to launch a scan using
+        this API, the service will return a scan reference ID right away and the call will quit
+        without waiting for the complete scan results.
+
+        When you launch a VM scan using the API, we check to see if the IPs in the scan target
+        are available to the user making the scan request. To determine this, Qualys checks that
+        each IP is in the subscription, in the VM license, and in the user's assigned scope. If any
+        IP in the target is not available to the user, then it will be skipped from the scan job.
+
+        For example, let's say you specify the IP range 10.10.10.100-10.10.10.120, but IPs
+        10.10.10.115 and 10.10.10.120 are not available to you. In this case, Qualys will launch
+        the scan on 10.10.10.100-10.10.10.114, 10.10.10.116-10.10.10.119, and Qualys will skip
+        10.10.10.115 and 10.10.10.120.
+
+        Using networks? Choose the Global Default Network to scan IPs on your network
+        perimeter.
+
+    Args:
+        scan_title:
+    """
