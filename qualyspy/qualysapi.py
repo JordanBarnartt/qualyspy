@@ -13,11 +13,12 @@ import configparser
 import lxml.objectify
 import re
 import requests
+import os.path
 
 from collections.abc import Mapping
 from typing import Any, Optional
 
-CONFIG_FILE = "qualysapi.conf"
+CONFIG_FILE = os.path.expanduser("~") + "/qualysapi.conf"
 
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
@@ -32,10 +33,6 @@ class Connection:
     """A connection to a Qualys API endpoint.
 
     When an object of this class is removed from memory, a logout API request will be made.
-
-    Attributes:
-        cookies: A dictionary containing the QualysSession cookie used to authenticate for future
-            API requests.
     """
 
     headers = {"X-Requested-With": "qualysapi python package"}
@@ -58,7 +55,7 @@ class Connection:
         }
         conn = requests.post(API_ROOT + "fo/session/", headers=self.headers, data=data)
         if conn.status_code == requests.codes.ok:
-            self.cookies = {"QualysSession": conn.cookies["QualysSession"]}
+            self._cookies = {"QualysSession": conn.cookies["QualysSession"]}
             with open("debug/cookies.txt", "a") as f:
                 f.write(str(conn.cookies["QualysSession"]) + "\n")
         else:
@@ -75,7 +72,7 @@ class Connection:
             API_ROOT + "fo/session/",
             headers=self.headers,
             data=data,
-            cookies=self.cookies,
+            cookies=self._cookies,
         )
 
     def request(
@@ -97,6 +94,6 @@ class Connection:
             An lxml.objectify object of the XML output of the API request.
         """
         conn = requests.get(
-            API_ROOT + path, headers=self.headers, cookies=self.cookies, params=params
+            API_ROOT + path, headers=self.headers, cookies=self._cookies, params=params
         )
         return lxml.objectify.fromstring(re.split("\n", conn.text, 1)[1])

@@ -5,13 +5,13 @@ import json
 import re
 from collections.abc import MutableMapping, MutableSequence, Set
 from typing import Any, Optional, Union
+import importlib.resources
 
 import dateutil.parser
 import lxml
-
 import qualyspy.qualysapi as qualysapi
 
-URLS = json.load(open("qualyspy/urls.json", "r"))
+URLS = json.load(importlib.resources.files('qualyspy').joinpath('urls.json').open())
 
 
 @dataclasses.dataclass
@@ -314,13 +314,7 @@ def _parse_elements(
 
 def _parse_targets(
     ips: str,
-) -> Set[
-    Union[
-        str,
-        ipaddress.IPv4Address,
-        ipaddress.IPv6Address,
-    ]
-]:
+) -> Set[Union[str, ipaddress.IPv4Address, ipaddress.IPv6Address]]:
     """Parse a comma delineated list of IPs and IP ranges represented as <Start IP>-<End IP> into a
     list of IPAddress objects.
     """
