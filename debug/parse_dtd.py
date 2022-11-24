@@ -1,5 +1,6 @@
 import re
 import string
+from collections import OrderedDict
 
 ELEMENT_RE = re.compile("<!ELEMENT (?P<name>.+) \\((?P<attributes>[\\s\\S]+?)\\)>")
 
@@ -7,7 +8,7 @@ with open("debug/dtd.txt", "r") as f:
     text = f.read()
     matches = ELEMENT_RE.findall(text)
 
-classes = {}
+classes = OrderedDict()
 
 for (name, attributes) in matches:
     parsed = attributes.replace("\n", "").replace(" ", "").lower()
@@ -15,7 +16,7 @@ for (name, attributes) in matches:
     classes[name.lower()] = parsed
 
 with open("debug/output.txt", "w") as f:
-    for c in classes:
+    for c in reversed(classes):
         if classes[c][0] != "#pcdata":
             f.write("\n@dataclasses.dataclass\n")
             cl = string.capwords(c, sep="_")

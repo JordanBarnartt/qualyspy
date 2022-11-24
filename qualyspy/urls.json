@@ -1,3 +1,4 @@
 {
-    "VM Scan List": "/fo/scan/?action=list"
+    "VM Scan List": "/api/2.0/fo/scan/?action=list",
+    "Launch VM Scan": "/api/2.0/fo/scan/?action=launch"
 }

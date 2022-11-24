@@ -1,21 +1,22 @@
 import dataclasses
 import datetime
+import importlib.resources
 import ipaddress
 import json
 import re
 from collections.abc import MutableMapping, MutableSequence, Set
 from typing import Any, Optional, Union
-import importlib.resources
 
 import dateutil.parser
-import lxml
+
 import qualyspy.qualysapi as qualysapi
+import qualyspy.utils as qutils
 
 URLS = json.load(importlib.resources.files("qualyspy").joinpath("urls.json").open())
 
 
 @dataclasses.dataclass
-class Filter:
+class Filter(qutils.Qualys_Mixin):
     """A filter to restrict the scan list output."""
 
     scan_ref: Optional[str] = None
@@ -132,13 +133,6 @@ class Filter:
         }
         return params
 
-    def __post_init__(self) -> None:
-        self._check_parameters()
-
-    def __setattr__(self, __name: str, __value: Any) -> None:
-        super().__setattr__(__name, __value)
-        self._check_parameters()
-
     def _check_parameters(self) -> None:
         """Confirms that any value with additional restrictions meets those restrictions."""
 
@@ -214,17 +208,6 @@ class Show_Hide_Information:
             "ignore_target": int(self.ignore_target),
         }
         return params
-
-
-@dataclasses.dataclass
-class Client:
-    """A Qualys client (only for Consultant type subscriptions)."""
-
-    id: Optional[str] = None
-    """Id assigned to the client."""
-
-    name: Optional[str] = None
-    """Name of the client."""
 
 
 @dataclasses.dataclass
@@ -317,9 +300,6 @@ class Scan:
     scan_type: Optional[str] = None
     """For a CertView VM scan this is set to “CertView”."""
 
-    client: Optional[Client] = None
-    """The client of the scan (only for Consultant type subscriptions)."""
-
     processing_priority: Optional[str] = None
     """(Applicable for VM scans only) The processing priority setting for the scan."""
 
@@ -333,36 +313,20 @@ class Scan:
 DURATION_RE = re.compile("(\\d+)*(?: day[s]* )*(\\d\\d):(\\d\\d):(\\d\\d)")
 
 
-def _parse_duration(duration):
+def _parse_duration(duration: str) -> datetime.timedelta:
     """Parse the string-formatted duration value into a datetime.timedelta object."""
 
     match = DURATION_RE.match(duration)
-    days = int(match.group(1)) if match.group(1) else 0
-    hours = int(match.group(2)) if match.group(2) else 0
-    minutes = int(match.group(3)) if match.group(3) else 0
-    seconds = int(match.group(4)) if match.group(4) else 0
-    return datetime.timedelta(hours=hours + 24 * days, minutes=minutes, seconds=seconds)
-
-
-def _parse_elements(
-    xml: lxml.objectify.ObjectifiedElement,
-    elements: MutableMapping[str, Any] = dict(),
-    prefix="",
-) -> MutableMapping[str, Any]:
-    """Parse a tree of lxml objects into a dictionary of tag:value pairs, where tags with
-    descendants are themselves dictionarys.
-    """
-
-    for child in xml.iterchildren():
-        if type(child) == lxml.objectify.ObjectifiedElement:
-            elements[child.tag.lower()] = dict()
-            _parse_elements(
-                child, elements[child.tag.lower()], prefix=child.tag.lower()
-            )
-        else:
-            elements[child.tag.lower()] = prefix + child.text
-
-    return elements
+    if match:
+        days = int(match.group(1)) if match.group(1) else 0
+        hours = int(match.group(2)) if match.group(2) else 0
+        minutes = int(match.group(3)) if match.group(3) else 0
+        seconds = int(match.group(4)) if match.group(4) else 0
+        return datetime.timedelta(
+            hours=hours + 24 * days, minutes=minutes, seconds=seconds
+        )
+    else:
+        raise ValueError(f"{duration} not valid duration")
 
 
 def _parse_targets(
@@ -389,10 +353,11 @@ def _parse_targets(
     return targets_set
 
 
-def get_scan_list(
+def scan_list(
     conn: qualysapi.Connection,
     filter: Optional[Filter] = None,
     show_hide_information: Optional[Show_Hide_Information] = None,
+    method: str = "get",
 ) -> MutableSequence[Scan]:
     """List vulnerability scans in the user's account. By default, the output lists scans launched
         in the past 30 days.
@@ -406,6 +371,10 @@ def get_scan_list(
             past 30 days.
         show_hide_information:
             These parameters specify whether certain information will be shown in the output.
+        method:
+            The request method used for the request.  Can be either "get" or "post".  There are
+            known limits for the amount of data that can be sent using the GET method, so POST
+            should be used in those cases.
 
 
     Returns:
@@ -422,11 +391,11 @@ def get_scan_list(
         params.update(filter.params())
     if show_hide_information:
         params.update(show_hide_information.params())
-    raw = conn.request(URLS["VM Scan List"], params=params)
+    raw = conn.request(method, URLS["VM Scan List"], params=params)
 
     scans = []
     for scan in raw["RESPONSE"]["SCAN_LIST"].iterchildren():
-        scan_elements = _parse_elements(scan)
+        scan_elements = qutils.parse_elements(scan)
 
         # Convert elements to expected types
         scan_elements["type_"] = scan_elements["type"]
@@ -438,10 +407,6 @@ def get_scan_list(
             scan_elements["duration"] = _parse_duration(scan_elements["duration"])
         scan_elements["processed"] = bool(scan_elements["processed"])
         scan_elements["target"] = _parse_targets(scan_elements["target"])
-        if "client" in scan_elements:
-            scan_elements["client"] = Client(
-                id=scan_elements["client"]["id"], name=scan_elements["client"]["name"]
-            )
         if "status" in scan_elements:
             if "sub_state" in scan_elements["status"]:
                 scan_elements["status"] = Status(
@@ -464,3 +429,252 @@ def get_scan_list(
 
         scans.append(Scan(**scan_elements))
     return scans
+
+
+@dataclasses.dataclass
+class Scan_Asset_Ips_Groups(qutils.Qualys_Mixin):
+    ip: Optional[
+        MutableSequence[
+            Union[
+                ipaddress.IPv4Address,
+                ipaddress.IPv6Address,
+                ipaddress.IPv4Network,
+                ipaddress.IPv6Network,
+            ]
+        ]
+    ] = None
+    asset_groups: Optional[MutableSequence[str]] = None
+    asset_group_ids: Optional[MutableSequence[str]] = None
+    exlude_ip_per_scan: Optional[
+        MutableSequence[
+            Union[
+                ipaddress.IPv4Address,
+                ipaddress.IPv6Address,
+                ipaddress.IPv4Network,
+                ipaddress.IPv6Network,
+            ]
+        ]
+    ] = None
+    default_scanner: bool = False
+    scanners_in_ag: bool = False
+
+    def _check_parameters(self) -> None:
+        """Confirms that any value with additional restrictions meets those restrictions."""
+
+        if not self.ip and not self.asset_groups and not self.asset_group_ids:
+            raise ValueError(
+                "one of the parameters 'ip', 'asset_groups', 'asset_group_ids' must be defined."
+            )
+        if self.default_scanner and not (self.asset_groups or self.asset_group_ids):
+            raise ValueError(
+                "default_scanner is only valid when the scan target is specified using asset_groups"
+                " or asset_group_ids"
+            )
+        if self.scanners_in_ag and not (self.asset_groups or self.asset_group_ids):
+            raise ValueError(
+                "scanners_in_ag is only valid when the scan target is specified using asset_groups"
+                " or asset_group_ids"
+            )
+
+    def get_params(self) -> MutableMapping[str, str]:
+        params = {
+            "ip": qutils.ip_list_to_qualys_format(self.ip) if self.ip else None,
+            "asset_groups": ",".join(self.asset_groups) if self.asset_groups else None,
+            "asset_group_ids": ",".join(self.asset_group_ids)
+            if self.asset_group_ids
+            else None,
+            "exlude_ip_per_scan": qutils.ip_list_to_qualys_format(
+                self.exlude_ip_per_scan
+            )
+            if self.exlude_ip_per_scan
+            else None,
+            "default_scanner": "1" if self.default_scanner else "0",
+            "scanners_in_ag": "1" if self.scanners_in_ag else "0",
+        }
+
+        return qutils.remove_nones_from_dict(params)
+
+
+@dataclasses.dataclass
+class Scan_Asset_Tags:
+    tag_include_selector: str = "any"
+    tag_exclude_selector: str = "any"
+    tag_set_by: str = "id"
+    tag_set_include: Optional[MutableSequence[str]] = None
+    tag_set_exclude: Optional[MutableSequence[str]] = None
+    use_ip_nt_range_tags_include: bool = False
+    use_ip_nt_range_tags_exclude: bool = False
+    scanners_in_tagset: bool = False
+
+    def _check_parameters(self) -> None:
+        """Confirms that any value with additional restrictions meets those restrictions."""
+
+        good_tag_selectors = ["all", "any"]
+        if (
+            self.tag_include_selector not in good_tag_selectors
+            or self.tag_exclude_selector not in good_tag_selectors
+        ):
+            raise ValueError(
+                f"tag_include_selector and tag_exclude_selector must be one of {good_tag_selectors}"
+            )
+        good_set_bys = ["id", "name"]
+        if self.tag_set_by not in good_set_bys:
+            raise ValueError(f"parameter good_set_by must be one of {good_set_bys}")
+
+    def get_params(self) -> MutableMapping[str, str]:
+        params = {
+            "tag_include_selector": self.tag_include_selector,
+            "tag_exclude_selector": self.tag_exclude_selector,
+            "tag_set_by": self.tag_set_by,
+            "tag_set_include": ",".join(self.tag_set_include)
+            if self.tag_set_include
+            else None,
+            "tag_set_exclude": ",".join(self.tag_set_exclude)
+            if self.tag_set_exclude
+            else None,
+            "use_ip_nt_range_tags_include": "1"
+            if self.use_ip_nt_range_tags_include
+            else "0",
+            "use_ip_nt_range_tags_exclude": "1"
+            if self.use_ip_nt_range_tags_exclude
+            else "0",
+            "scanners_in_tagset": "1" if self.scanners_in_tagset else "0",
+        }
+
+        return qutils.remove_nones_from_dict(params)
+
+
+def launch_scan(
+    conn: qualysapi.Connection,
+    scan_assets: Union[Scan_Asset_Ips_Groups, Scan_Asset_Tags],
+    scan_title: str = "",
+    iscanner_id: Optional[Union[str, MutableSequence[str]]] = None,
+    iscanner_name: Optional[Union[str, MutableSequence[str]]] = None,
+    scanners_in_network: bool = False,
+    option_title: Optional[str] = None,
+    option_id: Optional[str] = None,
+    priority: int = 0,
+    ip_network_id: str = "0",
+    runtime_http_header: Optional[str] = None,
+    certview: bool = False,
+    fqdn: Optional[Union[str, MutableSequence[str]]] = None,
+    include_agent_targets: bool = False,
+) -> MutableMapping[str, Any]:
+    """Launch vulnerability scan in the user's account.
+
+    Notes:
+        The Launch Scan API is asynchronous. When you make a request to launch a scan using
+        this API, the service will return a scan reference ID right away and the call will quit
+        without waiting for the complete scan results.
+
+        When you launch a VM scan using the API, Qualys checks to see if the IPs in the scan target
+        are available to the user making the scan request. To determine this, Qualys checks that
+        each IP is in the subscription, in the VM license, and in the user's assigned scope. If any
+        IP in the target is not available to the user, then it will be skipped from the scan job.
+
+        For example, let's say you specify the IP range 10.10.10.100-10.10.10.120, but IPs
+        10.10.10.115 and 10.10.10.120 are not available to you. In this case, Qualys will launch the
+        scan on 10.10.10.100-10.10.10.114, 10.10.10.116-10.10.10.119, and skip 10.10.10.115
+        and 10.10.10.120.
+
+    Args:
+        conn:
+            A connection to the Qualys API.
+        scan_assets:
+            A set of IPs, Groups, or Tags to be scanned.
+        scan_title:
+             The scan title. This can be a maximum of 2000 characters (ascii).
+        iscanner_id:
+            The IDs of the scanner appliances to be used.
+            Mutually exclusive with iscanner_name.
+        iscanner_name:
+             The friendly names of the scanner appliances to be used or “External” for external
+             scanners.
+             Mutually exclusive with iscanner_id.
+        scanners_in_network:
+             Specify True to distribute the scan to all scanner appliances in the network.
+        option_title:
+            The title of the option profile to be used.
+            Mutually exclusive with option_id.
+        option_id:
+            The ID of the option profile to be used.
+            Mutually exclusive with option_title.
+        priority:
+            Specify a value of 0 - 9 to set a
+            processing priority level for the scan. When not specified, a value
+            of 0 (no priority) is used. Valid values are:
+            0 = No Priority (the default)
+            1 = Emergency
+            2 = Ultimate
+            3 = Critical
+            4 = Major
+            5 = High
+            6 = Standard
+            7 = Medium
+            8 = Minor
+            9 = Low
+        ip_network_id:
+            The ID of a network used to filter the IPs/ranges specified in the “ip” parameter. Set
+            to a custom network ID (note this does not filter IPs/ranges specified in “asset_groups”
+            or “asset_group_ids”). Or set to “0” (the default) for the Global Default Network - this
+            is used to scan hosts outside of your custom networks.
+        runtime_http_header:
+             Set a custom value in order to drop defenses (such as logging, IPs, etc) when an
+             authorized scan is being run. The value you enter will be used in the “Qualys-Scan:”
+             header that will be set for many CGI and web application fingerprinting checks. Some
+             discovery and web server fingerprinting checks will not use this header.
+        certview:
+            Launch a CertView type scan.
+        fqdn:
+            The target FQDN for a vulnerability scan. You must specify at least one target i.e. IPs,
+            asset groups or FQDNs.  You can specify FQDNs in combination with IPs and asset
+            groups but not with asset tags.
+        include_agent_targets:
+            Specify True when your scan target includes agent hosts. This lets you scan private IPs
+            where agents are installed when these IPs are not in your VM/PC license.  This parameter
+            is supported for internal scans using scanner appliance(s). This option is not supported
+            for scans using External scanners. This parameter is supported when launching on
+            demand scans only. It is not supported for scheduled scans. Parameter iscanner_id or
+            iscanner_name must be specified in the same request.
+
+        Returns:
+            A dictionary containing the ID and name of the scan.
+    """
+
+    if iscanner_id and iscanner_name:
+        raise ValueError("both iscanner_id and iscanner_name cannot be specified")
+    if not option_title and not option_id:
+        raise ValueError("one of option_title, option_id must be specified")
+    elif option_title and option_id:
+        raise ValueError("option_title and option_id cannot both be specified")
+    good_priorities = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    if priority not in good_priorities:
+        raise ValueError(f"priority must be one of {good_priorities}")
+
+    if iscanner_id and not isinstance(iscanner_id, str):
+        iscanner_id = ",".join(iscanner_id)
+    elif iscanner_name and not isinstance(iscanner_name, str):
+        iscanner_name = ",".join(iscanner_name)
+
+    params = {
+        "scan_title": scan_title,
+        "iscanner_id": iscanner_id,
+        "iscanner_name": iscanner_name,
+        "scanners_in_network": "1" if scanners_in_network else "0",
+        "option_title": option_title,
+        "option_id": option_id,
+        "priority": str(priority),
+        "ip_network_id": str(ip_network_id),
+        "runtime_http_header": runtime_http_header,
+        "certview": "certview" if certview else None,
+        "include_agent_targets": "1" if include_agent_targets else 0,
+    }
+    if isinstance(fqdn, str):
+        params["fqdn"] = fqdn
+    elif fqdn:
+        params["fqdn"] = ",".join(fqdn)
+
+    params.update(scan_assets.get_params())
+
+    raw = conn.request("post", URLS["Launch VM Scan"], params=params)
+    return qutils.parse_elements(raw["RESPONSE"]["PARAM_LIST"].iterchildren())

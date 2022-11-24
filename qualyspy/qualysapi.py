@@ -76,12 +76,12 @@ class Connection:
         )
 
     def request(
-        self, path: str, params: Optional[Mapping[str, Any]] = None
+        self, method: str, path: str, params: Optional[Mapping[str, Any]] = None
     ) -> lxml.objectify.ObjectifiedDataElement:
         """Performs an API request to the connection for a given API path and returns the result.
 
-        Normally, it is not intended that this function be called manually.  Instead, most requests
-        would be made through the "run" method and the helper modules.  However, this method is
+        Normally, it is not intended that this function be called manually.  Instead, this would be
+        run by functions in other modules of this package.  However, this method is
         considered part of the public interface to cover any API functions which are not currently
         implemented in this package.
 
@@ -93,7 +93,16 @@ class Connection:
         Returns:
             An lxml.objectify object of the XML output of the API request.
         """
-        conn = requests.get(
-            API_ROOT + path, headers=self.headers, cookies=self._cookies, params=params
-        )
+
+        match method:
+            case "get":
+                conn = requests.get(
+                    API_ROOT + path, headers=self.headers, cookies=self._cookies, params=params
+                )
+            case "post":
+                conn = requests.post(
+                    API_ROOT + path, headers=self.headers, cookies=self._cookies, params=params
+                )
+            case _:
+                raise ValueError(f"{method} is not a supported")
         return lxml.objectify.fromstring(re.split("\n", conn.text, 1)[1])
