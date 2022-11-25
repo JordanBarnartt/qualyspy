@@ -10,15 +10,18 @@ Example:
 """
 
 import configparser
-import lxml.objectify
-import re
-import requests
+import importlib.resources
+import json
 import os.path
-
+import re
 from collections.abc import Mapping
 from typing import Any, Optional
 
-CONFIG_FILE = os.path.expanduser("~") + "/qualysapi.conf"
+import lxml.objectify
+import requests
+
+CONFIG_FILE = os.path.expanduser("~/qualysapi.conf")
+URLS = json.load(importlib.resources.files("qualyspy").joinpath("urls.json").open())
 
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
@@ -49,11 +52,10 @@ class Connection:
             HTTPError: An error occured when connecting to the API endpoint.
         """
         data = {
-            "action": "login",
             "username": CREDENTIALS["username"],
             "password": CREDENTIALS["password"],
         }
-        conn = requests.post(API_ROOT + "fo/session/", headers=self.headers, data=data)
+        conn = requests.post(API_ROOT + URLS["Session Login"], headers=self.headers, data=data)
         if conn.status_code == requests.codes.ok:
             self._cookies = {"QualysSession": conn.cookies["QualysSession"]}
             with open("debug/cookies.txt", "a") as f:
@@ -67,11 +69,9 @@ class Connection:
 
         Perform an API request to logout of the session to avoid API limits.
         """
-        data = {"action": "logout"}
         requests.post(
-            API_ROOT + "fo/session/",
+            API_ROOT + URLS["Session Logout"],
             headers=self.headers,
-            data=data,
             cookies=self._cookies,
         )
 
@@ -105,4 +105,8 @@ class Connection:
                 )
             case _:
                 raise ValueError(f"{method} is not a supported")
+
+        if conn.status_code != requests.codes.ok:
+            conn.raise_for_status()
+
         return lxml.objectify.fromstring(re.split("\n", conn.text, 1)[1])

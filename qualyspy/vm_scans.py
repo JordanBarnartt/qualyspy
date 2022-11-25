@@ -433,30 +433,64 @@ def scan_list(
 
 @dataclasses.dataclass
 class Scan_Asset_Ips_Groups(qutils.Qualys_Mixin):
+    """A description of the IPs or Groups to be scanned."""
+
     ip: Optional[
-        MutableSequence[
-            Union[
-                ipaddress.IPv4Address,
-                ipaddress.IPv6Address,
-                ipaddress.IPv4Network,
-                ipaddress.IPv6Network,
-            ]
+        Union[
+            ipaddress.IPv4Address,
+            ipaddress.IPv6Address,
+            ipaddress.IPv4Network,
+            ipaddress.IPv6Network,
+            MutableSequence[
+                Union[
+                    ipaddress.IPv4Address,
+                    ipaddress.IPv6Address,
+                    ipaddress.IPv4Network,
+                    ipaddress.IPv6Network,
+                ]
+            ],
         ]
     ] = None
+    """The IP addresses to be scanned. You may enter individual IP addresses and/or ranges.  One of
+    parameters is required: ip, asset_groups or asset_group_ids.
+    """
+
     asset_groups: Optional[MutableSequence[str]] = None
+    """The titles of asset groups containing the hosts to be scanned. One of these parameters is
+    required: ip, asset_groups or asset_group_ids.
+    """
+
     asset_group_ids: Optional[MutableSequence[str]] = None
+    """ The IDs of asset groups containing the hosts to be scanned. One of these parameters is
+    required: ip, asset_groups or asset_group_ids."""
+
     exlude_ip_per_scan: Optional[
-        MutableSequence[
-            Union[
-                ipaddress.IPv4Address,
-                ipaddress.IPv6Address,
-                ipaddress.IPv4Network,
-                ipaddress.IPv6Network,
-            ]
+        Union[
+            ipaddress.IPv4Address,
+            ipaddress.IPv6Address,
+            ipaddress.IPv4Network,
+            ipaddress.IPv6Network,
+            MutableSequence[
+                Union[
+                    ipaddress.IPv4Address,
+                    ipaddress.IPv6Address,
+                    ipaddress.IPv4Network,
+                    ipaddress.IPv6Network,
+                ]
+            ],
         ]
     ] = None
+    """The IP addresses to be excluded from the scan."""
+
     default_scanner: bool = False
+    """ Specify True to use the default scanner in each target asset group.  default_scanner is
+    valid when the scan target is specified using one of these parameters: asset_groups,
+    asset_group_ids."""
+
     scanners_in_ag: bool = False
+    """Specify 1 to distribute the scan to the target asset groups' scanner appliances. Appliances
+    in each asset group are tasked with scanning the IPs in the group. By default up to 5 appliances
+    per group will be used"""
 
     def _check_parameters(self) -> None:
         """Confirms that any value with additional restrictions meets those restrictions."""
@@ -477,13 +511,22 @@ class Scan_Asset_Ips_Groups(qutils.Qualys_Mixin):
             )
 
     def get_params(self) -> MutableMapping[str, str]:
+        """Get the parameters of the object in a format to be ingested by the Qualys API.
+
+        Returns:
+            A dictionary of values to be passed to the parms argument of the API request.
+        """
+
+        if self.ip and not isinstance(self.ip, MutableSequence):
+            self.ip = [self.ip]
+
         params = {
-            "ip": qutils.ip_list_to_qualys_format(self.ip) if self.ip else None,
+            "ip": qutils.ips_to_qualys_format(self.ip) if self.ip else None,
             "asset_groups": ",".join(self.asset_groups) if self.asset_groups else None,
             "asset_group_ids": ",".join(self.asset_group_ids)
             if self.asset_group_ids
             else None,
-            "exlude_ip_per_scan": qutils.ip_list_to_qualys_format(
+            "exlude_ip_per_scan": qutils.ips_to_qualys_format(
                 self.exlude_ip_per_scan
             )
             if self.exlude_ip_per_scan
@@ -497,14 +540,50 @@ class Scan_Asset_Ips_Groups(qutils.Qualys_Mixin):
 
 @dataclasses.dataclass
 class Scan_Asset_Tags:
+    """A description of the Tags to be scanned."""
+
     tag_include_selector: str = "any"
+    """Select “any” (the default) to include hosts that match
+    at least one of the selected tags. Select “all” to include hosts that
+    match all of the selected tags.
+    """
+
     tag_exclude_selector: str = "any"
+    """Select “any” (the default) to exclude hosts that match
+    at least one of the selected tags. Select “all” to exclude hosts that
+    match all of the selected tags.
+    """
+
     tag_set_by: str = "id"
+    """Specify “id” (the default) to select a tag set by providing tag IDs. Specify “name” to select
+    a tag set by providing tag names.
+    """
+
     tag_set_include: Optional[MutableSequence[str]] = None
+    """Specify a tag set to include. Hosts that match these tags will be included. You identify the
+    tag set by providing tag name or IDs.
+    """
+
     tag_set_exclude: Optional[MutableSequence[str]] = None
+    """Specify a tag set to exclude. Hosts that match these tags will be excluded. You identify the
+    tag set by providing tag name or IDs.
+    """
+
     use_ip_nt_range_tags_include: bool = False
+    """Specify False (the default) to select from all tags (tags with any tag rule). Specify True to
+    scan all IP addresses defined in tag selection. When this is specified, only tags with the
+    dynamic IP address rule called “IP address in Network Range(s)” can be selected."""
+
     use_ip_nt_range_tags_exclude: bool = False
+    """Specify False (the default) to select from all tags (tags with any tag rule). Specify True to
+    exclude all IP addresses defined in tag selection. When this is specified, only tags with the
+    dynamic IP address rule called “IP address in Network Range(s)” can be selected.
+    """
+
     scanners_in_tagset: bool = False
+    """Specify True to distribute the scan to scanner appliances that match the asset tags specified
+    for the scan target.
+    """
 
     def _check_parameters(self) -> None:
         """Confirms that any value with additional restrictions meets those restrictions."""
@@ -522,6 +601,12 @@ class Scan_Asset_Tags:
             raise ValueError(f"parameter good_set_by must be one of {good_set_bys}")
 
     def get_params(self) -> MutableMapping[str, str]:
+        """Get the parameters of the object in a format to be ingested by the Qualys API.
+
+        Returns:
+            A dictionary of values to be passed to the parms argument of the API request.
+        """
+
         params = {
             "tag_include_selector": self.tag_include_selector,
             "tag_exclude_selector": self.tag_exclude_selector,
@@ -550,11 +635,9 @@ def launch_scan(
     scan_title: str = "",
     iscanner_id: Optional[Union[str, MutableSequence[str]]] = None,
     iscanner_name: Optional[Union[str, MutableSequence[str]]] = None,
-    scanners_in_network: bool = False,
     option_title: Optional[str] = None,
     option_id: Optional[str] = None,
     priority: int = 0,
-    ip_network_id: str = "0",
     runtime_http_header: Optional[str] = None,
     certview: bool = False,
     fqdn: Optional[Union[str, MutableSequence[str]]] = None,
@@ -591,8 +674,6 @@ def launch_scan(
              The friendly names of the scanner appliances to be used or “External” for external
              scanners.
              Mutually exclusive with iscanner_id.
-        scanners_in_network:
-             Specify True to distribute the scan to all scanner appliances in the network.
         option_title:
             The title of the option profile to be used.
             Mutually exclusive with option_id.
@@ -613,11 +694,6 @@ def launch_scan(
             7 = Medium
             8 = Minor
             9 = Low
-        ip_network_id:
-            The ID of a network used to filter the IPs/ranges specified in the “ip” parameter. Set
-            to a custom network ID (note this does not filter IPs/ranges specified in “asset_groups”
-            or “asset_group_ids”). Or set to “0” (the default) for the Global Default Network - this
-            is used to scan hosts outside of your custom networks.
         runtime_http_header:
              Set a custom value in order to drop defenses (such as logging, IPs, etc) when an
              authorized scan is being run. The value you enter will be used in the “Qualys-Scan:”
@@ -638,7 +714,8 @@ def launch_scan(
             iscanner_name must be specified in the same request.
 
         Returns:
-            A dictionary containing the ID and name of the scan.
+            A dictionary containing the status text of the operation, and the scan ID and reference
+            name if the scam was successfully launched.
     """
 
     if iscanner_id and iscanner_name:
@@ -660,11 +737,9 @@ def launch_scan(
         "scan_title": scan_title,
         "iscanner_id": iscanner_id,
         "iscanner_name": iscanner_name,
-        "scanners_in_network": "1" if scanners_in_network else "0",
         "option_title": option_title,
         "option_id": option_id,
         "priority": str(priority),
-        "ip_network_id": str(ip_network_id),
         "runtime_http_header": runtime_http_header,
         "certview": "certview" if certview else None,
         "include_agent_targets": "1" if include_agent_targets else 0,
@@ -677,4 +752,4 @@ def launch_scan(
     params.update(scan_assets.get_params())
 
     raw = conn.request("post", URLS["Launch VM Scan"], params=params)
-    return qutils.parse_elements(raw["RESPONSE"]["PARAM_LIST"].iterchildren())
+    return qutils.parse_simple_return(raw)
