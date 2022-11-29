@@ -5,7 +5,7 @@ import ipaddress
 import json
 import re
 from collections.abc import MutableMapping, MutableSequence, Set
-from typing import Any, Optional, Union
+from typing import Any, Optional, TextIO, Union
 
 import dateutil.parser
 
@@ -357,7 +357,7 @@ def scan_list(
     conn: qualysapi.Connection,
     filter: Optional[Filter] = None,
     show_hide_information: Optional[Show_Hide_Information] = None,
-    method: str = "get",
+    post: bool = False,
 ) -> MutableSequence[Scan]:
     """List vulnerability scans in the user's account. By default, the output lists scans launched
         in the past 30 days.
@@ -371,10 +371,9 @@ def scan_list(
             past 30 days.
         show_hide_information:
             These parameters specify whether certain information will be shown in the output.
-        method:
-            The request method used for the request.  Can be either "get" or "post".  There are
-            known limits for the amount of data that can be sent using the GET method, so POST
-            should be used in those cases.
+        post:
+            Run as a POST request.There are known limits for the amount of data that can be sent
+            using the GET method, so POST should be used in those cases.
 
 
     Returns:
@@ -391,10 +390,13 @@ def scan_list(
         params.update(filter.params())
     if show_hide_information:
         params.update(show_hide_information.params())
-    raw = conn.request(method, URLS["VM Scan List"], params=params)
+    if post:
+        raw = conn.post(URLS["VM Scan List"], params=params)
+    else:
+        raw = conn.get(URLS["VM Scan List"], params=params)
 
     scans = []
-    for scan in raw["RESPONSE"]["SCAN_LIST"].iterchildren():
+    for scan in raw.RESPONSE.SCAN_LIST.SCAN:
         scan_elements = qutils.parse_elements(scan)
 
         # Convert elements to expected types
@@ -526,9 +528,7 @@ class Scan_Asset_Ips_Groups(qutils.Qualys_Mixin):
             "asset_group_ids": ",".join(self.asset_group_ids)
             if self.asset_group_ids
             else None,
-            "exlude_ip_per_scan": qutils.ips_to_qualys_format(
-                self.exlude_ip_per_scan
-            )
+            "exlude_ip_per_scan": qutils.ips_to_qualys_format(self.exlude_ip_per_scan)
             if self.exlude_ip_per_scan
             else None,
             "default_scanner": "1" if self.default_scanner else "0",
@@ -642,7 +642,7 @@ def launch_scan(
     certview: bool = False,
     fqdn: Optional[Union[str, MutableSequence[str]]] = None,
     include_agent_targets: bool = False,
-) -> MutableMapping[str, Any]:
+) -> dict[str, Any]:
     """Launch vulnerability scan in the user's account.
 
     Notes:
@@ -751,5 +751,315 @@ def launch_scan(
 
     params.update(scan_assets.get_params())
 
-    raw = conn.request("post", URLS["Launch VM Scan"], params=params)
+    raw = conn.post(URLS["Launch VM Scan"], params=params)
     return qutils.parse_simple_return(raw)
+
+
+def _manage_scan(
+    conn: qualysapi.Connection,
+    action: str,
+    scan_ref: str,
+    ips: Optional[
+        Union[
+            ipaddress.IPv4Address,
+            ipaddress.IPv6Address,
+            ipaddress.IPv4Network,
+            ipaddress.IPv6Network,
+            MutableSequence[
+                Union[
+                    ipaddress.IPv4Address,
+                    ipaddress.IPv6Address,
+                    ipaddress.IPv4Network,
+                    ipaddress.IPv6Network,
+                ]
+            ],
+        ]
+    ] = None,
+) -> dict[str, Any]:
+    """Take actions on vulnerability scans in the user's account, like cancel, pause, resume,
+    delete, and fetch completed scan results.
+
+    Args:
+        conn:
+            A connection to the Qualys API.
+        action:
+            One action required for the request:
+            cancel - Stop a scan in progress
+            pause - Stop a scan in progress and change status to “Paused”
+            resume - Restart a scan that has been paused
+            delete - Delete a scan in your account
+        scan_ref:
+            Specifies a scan reference. A scan reference has the format “scan/987659876.19876”.
+    Returns:
+        A dictionary containing the status of the operation.
+    """
+
+    params = {
+        "scan_ref": scan_ref,
+        "ips": qutils.ips_to_qualys_format(ips) if ips else None,
+    }
+    params = dict(qutils.remove_nones_from_dict(params))
+
+    match action:
+        case "cancel":
+            raw = conn.post(URLS["Cancel VM Scan"], params)
+        case "pause":
+            raw = conn.post(URLS["Pause VM Scan"], params)
+        case "resume":
+            raw = conn.post(URLS["Resume VM Scan"], params)
+        case "delete":
+            raw = conn.post(URLS["Delete VM Scan"], params)
+        case _:
+            raise ValueError("unrecognized action")
+
+    return qutils.parse_simple_return(raw)
+
+
+def cancel_scan(conn: qualysapi.Connection, scan_ref: str) -> dict[str, Any]:
+    """Stops a scan in progress.
+
+    Args:
+        conn:
+            A connection to the Qualys API.
+        scan_ref:
+            Specifies a scan reference. A scan reference has the format “scan/987659876.19876”.
+
+    Returns:
+        A dictionary containing the status of the operation.
+    """
+    return _manage_scan(conn, "cancel", scan_ref)
+
+
+def pause_scan(conn: qualysapi.Connection, scan_ref: str) -> dict[str, Any]:
+    """Stops a scan in progress and change status to “Paused”.
+
+    Args:
+        conn:
+            A connection to the Qualys API.
+        scan_ref:
+            Specifies a scan reference. A scan reference has the format “scan/987659876.19876”.
+
+    Returns:
+        A dictionary containing the status of the operation.
+    """
+    return _manage_scan(conn, "pause", scan_ref)
+
+
+def resume_scan(conn: qualysapi.Connection, scan_ref: str) -> dict[str, Any]:
+    """Restarts a scan that has been paused.
+
+    Args:
+        conn:
+            A connection to the Qualys API.
+        scan_ref:
+            Specifies a scan reference. A scan reference has the format “scan/987659876.19876”.
+
+    Returns:
+        A dictionary containing the status of the operation.
+    """
+    return _manage_scan(conn, "resume", scan_ref)
+
+
+def delete_scan(conn: qualysapi.Connection, scan_ref: str) -> dict[str, Any]:
+    """Deletes a scan in your account.
+
+    Args:
+        conn:
+            A connection to the Qualys API.
+        scan_ref:
+            Specifies a scan reference. A scan reference has the format “scan/987659876.19876”.
+
+    Returns:
+        A dictionary containing the status of the operation.
+    """
+    return _manage_scan(conn, "delete", scan_ref)
+
+
+def _fetch_scan(
+    conn: qualysapi.Connection,
+    scan_ref: str,
+    output_file: Union[str, TextIO],
+    ips: Optional[
+        Union[
+            ipaddress.IPv4Address,
+            ipaddress.IPv6Address,
+            ipaddress.IPv4Network,
+            ipaddress.IPv6Network,
+            MutableSequence[
+                Union[
+                    ipaddress.IPv4Address,
+                    ipaddress.IPv6Address,
+                    ipaddress.IPv4Network,
+                    ipaddress.IPv6Network,
+                ]
+            ],
+        ]
+    ] = None,
+    extended: bool = False,
+    output_format: str = "csv",
+    post: bool = False,
+) -> TextIO:
+    """Download scan results for a scan with status of 'Finished', 'Canceled', 'Paused', or
+    'Error'
+
+    Args:
+        conn:
+            A connection to the Qualys API.
+        scan_ref:
+            Specifies a scan reference. A scan reference has the format “scan/987659876.19876”.
+        output_file:
+            A file object or path for the API response to be written to.
+        ips:
+            Show only certain IP addresses/ranges in the scan results.
+        extended:
+            The verbosity of the scan results
+            details: By defaulty, output includes this information: IP address, DNS hostname,
+            NetBIOS hostname, QID and scan test results if applicable. The extended output
+            includes the brief output plus this extended information:
+            protocol, port, an SSL flag (“yes” is returned when SSL was used
+            for the detection, “no” is returned when SSL was not used), and
+            FQDN if applicable.
+        output_format:
+            The output format of the
+            vulnerability scan results. A valid value is: "csv" (the default) or "json"
+            (for JavaScript Object Notation().
+        post:
+            Run as a POST request.There are known limits for the amount of
+            data that can be sent using the GET method, so POST should be used in those cases.
+
+    Returns:
+        A dictionary containing the status of the operation and the scan results in either CSV or
+        JSON format.
+    """
+
+    if extended:
+        output_format = output_format + "_extended"
+
+    params = {
+        "scan_ref": scan_ref,
+        "ips": qutils.ips_to_qualys_format(ips) if ips else None,
+        "mode": "extended" if extended else None,
+        "output_format": output_format,
+    }
+    params = dict(qutils.remove_nones_from_dict(params))
+
+    if output_format == "csv":
+        if post:
+            return conn.post_csv(URLS["Fetch VM Scan"], params, output_file)
+        else:
+            return conn.get_csv(URLS["Fetch VM Scan"], params, output_file)
+    elif output_format == "json":
+        if post:
+            return conn.post_json(URLS["Fetch VM Scan"], params, output_file)
+        else:
+            return conn.get_json(URLS["Fetch VM Scan"], params, output_file)
+    else:
+        raise ValueError("invalid output format")
+
+
+def fetch_scan_csv(
+    conn: qualysapi.Connection,
+    scan_ref: str,
+    output_file: Union[str, TextIO],
+    ips: Optional[
+        Union[
+            ipaddress.IPv4Address,
+            ipaddress.IPv6Address,
+            ipaddress.IPv4Network,
+            ipaddress.IPv6Network,
+            MutableSequence[
+                Union[
+                    ipaddress.IPv4Address,
+                    ipaddress.IPv6Address,
+                    ipaddress.IPv4Network,
+                    ipaddress.IPv6Network,
+                ]
+            ],
+        ]
+    ] = None,
+    extended: bool = False,
+    post: bool = False,
+) -> TextIO:
+    """Download scan results for a scan with status of 'Finished', 'Canceled', 'Paused', or
+    'Error' in CSV format.
+
+    Args:
+        conn:
+            A connection to the Qualys API.
+        scan_ref:
+            Specifies a scan reference. A scan reference has the format “scan/987659876.19876”.
+        output_file:
+            A file object or path for the API response to be written to.
+        ips:
+            Show only certain IP addresses/ranges in the scan results.
+        extended:
+            The verbosity of the scan results
+            details: By defaulty, output includes this information: IP address, DNS hostname,
+            NetBIOS hostname, QID and scan test results if applicable. The extended output
+            includes the brief output plus this extended information:
+            protocol, port, an SSL flag (“yes” is returned when SSL was used
+            for the detection, “no” is returned when SSL was not used), and
+            FQDN if applicable.
+        post:
+            Run as a POST request.There are known limits for the amount of
+            data that can be sent using the GET method, so POST should be used in those cases.
+
+    Returns:
+        A dictionary containing the status of the operation and the scan results in CSV format.
+    """
+
+    return _fetch_scan(conn, scan_ref, output_file, ips, extended, "csv", post)
+
+
+def fetch_scan_json(
+    conn: qualysapi.Connection,
+    scan_ref: str,
+    output_file: Union[str, TextIO],
+    ips: Optional[
+        Union[
+            ipaddress.IPv4Address,
+            ipaddress.IPv6Address,
+            ipaddress.IPv4Network,
+            ipaddress.IPv6Network,
+            MutableSequence[
+                Union[
+                    ipaddress.IPv4Address,
+                    ipaddress.IPv6Address,
+                    ipaddress.IPv4Network,
+                    ipaddress.IPv6Network,
+                ]
+            ],
+        ]
+    ] = None,
+    extended: bool = False,
+    post: bool = False,
+) -> TextIO:
+    """Download scan results for a scan with status of 'Finished', 'Canceled', 'Paused', or
+    'Error' in JSON format.
+
+    Args:
+        conn:
+            A connection to the Qualys API.
+        scan_ref:
+            Specifies a scan reference. A scan reference has the format “scan/987659876.19876”.
+        output_file:
+            A file object or path for the API response to be written to.
+        ips:
+            Show only certain IP addresses/ranges in the scan results.
+        extended:
+            The verbosity of the scan results
+            details: By defaulty, output includes this information: IP address, DNS hostname,
+            NetBIOS hostname, QID and scan test results if applicable. The extended output
+            includes the brief output plus this extended information:
+            protocol, port, an SSL flag (“yes” is returned when SSL was used
+            for the detection, “no” is returned when SSL was not used), and
+            FQDN if applicable.
+        post:
+            Run as a POST request.There are known limits for the amount of
+            data that can be sent using the GET method, so POST should be used in those cases.
+
+    Returns:
+        A dictionary containing the status of the operation and the scan results in JSON format.
+    """
+
+    return _fetch_scan(conn, scan_ref, output_file, ips, extended, "json", post)

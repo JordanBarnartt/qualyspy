@@ -5,17 +5,16 @@ the API endpoint and use the other modules.
 
 Example:
     conn = qualysapi.Connection()
-
-    scans = conn.run(modules.vm_scans.get_scans)
 """
 
 import configparser
 import importlib.resources
+import io
 import json
 import os.path
 import re
 from collections.abc import Mapping
-from typing import Any, Optional
+from typing import Any, Optional, TextIO, Union
 
 import lxml.objectify
 import requests
@@ -55,7 +54,9 @@ class Connection:
             "username": CREDENTIALS["username"],
             "password": CREDENTIALS["password"],
         }
-        conn = requests.post(API_ROOT + URLS["Session Login"], headers=self.headers, data=data)
+        conn = requests.post(
+            API_ROOT + URLS["Session Login"], headers=self.headers, data=data
+        )
         if conn.status_code == requests.codes.ok:
             self._cookies = {"QualysSession": conn.cookies["QualysSession"]}
             with open("debug/cookies.txt", "a") as f:
@@ -75,10 +76,79 @@ class Connection:
             cookies=self._cookies,
         )
 
-    def request(
+    def _perform_request(
         self, method: str, path: str, params: Optional[Mapping[str, Any]] = None
-    ) -> lxml.objectify.ObjectifiedDataElement:
+    ) -> str:
+        """Helper method for "request" methods.  Performs the API request and returns the text as
+        a string, to be parsed by the calling function.
+
+        Args:
+            method:
+                The method of the request (ex. get, post)
+            path:
+                The path of the API request. ex. /api/2.0/fo/scan/?action=list
+            params:
+                An optional dictionary of request parameters, the contents of which depend
+                on the particular API request being made.
+
+        Returns:
+            A string containing the text of the API response.
+        """
+
+        match method:
+            case "get":
+                response = requests.get(
+                    API_ROOT + path,
+                    headers=self.headers,
+                    cookies=self._cookies,
+                    params=params,
+                )
+            case "post":
+                response = requests.post(
+                    API_ROOT + path,
+                    headers=self.headers,
+                    cookies=self._cookies,
+                    params=params,
+                )
+            case _:
+                raise ValueError(f"{method} is not a supported")
+
+        if response.status_code != requests.codes.ok:
+            response.raise_for_status()
+
+        return response.text
+
+    def _request(
+        self,
+        method: str,
+        path: str,
+        params: Optional[Mapping[str, Any]] = None,
+    ) -> lxml.objectify.ObjectifiedElement:
         """Performs an API request to the connection for a given API path and returns the result.
+
+        Args:
+            method:
+                The method of the request (ex. get, post)
+            path:
+                The path of the API request. ex. /api/2.0/fo/scan/?action=list
+            params:
+                An optional dictionary of request parameters, the contents of which depend
+                on the particular API request being made.
+
+        Returns:
+            An lxml.objectify object of the XML output of the API request.
+        """
+
+        response = self._perform_request(method, path, params)
+
+        return lxml.objectify.fromstring(re.split("\n", response, 1)[1])
+
+    def get(
+        self,
+        path: str,
+        params: Optional[Mapping[str, Any]] = None,
+    ) -> lxml.objectify.ObjectifiedElement:
+        """Performs an GET request to the connection for a given API path and returns the result.
 
         Normally, it is not intended that this function be called manually.  Instead, this would be
         run by functions in other modules of this package.  However, this method is
@@ -86,27 +156,230 @@ class Connection:
         implemented in this package.
 
         Args:
-            path: The path of the API request. ex. /api/2.0/fo/scan/?action=list
-            params: An optional dictionary of request parameters, the contents of which depend
+            path:
+                The path of the API request. ex. /api/2.0/fo/scan/?action=list
+            params:
+                An optional dictionary of request parameters, the contents of which depend
                 on the particular API request being made.
 
         Returns:
             An lxml.objectify object of the XML output of the API request.
         """
 
-        match method:
-            case "get":
-                conn = requests.get(
-                    API_ROOT + path, headers=self.headers, cookies=self._cookies, params=params
-                )
-            case "post":
-                conn = requests.post(
-                    API_ROOT + path, headers=self.headers, cookies=self._cookies, params=params
-                )
-            case _:
-                raise ValueError(f"{method} is not a supported")
+        return self._request("get", path, params)
 
-        if conn.status_code != requests.codes.ok:
-            conn.raise_for_status()
+    def post(
+        self,
+        path: str,
+        params: Optional[Mapping[str, Any]] = None,
+    ) -> lxml.objectify.ObjectifiedElement:
+        """Performs an POST request to the connection for a given API path and returns the result.
 
-        return lxml.objectify.fromstring(re.split("\n", conn.text, 1)[1])
+        Normally, it is not intended that this function be called manually.  Instead, this would be
+        run by functions in other modules of this package.  However, this method is
+        considered part of the public interface to cover any API functions which are not currently
+        implemented in this package.
+
+        Args:
+            path:
+                The path of the API request. ex. /api/2.0/fo/scan/?action=list
+            params:
+                An optional dictionary of request parameters, the contents of which depend
+                on the particular API request being made.
+
+        Returns:
+            An lxml.objectify object of the XML output of the API request.
+        """
+
+        return self._request("post", path, params)
+
+    def _request_csv(
+        self,
+        method: str,
+        path: str,
+        params: Optional[Mapping[str, Any]] = None,
+        output_file: Optional[Union[str, TextIO]] = None,
+    ) -> TextIO:
+        """Performs an API request to the connection for a given API path and returns the result
+        in a CSV format.
+
+        Args:
+            method:
+                The method of the request (ex. get, post)
+            path:
+                The path of the API request. ex. /api/2.0/fo/scan/?action=list
+            params:
+                An optional dictionary of request parameters, the contents of which depend
+                on the particular API request being made.
+            output_file:
+                A file object or path for the API response to be written to.
+
+        Returns:
+            A handle to a file containing the CSV output.
+        """
+
+        response = self._perform_request(method, path, params)
+
+        if isinstance(output_file, io.IOBase):
+            f = output_file
+        elif isinstance(output_file, str):
+            f = open(output_file, "w", newline="")
+        else:
+            raise ValueError("invalid CSV file object/name")
+        f.write(response)
+
+        return f
+
+    def get_csv(
+        self,
+        path: str,
+        params: Optional[Mapping[str, Any]] = None,
+        output_file: Optional[Union[str, TextIO]] = None,
+    ) -> TextIO:
+        """Performs an GET request to the connection for a given API path and returns the result
+        formatted as a CSV.
+
+        Normally, it is not intended that this function be called manually.  Instead, this would be
+        run by functions in other modules of this package.  However, this method is
+        considered part of the public interface to cover any API functions which are not currently
+        implemented in this package.
+
+        Args:
+            path:
+                The path of the API request. ex. /api/2.0/fo/scan/?action=list
+            params:
+                An optional dictionary of request parameters, the contents of which depend
+                on the particular API request being made.
+            output_file:
+                A file object or path for the API response to be written to.
+
+        Returns:
+            A handle to a file containing the CSV output.
+        """
+
+        return self._request_csv("get", path, params, output_file)
+
+    def post_csv(
+        self,
+        path: str,
+        params: Optional[Mapping[str, Any]] = None,
+        output_file: Optional[Union[str, TextIO]] = None,
+    ) -> TextIO:
+        """Performs an POST request to the connection for a given API path and returns the result
+        formatted as a CSV.
+
+        Normally, it is not intended that this function be called manually.  Instead, this would be
+        run by functions in other modules of this package.  However, this method is
+        considered part of the public interface to cover any API functions which are not currently
+        implemented in this package.
+
+        Args:
+            path:
+                The path of the API request. ex. /api/2.0/fo/scan/?action=list
+            params:
+                An optional dictionary of request parameters, the contents of which depend
+                on the particular API request being made.
+            output_file:
+                A file object or path for the API response to be written to.
+
+        Returns:
+            A handle to a file containing the CSV output.
+        """
+
+        return self._request_csv("post", path, params, output_file)
+
+    def _request_json(
+        self,
+        method: str,
+        path: str,
+        params: Optional[Mapping[str, Any]] = None,
+        output_file: Optional[Union[str, TextIO]] = None,
+    ) -> TextIO:
+        """Performs an API request to the connection for a given API path and returns the result
+        in a JSON format.
+
+        Args:
+            method:
+                The method of the request (ex. get, post)
+            path:
+                The path of the API request. ex. /api/2.0/fo/scan/?action=list
+            params:
+                An optional dictionary of request parameters, the contents of which depend
+                on the particular API request being made.
+            output_file:
+                A file object or path for the API response to be written to.
+
+        Returns:
+            A handle to a file containing the JSON output.
+        """
+
+        response = self._perform_request(method, path, params)
+
+        if isinstance(output_file, io.IOBase):
+            f = output_file
+        elif isinstance(output_file, str):
+            f = open(output_file, "w")
+        else:
+            raise ValueError("invalid CSV file object/name")
+        csvwriter = csv.writer(f)
+        csvwriter.writerows(response)
+
+        return f
+
+    def get_json(
+        self,
+        path: str,
+        params: Optional[Mapping[str, Any]] = None,
+        output_file: Optional[Union[str, TextIO]] = None,
+    ) -> TextIO:
+        """Performs an GET request to the connection for a given API path and returns the result
+        formatted as a JSON.
+
+        Normally, it is not intended that this function be called manually.  Instead, this would be
+        run by functions in other modules of this package.  However, this method is
+        considered part of the public interface to cover any API functions which are not currently
+        implemented in this package.
+
+        Args:
+            path:
+                The path of the API request. ex. /api/2.0/fo/scan/?action=list
+            params:
+                An optional dictionary of request parameters, the contents of which depend
+                on the particular API request being made.
+            output_file:
+                A file object or path for the API response to be written to.
+
+        Returns:
+            A handle to a file containing the JSON output.
+        """
+
+        return self._request_json("get", path, params, output_file)
+
+    def post_json(
+        self,
+        path: str,
+        params: Optional[Mapping[str, Any]] = None,
+        output_file: Optional[Union[str, TextIO]] = None,
+    ) -> TextIO:
+        """Performs an POST request to the connection for a given API path and returns the result
+        formatted as a JSON.
+
+        Normally, it is not intended that this function be called manually.  Instead, this would be
+        run by functions in other modules of this package.  However, this method is
+        considered part of the public interface to cover any API functions which are not currently
+        implemented in this package.
+
+        Args:
+            path:
+                The path of the API request. ex. /api/2.0/fo/scan/?action=list
+            params:
+                An optional dictionary of request parameters, the contents of which depend
+                on the particular API request being made.
+            output_file:
+                A file object or path for the API response to be written to.
+
+        Returns:
+            A handle to a file containing the JSON output.
+        """
+
+        return self._request_json("post", path, params, output_file)

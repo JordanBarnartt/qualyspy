@@ -1,0 +1,15 @@
+{
+    "python.linting.pylamaEnabled": true,
+    "python.linting.mypyEnabled": true,
+    "python.linting.mypyArgs": [
+        "--follow-imports=silent",
+        "--ignore-missing-imports",
+        "--show-column-numbers",
+        "--no-pretty",
+        "--strict"
+    ],
+    "python.linting.enabled": true,
+    "python.linting.ignorePatterns": [
+        "debug/*py"
+    ]
+}

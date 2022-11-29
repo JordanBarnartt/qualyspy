@@ -75,7 +75,7 @@ def ips_to_qualys_format(
 
 def remove_nones_from_dict(
     d: MutableMapping[str, Optional[str]]
-) -> MutableMapping[str, str]:
+) -> dict[str, str]:
     """Removes all keys from a dictionary whose values are None.
 
     Args:
@@ -93,39 +93,30 @@ def remove_nones_from_dict(
     return output
 
 
-def parse_elements(
-    xml: lxml.objectify.ObjectifiedElement,
-    elements: MutableMapping[str, Any] = dict(),
-    prefix: str = "",
-) -> dict[str, Any]:
+def parse_elements(xml: lxml.objectify.ObjectifiedElement) -> dict[str, Any]:
     """Parse a tree of lxml objects into a dictionary of tag:value pairs, where tags with
     descendants are themselves dictionarys.
 
     Args:
         xml:
             The xml tree to be parsed.
-        elements:
-            An existing dictionary of parsed elements to add to.
-        prefix:
-            A prefix to add to add to the values added to the returned dictionary.
 
     Returns:
         A dictionary containing the information from the lxml object, in the same hierarchy.
     """
 
-    elements_dict = dict(elements)
+    elements_dict: dict[str, Any] = {}
 
     for child in xml.iterchildren():
-        if isinstance(child, lxml.objectify.ObjectifiedElement):
-            elements_dict[child.tag.lower()] = dict()
-            parse_elements(child, elements_dict[child.tag.lower()], prefix=child.tag.lower())
+        if type(child) == lxml.objectify.ObjectifiedElement:
+            elements_dict[child.tag.lower()] = parse_elements(child)
         elif child.text:
-            elements_dict[child.tag.lower()] = prefix + child.text
+            elements_dict[child.tag.lower()] = child.text
 
     return elements_dict
 
 
-def parse_simple_return(xml: lxml.objectify.ObjectifiedElement) -> dict[str, str]:
+def parse_simple_return(xml: lxml.objectify.ObjectifiedElement) -> dict[str, Any]:
     """The simple return is XML output returned from several API calls.  The function parses that
     XML into a dictionary.
 
@@ -137,9 +128,9 @@ def parse_simple_return(xml: lxml.objectify.ObjectifiedElement) -> dict[str, str
         A dictionary containing the item_list of the XML in key:value pairs.
     """
 
-    output = {}
+    output: dict[str, Any] = {}
     output["TEXT"] = str(xml.RESPONSE.TEXT)
     for item in xml.RESPONSE.ITEM_LIST.ITEM:
-        output[str(item.KEY)] = str(item.VALUE)
+        output[str(item.KEY)] = item.VALUE
 
     return output

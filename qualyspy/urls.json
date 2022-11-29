@@ -2,5 +2,10 @@
     "Session Login": "/api/2.0/fo/session/?action=login",
     "Session Logout": "/api/2.0/fo/session/?action=logout",
     "VM Scan List": "/api/2.0/fo/scan/?action=list",
-    "Launch VM Scan": "/api/2.0/fo/scan/?action=launch"
+    "Launch VM Scan": "/api/2.0/fo/scan/?action=launch",
+    "Cancel VM Scan": "/api/2.0/fo/scan/?action=cancel",
+    "Pause VM Scan": "/api/2.0/fo/scan/?action=pause",
+    "Resume VM Scan": "/api/2.0/fo/scan/?action=resume",
+    "Delete VM Scan": "/api/2.0/fo/scan/?action=delete",
+    "Fetch VM Scan": "/api/2.0/fo/scan/?action=fetch"
 }
