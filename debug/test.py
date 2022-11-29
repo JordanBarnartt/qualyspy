@@ -38,4 +38,6 @@ if __name__ == "__main__":
     conn = qualysapi.Connection()
     # test_scan_list(conn)
     # test_launch_scan(conn)
-    test_fetch_scan(conn)
+    f = test_fetch_scan(conn)
+    print(type(f))
+    print("here")

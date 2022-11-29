@@ -898,7 +898,7 @@ def _fetch_scan(
     extended: bool = False,
     output_format: str = "csv",
     post: bool = False,
-) -> TextIO:
+) -> None:
     """Download scan results for a scan with status of 'Finished', 'Canceled', 'Paused', or
     'Error'
 
@@ -926,10 +926,6 @@ def _fetch_scan(
         post:
             Run as a POST request.There are known limits for the amount of
             data that can be sent using the GET method, so POST should be used in those cases.
-
-    Returns:
-        A dictionary containing the status of the operation and the scan results in either CSV or
-        JSON format.
     """
 
     if extended:
@@ -943,18 +939,10 @@ def _fetch_scan(
     }
     params = dict(qutils.remove_nones_from_dict(params))
 
-    if output_format == "csv":
-        if post:
-            return conn.post_csv(URLS["Fetch VM Scan"], params, output_file)
-        else:
-            return conn.get_csv(URLS["Fetch VM Scan"], params, output_file)
-    elif output_format == "json":
-        if post:
-            return conn.post_json(URLS["Fetch VM Scan"], params, output_file)
-        else:
-            return conn.get_json(URLS["Fetch VM Scan"], params, output_file)
+    if post:
+        conn.post_file(URLS["Fetch VM Scan"], params, output_file)
     else:
-        raise ValueError("invalid output format")
+        conn.get_file(URLS["Fetch VM Scan"], params, output_file)
 
 
 def fetch_scan_csv(
@@ -979,7 +967,7 @@ def fetch_scan_csv(
     ] = None,
     extended: bool = False,
     post: bool = False,
-) -> TextIO:
+) -> None:
     """Download scan results for a scan with status of 'Finished', 'Canceled', 'Paused', or
     'Error' in CSV format.
 
@@ -1003,12 +991,9 @@ def fetch_scan_csv(
         post:
             Run as a POST request.There are known limits for the amount of
             data that can be sent using the GET method, so POST should be used in those cases.
-
-    Returns:
-        A dictionary containing the status of the operation and the scan results in CSV format.
     """
 
-    return _fetch_scan(conn, scan_ref, output_file, ips, extended, "csv", post)
+    _fetch_scan(conn, scan_ref, output_file, ips, extended, "csv", post)
 
 
 def fetch_scan_json(
@@ -1033,7 +1018,7 @@ def fetch_scan_json(
     ] = None,
     extended: bool = False,
     post: bool = False,
-) -> TextIO:
+) -> None:
     """Download scan results for a scan with status of 'Finished', 'Canceled', 'Paused', or
     'Error' in JSON format.
 
@@ -1057,9 +1042,6 @@ def fetch_scan_json(
         post:
             Run as a POST request.There are known limits for the amount of
             data that can be sent using the GET method, so POST should be used in those cases.
-
-    Returns:
-        A dictionary containing the status of the operation and the scan results in JSON format.
     """
 
-    return _fetch_scan(conn, scan_ref, output_file, ips, extended, "json", post)
+    _fetch_scan(conn, scan_ref, output_file, ips, extended, "json", post)

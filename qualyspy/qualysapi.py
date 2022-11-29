@@ -193,15 +193,15 @@ class Connection:
 
         return self._request("post", path, params)
 
-    def _request_csv(
+    def _request_file(
         self,
         method: str,
         path: str,
         params: Optional[Mapping[str, Any]] = None,
         output_file: Optional[Union[str, TextIO]] = None,
-    ) -> TextIO:
-        """Performs an API request to the connection for a given API path and returns the result
-        in a CSV format.
+    ) -> None:
+        """Performs an API request to the connection for a given API path and writes the result to
+        a file.
 
         Args:
             method:
@@ -215,7 +215,7 @@ class Connection:
                 A file object or path for the API response to be written to.
 
         Returns:
-            A handle to a file containing the CSV output.
+            A handle to a file containing the response text.
         """
 
         response = self._perform_request(method, path, params)
@@ -225,19 +225,18 @@ class Connection:
         elif isinstance(output_file, str):
             f = open(output_file, "w", newline="")
         else:
-            raise ValueError("invalid CSV file object/name")
+            raise ValueError("invalid file object or name")
         f.write(response)
+        f.close()
 
-        return f
-
-    def get_csv(
+    def get_file(
         self,
         path: str,
         params: Optional[Mapping[str, Any]] = None,
         output_file: Optional[Union[str, TextIO]] = None,
-    ) -> TextIO:
-        """Performs an GET request to the connection for a given API path and returns the result
-        formatted as a CSV.
+    ) -> None:
+        """Performs an GET request to the connection for a given API path and writes the result to
+        a file.
 
         Normally, it is not intended that this function be called manually.  Instead, this would be
         run by functions in other modules of this package.  However, this method is
@@ -254,19 +253,19 @@ class Connection:
                 A file object or path for the API response to be written to.
 
         Returns:
-            A handle to a file containing the CSV output.
+            A handle to a file containing the response text.
         """
 
-        return self._request_csv("get", path, params, output_file)
+        self._request_file("get", path, params, output_file)
 
-    def post_csv(
+    def post_file(
         self,
         path: str,
         params: Optional[Mapping[str, Any]] = None,
         output_file: Optional[Union[str, TextIO]] = None,
-    ) -> TextIO:
-        """Performs an POST request to the connection for a given API path and returns the result
-        formatted as a CSV.
+    ) -> None:
+        """Performs an POST request to the connection for a given API path and writes the result to
+        a file.
 
         Normally, it is not intended that this function be called manually.  Instead, this would be
         run by functions in other modules of this package.  However, this method is
@@ -283,103 +282,7 @@ class Connection:
                 A file object or path for the API response to be written to.
 
         Returns:
-            A handle to a file containing the CSV output.
+            A handle to a file containing the response text.
         """
 
-        return self._request_csv("post", path, params, output_file)
-
-    def _request_json(
-        self,
-        method: str,
-        path: str,
-        params: Optional[Mapping[str, Any]] = None,
-        output_file: Optional[Union[str, TextIO]] = None,
-    ) -> TextIO:
-        """Performs an API request to the connection for a given API path and returns the result
-        in a JSON format.
-
-        Args:
-            method:
-                The method of the request (ex. get, post)
-            path:
-                The path of the API request. ex. /api/2.0/fo/scan/?action=list
-            params:
-                An optional dictionary of request parameters, the contents of which depend
-                on the particular API request being made.
-            output_file:
-                A file object or path for the API response to be written to.
-
-        Returns:
-            A handle to a file containing the JSON output.
-        """
-
-        response = self._perform_request(method, path, params)
-
-        if isinstance(output_file, io.IOBase):
-            f = output_file
-        elif isinstance(output_file, str):
-            f = open(output_file, "w")
-        else:
-            raise ValueError("invalid CSV file object/name")
-        csvwriter = csv.writer(f)
-        csvwriter.writerows(response)
-
-        return f
-
-    def get_json(
-        self,
-        path: str,
-        params: Optional[Mapping[str, Any]] = None,
-        output_file: Optional[Union[str, TextIO]] = None,
-    ) -> TextIO:
-        """Performs an GET request to the connection for a given API path and returns the result
-        formatted as a JSON.
-
-        Normally, it is not intended that this function be called manually.  Instead, this would be
-        run by functions in other modules of this package.  However, this method is
-        considered part of the public interface to cover any API functions which are not currently
-        implemented in this package.
-
-        Args:
-            path:
-                The path of the API request. ex. /api/2.0/fo/scan/?action=list
-            params:
-                An optional dictionary of request parameters, the contents of which depend
-                on the particular API request being made.
-            output_file:
-                A file object or path for the API response to be written to.
-
-        Returns:
-            A handle to a file containing the JSON output.
-        """
-
-        return self._request_json("get", path, params, output_file)
-
-    def post_json(
-        self,
-        path: str,
-        params: Optional[Mapping[str, Any]] = None,
-        output_file: Optional[Union[str, TextIO]] = None,
-    ) -> TextIO:
-        """Performs an POST request to the connection for a given API path and returns the result
-        formatted as a JSON.
-
-        Normally, it is not intended that this function be called manually.  Instead, this would be
-        run by functions in other modules of this package.  However, this method is
-        considered part of the public interface to cover any API functions which are not currently
-        implemented in this package.
-
-        Args:
-            path:
-                The path of the API request. ex. /api/2.0/fo/scan/?action=list
-            params:
-                An optional dictionary of request parameters, the contents of which depend
-                on the particular API request being made.
-            output_file:
-                A file object or path for the API response to be written to.
-
-        Returns:
-            A handle to a file containing the JSON output.
-        """
-
-        return self._request_json("post", path, params, output_file)
+        self._request_file("post", path, params, output_file)
