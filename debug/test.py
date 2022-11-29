@@ -1,14 +1,15 @@
+import inspect
 import os
 import sys
-import inspect
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
+import ipaddress
+
 import qualyspy.qualysapi as qualysapi
 import qualyspy.vm_scans as vm_scans
-import ipaddress
 
 
 def test_scan_list(conn):

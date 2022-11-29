@@ -1,3 +1,19 @@
+"""Python wrapper for Qualys VM Scans API.
+
+Obtain a list of vulnerability scans in your account and take actions on them like cancel,
+pause, resume, and fetch (download) finished results.
+
+Example:
+    import qualyspy.qualysapi as qualysapi\n
+    import qualyspy.vm_scans as vm_scans\n
+    conn = qualysapi.Connection()\n
+    ip = ipaddress.IPv4Address("172.25.29.137")\n
+    scan_assets = vm_scans.Scan_Asset_Ips_Groups(ip=ip)\n
+    output = vm_scans.launch_scan(conn, scan_assets=scan_assets, scan_title="qualyspy test",
+    iscanner_name="my-scanner", option_title="MyOptionProfile")\n
+    output = vm_scans.fetch_scan_csv(conn, "scan/1669646302.25173", "test_output.csv")
+"""
+
 import dataclasses
 import datetime
 import importlib.resources
@@ -360,7 +376,7 @@ def scan_list(
     post: bool = False,
 ) -> MutableSequence[Scan]:
     """List vulnerability scans in the user's account. By default, the output lists scans launched
-        in the past 30 days.
+    in the past 30 days.
 
     Args:
         conn:
