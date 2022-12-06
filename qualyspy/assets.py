@@ -154,7 +154,7 @@ def add_ips(
     ud3: Optional[str] = None,
     comment: Optional[str] = None,
     ag_title: Optional[str] = None,
-    enable_certview: Optional[bool] = None
+    enable_certview: Optional[bool] = None,
 ) -> dict[str, str]:
     """Add IP addresses to the user's subscription. Once added they are available for scanning and
     reporting.
@@ -190,6 +190,9 @@ def add_ips(
         enable_certview:
             Set to True to add IPs to your CertView license. By default IPs are not added to your
             CertView license.
+
+    Returns:
+        A dictionary containing information on the status of the operation.
     """
 
     good_tracking_methods = ["IP", "DNS", "NETBIOS"]
@@ -215,9 +218,142 @@ def add_ips(
         "ud3": ud3,
         "comment": comment,
         "ag_title": ag_title,
-        "enable_certview": "1" if enable_certview else None
+        "enable_certview": "1" if enable_certview else None,
     }
 
     response = conn.post(URLS["Add IPs"], params=qutils.remove_nones_from_dict(params))
+
+    return qutils.parse_simple_return(response)
+
+
+class Duplicate_Hosts_Error(Exception):
+    """An exception returned in update_ips when there are two or more asset records returned
+    for a supplied IP address.
+    """
+
+    pass
+
+
+def update_ips(
+    conn: qualysapi.Connection,
+    ips: Union[
+        ipaddress.IPv4Address,
+        ipaddress.IPv6Address,
+        ipaddress.IPv4Network,
+        ipaddress.IPv6Network,
+        MutableSequence[
+            Union[
+                ipaddress.IPv4Address,
+                ipaddress.IPv6Address,
+                ipaddress.IPv4Network,
+                ipaddress.IPv6Network,
+            ]
+        ],
+    ],
+    network_id: Optional[str] = None,
+    tracking_method: Optional[str] = None,
+    host_dns: Optional[str] = None,
+    host_netbios: Optional[str] = None,
+    owner: Optional[str] = None,
+    ud1: Optional[str] = None,
+    ud2: Optional[str] = None,
+    ud3: Optional[str] = None,
+    comment: Optional[str] = None,
+) -> dict[str, str]:
+    """Update IP addresses in the user's subscription.
+
+    Host attributes you can update include tracking method (IP, DNS, NETBIOS), owner, user-defined
+    fields (ud1, ud2, ud3), and comments.
+
+    You cannot update an IP to use tracking method EC2 or AGENT. Also, if an IP is already tracked
+    by EC2 or AGENT, you cannot change the tracking method to something else. Qualys will skip the
+    tracking method update in these cases.
+
+    You can update multiple IPs/ranges in the same request. The host attribute changes will apply to
+    all IPs included in the action.
+
+    Args:
+        ips:
+            The hosts within the subscription you want to update.
+        network_id:
+            Optional, and valid only when the Network Support feature is enabled for the user's
+            account. Restrict the request to a certain custom network by specifying the network ID.
+            When unspecified, Qualys defaults to “0” for Global Default Network.
+        tracking_method:
+            To change to another tracking method specify "IP" for IP address, "DNS", or "NETBIOS".
+        host_dns:
+            The DNS hostname for the IP you want to update. A single IP must be specified in the
+            same request and the IP will only be updated if it matches the hostname specified.
+        host_netbios:
+            The NetBIOS hostname for the IP you want to update. A single IP must be specified in the
+            same request and the IP will only be updated if it matches the hostname specified.
+        owner:
+             The owner of the host asset(s). The owner must be a Manager. Another user (Unit
+             Manager, Scanner, Reader) can be the owner if the IP address is in the user's account.
+        ud1:
+            Values for user-defined field 1. You can specify a maximum of 128 characters (ascii) for
+            the field value.
+        ud2:
+            Values for user-defined field 2. You can specify a maximum of 128 characters (ascii) for
+            the field value.
+        ud3:
+            Values for user-defined field 3. You can specify a maximum of 128 characters (ascii) for
+            the field value.
+        comment:
+            User-defined comments.
+
+    Returns:
+        A dictionary containing information on the status of the operation.
+
+    Raises:
+        Duplicate_Hosts_Error:
+            There is more than one asset record for one of the IP addresses specified.
+    """
+
+    good_tracking_methods = ["IP", "DNS", "NETBIOS"]
+    if tracking_method and tracking_method not in good_tracking_methods:
+        raise ValueError(f"tracking method must be one of {good_tracking_methods}.")
+    if isinstance(ips, MutableSequence):
+        if host_dns and len(ips) > 1:
+            raise ValueError("only a single IP can be specified when host_dns is specified")
+        if host_netbios and len(ips) > 1:
+            raise ValueError(
+                "only a single IP can be specified when host_netbios is specified"
+            )
+    if ud1 and len(ud1) > 128:
+        raise ValueError("The value of ud1 must be no more than 128 characters.")
+    if ud2 and len(ud2) > 128:
+        raise ValueError("The value of ud2 must be no more than 128 characters.")
+    if ud3 and len(ud3) > 128:
+        raise ValueError("The value of ud3 must be no more than 128 characters.")
+
+    params = {
+        "ips": qutils.ips_to_qualys_format(ips),
+        "network_id": network_id,
+        "tracking_method": tracking_method,
+        "host_dns": host_dns,
+        "host_netbios": host_netbios,
+        "owner": owner,
+        "ud1": ud1,
+        "ud2": ud2,
+        "ud3": ud3,
+        "comment": comment,
+    }
+
+    response = conn.post(
+        URLS["Update IPs"], params=qutils.remove_nones_from_dict(params)
+    )
+
+    if response.tag == "DUPLICATE_HOSTS_ERROR_OUTPUT":
+        err = (
+            response.RESPONSE.WARNING.TEXT
+            + "\n\n"
+            + "Duplicate hosts (IP, DNS Hostname, NetBIOS Hostname, Last Scandate, Tracking):\n"
+        )
+        for duplicate_host in response.RESPONSE.WARNING.DUPLICATE_HOSTS:
+            err += "f{duplicate_host.IP}, {duplicate_host.DNS_HOSTNAME}, "
+            f"{duplicate_host.NETBIOS_HOSTNAME}, {duplicate_host.LAST_SCANDATE}, "
+            f"{duplicate_host.TRACKING}\n"
+        raise Duplicate_Hosts_Error(err)
 
     return qutils.parse_simple_return(response)

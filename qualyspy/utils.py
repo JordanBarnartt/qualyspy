@@ -84,6 +84,17 @@ def ips_from_qualys_format(
         ipaddress.IPv6Network,
     ]
 ]:
+    """Converts a list of IP addresses and ranges as provided by Qualys into a list of Python
+    ipaddress and range objects.
+
+    Args:
+        ip_list:
+            A list of lxml objects, each containing the Qualys representation of an IP address or
+            range.
+
+    Returns:
+        The input list of IP addresses and ranges, represented as Python ipaddress objects.
+    """
 
     output_list: MutableSequence[
         Union[
