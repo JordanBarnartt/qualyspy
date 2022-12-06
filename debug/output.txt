@@ -1,12 +1,143 @@
 
 @dataclasses.dataclass
-class Ip_Set:
-    (ip|ip_range): MutableSequence[(ip|ip_Range)]
+class Asset_Group:
+    id: str
+    title: str
 
 @dataclasses.dataclass
-class Response:
-    datetime: str
-    ip_set: Optional[Ip_Set] = None
+class Asset_Group_List:
+    asset_group: MutableSequence[Asset_Group]
+
+@dataclasses.dataclass
+class User:
+    user_login: str
+    first_name: str
+    last_name: str
+
+@dataclasses.dataclass
+class User_List:
+    user: MutableSequence[User]
+
+@dataclasses.dataclass
+class Glossary:
+    user_def: Optional[User_Def] = None
+    user_list: Optional[User_List] = None
+    asset_group_list: Optional[Asset_Group_List] = None
+
+@dataclasses.dataclass
+class Warning:
+    code: Optional[str] = None
+    text: str
+    url: Optional[str] = None
+
+@dataclasses.dataclass
+class Id_Set:
+    (id|id_range): MutableSequence[(id|id_Range)]
+
+@dataclasses.dataclass
+class Cloud_Tag:
+    name: str
+    value: str
+    last_success_date: str
+
+@dataclasses.dataclass
+class Cloud_Provider_Tags:
+    cloud_tag: MutableSequence[Cloud_Tag]
+
+@dataclasses.dataclass
+class Attribute:
+    name: str
+    last_status: str
+    value: str
+    last_success_date: Optional[str] = None
+    last_error_date: Optional[str] = None
+    last_error: Optional[str] = None
+
+@dataclasses.dataclass
+class Azure:
+    attribute: Optional[MutableSequence[Attribute]] = None
+
+@dataclasses.dataclass
+class Google:
+    attribute: Optional[MutableSequence[Attribute]] = None
+
+@dataclasses.dataclass
+class Metadata:
+    ec2|google|azure)+><!elementec2(attribute: Optional[MutableSequence[Ec2|google|azure)+><!elementec2(attribute]] = None
+
+@dataclasses.dataclass
+class User_Def:
+    label_1: Optional[str] = None
+    label_2: Optional[str] = None
+    label_3: Optional[str] = None
+    value_1: Optional[str] = None
+    value_2: Optional[str] = None
+    value_3: Optional[str] = None
+
+@dataclasses.dataclass
+class Tag:
+    tag_id: Optional[str] = None
+    name: Optional[str] = None
+
+@dataclasses.dataclass
+class Tags:
+    tag: Optional[MutableSequence[Tag]] = None
+
+@dataclasses.dataclass
+class Dns_Data:
+    hostname: Optional[str] = None
+    domain: Optional[str] = None
+    fqdn: Optional[str] = None
+
+@dataclasses.dataclass
+class Ars_Factors:
+    ars_formula: str
+    vuln_count: Optional[MutableSequence[str]] = None
+
+@dataclasses.dataclass
+class Host:
+    id: str
+    asset_id: Optional[str] = None
+    ip: Optional[str] = None
+    ipv6: Optional[str] = None
+    asset_risk_score: Optional[str] = None
+    asset_criticality_score: Optional[str] = None
+    ars_factors: Optional[Ars_Factors] = None
+    tracking_method: Optional[str] = None
+    network_id: Optional[str] = None
+    dns: Optional[str] = None
+    dns_data: Optional[Dns_Data] = None
+    cloud_provider: Optional[str] = None
+    cloud_service: Optional[str] = None
+    cloud_resource_id: Optional[str] = None
+    ec2_instance_id: Optional[str] = None
+    netbios: Optional[str] = None
+    os: Optional[str] = None
+    qg_hostid: Optional[str] = None
+    tags: Optional[Tags] = None
+    metadata: Optional[Metadata] = None
+    cloud_provider_tags: Optional[Cloud_Provider_Tags] = None
+    last_vuln_scan_datetime: Optional[str] = None
+    last_vm_scanned_date: Optional[str] = None
+    last_vm_scanned_duration: Optional[str] = None
+    last_vm_auth_scanned_date: Optional[str] = None
+    last_vm_auth_scanned_duration: Optional[str] = None
+    last_compliance_scan_datetime: Optional[str] = None
+    last_scap_scan_datetime: Optional[str] = None
+    owner: Optional[str] = None
+    comments: Optional[Comments] = None
+    user_def: Optional[User_Def] = None
+    asset_group_ids: Optional[str] = None
+
+@dataclasses.dataclass
+class Host_List:
+    host: MutableSequence[Host]
+
+@dataclasses.dataclass
+class Response (datetime,:
+    host_list|id_set): Optional[Host_List|id_Set)] = None
+    warning: Optional[Warning] = None
+    glossary: Optional[Glossary] = None
 
 @dataclasses.dataclass
 class Param:
@@ -26,6 +157,6 @@ class Request:
     post_data: Optional[str] = None
 
 @dataclasses.dataclass
-class Ip_List_Output:
+class Host_List_Output:
     request: Optional[Request] = None
     response: Response
