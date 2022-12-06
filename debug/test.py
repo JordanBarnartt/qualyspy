@@ -10,6 +10,7 @@ import ipaddress
 
 import qualyspy.qualysapi as qualysapi
 import qualyspy.vm_scans as vm_scans
+import qualyspy.assets as assets
 
 
 def test_scan_list(conn):
@@ -34,11 +35,13 @@ def test_fetch_scan(conn):
     output = vm_scans.fetch_scan_csv(conn, "scan/1669646302.25173", "test_output.csv")
     print("Success!")
 
+def test_list_ips(conn):
+    output = assets.list_ips(conn)
+    print("Success!")
+
 
 if __name__ == "__main__":
     conn = qualysapi.Connection()
     # test_scan_list(conn)
     # test_launch_scan(conn)
-    f = test_fetch_scan(conn)
-    print(type(f))
-    print("here")
+    test_list_ips(conn)

@@ -388,7 +388,7 @@ def scan_list(
         show_hide_information:
             These parameters specify whether certain information will be shown in the output.
         post:
-            Run as a POST request.There are known limits for the amount of data that can be sent
+            Run as a POST request. There are known limits for the amount of data that can be sent
             using the GET method, so POST should be used in those cases.
 
 

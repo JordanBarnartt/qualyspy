@@ -23,5 +23,5 @@ def launch_quick_scan(conn, ip):
 
 if __name__ == "__main__":
     conn = qualysapi.Connection()
-    ip = ipaddress.IPv4Address("")
+    ip = ipaddress.IPv4Address("172.25.40.166")
     launch_quick_scan(conn, ip)

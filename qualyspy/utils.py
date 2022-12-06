@@ -2,6 +2,7 @@ import ipaddress
 from typing import Any, Union, Optional
 from collections.abc import MutableSequence, MutableMapping
 import lxml.objectify
+import math
 
 
 class Qualys_Mixin:
@@ -73,9 +74,58 @@ def ips_to_qualys_format(
     return output
 
 
-def remove_nones_from_dict(
-    d: MutableMapping[str, Optional[str]]
-) -> dict[str, str]:
+def ips_from_qualys_format(
+    ip_list: MutableSequence[lxml.objectify.StringElement],
+) -> MutableSequence[
+    Union[
+        ipaddress.IPv4Address,
+        ipaddress.IPv6Address,
+        ipaddress.IPv4Network,
+        ipaddress.IPv6Network,
+    ]
+]:
+
+    output_list: MutableSequence[
+        Union[
+            ipaddress.IPv4Address,
+            ipaddress.IPv6Address,
+            ipaddress.IPv4Network,
+            ipaddress.IPv6Network,
+        ]
+    ] = []
+
+    for ip in ip_list:
+        if "-" in ip.text:
+            # Check if the size of the range is a power of 2, and if so, represent it as a network
+            #  rather than a list of individual addresses.
+            start_ip, end_ip = (ipaddress.ip_address(i) for i in ip.text.split("-"))
+            if math.log2(int(end_ip) - int(start_ip) + 1).is_integer():
+                mask = int(math.log2(int(end_ip) - int(start_ip) + 1))
+                output_list.append(
+                    ipaddress.ip_network(str(start_ip) + "/" + str(32 - mask))
+                )
+            else:
+                if isinstance(start_ip, ipaddress.IPv4Address) and isinstance(
+                    end_ip, ipaddress.IPv4Address
+                ):
+                    ip4_to_add = start_ip
+                    while ip4_to_add <= end_ip:
+                        output_list.append(ipaddress.ip_address(ip4_to_add))
+                elif isinstance(start_ip, ipaddress.IPv6Address) and isinstance(
+                    end_ip, ipaddress.IPv6Address
+                ):
+                    ip6_to_add = start_ip
+                    while ip6_to_add <= end_ip:
+                        output_list.append(ipaddress.ip_address(ip6_to_add))
+                else:
+                    ValueError(f"{start_ip} and {end_ip} are not of the same version")
+        else:
+            output_list.append(ipaddress.ip_address(ip.text))
+
+    return output_list
+
+
+def remove_nones_from_dict(d: MutableMapping[str, Optional[str]]) -> dict[str, str]:
     """Removes all keys from a dictionary whose values are None.
 
     Args:
