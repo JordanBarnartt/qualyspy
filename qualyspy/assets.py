@@ -108,8 +108,12 @@ def list_ips(
         "ips": qutils.ips_to_qualys_format(ips) if ips else None,
         "network_id": network_id,
         "tracking_method": tracking_method,
-        "compliance_enabled": compliance_enabled_str if compliance_enabled is not None else None,
-        "certview_enalbed": certview_enabled_str if compliance_enabled is not None else None,
+        "compliance_enabled": compliance_enabled_str
+        if compliance_enabled is not None
+        else None,
+        "certview_enalbed": certview_enabled_str
+        if compliance_enabled is not None
+        else None,
     }
 
     params_parsed = qutils.remove_nones_from_dict(params)
@@ -126,3 +130,49 @@ def list_ips(
         ip_list.append(ip_range)
 
     return Ip_Set(ip_list)
+
+
+def add_ips(
+    conn: qualysapi.Connection,
+    ips: MutableSequence[
+        Union[
+            ipaddress.IPv4Address,
+            ipaddress.IPv6Address,
+            ipaddress.IPv4Network,
+            ipaddress.IPv6Network,
+        ]
+    ],
+    tracking_method: str = "IP",
+    enable_vm: bool = False,
+    enable_pc: bool = False,
+    owner: Optional[str] = None,
+    ud1: Optional[str] = None,
+    ud2: Optional[str] = None,
+    ud3: Optional[str] = None,
+    comment: Optional[str] = None,
+    ag_title: Optional[str] = None,
+    enable_certview: Optional[bool] = None
+) -> dict[str, str]:
+    good_tracking_methods = ["IP", "DNS", "NETBIOS"]
+    if tracking_method and tracking_method not in good_tracking_methods:
+        raise ValueError(f"tracking method must be one of {good_tracking_methods}.")
+    if not enable_vm and not enable_pc:
+        raise ValueError("at least one of enable_vm and enable_pc must be enabled")
+
+    params = {
+        "ips": qutils.ips_to_qualys_format(ips),
+        "tracking_method": tracking_method,
+        "enable_vm": "1" if enable_vm else "0",
+        "enable_pc": "1" if enable_pc else "0",
+        "owner": owner,
+        "ud1": ud1,
+        "ud2": ud2,
+        "ud3": ud3,
+        "comment": comment,
+        "ag_title": ag_title,
+        "enable_certview": "1" if enable_certview else None
+    }
+
+    response = conn.post(URLS["Add IPs"], params=qutils.remove_nones_from_dict(params))
+
+    return qutils.parse_simple_return(response)
