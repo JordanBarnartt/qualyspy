@@ -87,6 +87,9 @@ def list_ips(
         post:
             Run as a POST request. There are known limits for the amount of data that can be sent
             using the GET method, so POST should be used in those cases.
+
+    Returns:
+        An Ip_Set object containing the list of IP addresses in the account.
     """
 
     good_tracking_methods = ["IP", "DNS", "NETBIOS"]
@@ -153,11 +156,53 @@ def add_ips(
     ag_title: Optional[str] = None,
     enable_certview: Optional[bool] = None
 ) -> dict[str, str]:
+    """Add IP addresses to the user's subscription. Once added they are available for scanning and
+    reporting.
+
+    Args:
+        ips:
+            The hosts you want to add to the subscription.
+        tracking_method:
+            The tracking method is set to "IP" for IP address by default. To use another tracking
+            method specify "DNS" or "NETBIOS".
+        enable_vm:
+            Enable the hosts for the VM app. At least one of enable_vm and enable_pc must be True.
+        enable_pc:
+            Enable the hosts for the PC app. At least one of enable_vm and enable_pc must be True.
+        owner:
+            The owner of the host asset(s). The owner must be a Manager or a Unit Manager. A valid
+            Unit Manager must have the “Add assets” permission and sufficient remaining IPs (maximum
+            number of IPs that can be added to the Unit Manager's business unit).
+        ud1:
+            Values for user-defined field 1. You can specify a maximum of 128 characters
+            (ascii) for the field value.
+        ud2:
+            Values for user-defined field 2. You can specify a maximum of 128 characters
+            (ascii) for the field value.
+        ud3:
+            Values for user-defined field 3. You can specify a maximum of 128 characters
+            (ascii) for the field value.
+        comment:
+            User-defined comments.
+        ag_title:
+            Required if the request is being made by a Unit Manager; otherwise invalid. The title
+            of an asset group in the Unit Manager's business unit that the host(s) will be added to.
+        enable_certview:
+            Set to True to add IPs to your CertView license. By default IPs are not added to your
+            CertView license.
+    """
+
     good_tracking_methods = ["IP", "DNS", "NETBIOS"]
     if tracking_method and tracking_method not in good_tracking_methods:
         raise ValueError(f"tracking method must be one of {good_tracking_methods}.")
     if not enable_vm and not enable_pc:
         raise ValueError("at least one of enable_vm and enable_pc must be enabled")
+    if ud1 and len(ud1) > 128:
+        raise ValueError("The value of ud1 must be no more than 128 characters.")
+    if ud2 and len(ud2) > 128:
+        raise ValueError("The value of ud2 must be no more than 128 characters.")
+    if ud3 and len(ud3) > 128:
+        raise ValueError("The value of ud3 must be no more than 128 characters.")
 
     params = {
         "ips": qutils.ips_to_qualys_format(ips),
