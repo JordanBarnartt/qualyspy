@@ -7,5 +7,8 @@
     "Pause VM Scan": "/api/2.0/fo/scan/?action=pause",
     "Resume VM Scan": "/api/2.0/fo/scan/?action=resume",
     "Delete VM Scan": "/api/2.0/fo/scan/?action=delete",
-    "Fetch VM Scan": "/api/2.0/fo/scan/?action=fetch"
+    "Fetch VM Scan": "/api/2.0/fo/scan/?action=fetch",
+    "IP List": "/api/2.0/fo/asset/ip/?action=list",
+    "Add IPs": "/api/2.0/fo/asset/ip/?action=add",
+    "Update IPs": "/api/2.0/fo/asset/ip/?action=update"
 }
