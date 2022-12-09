@@ -4,28 +4,6 @@ from collections.abc import MutableSequence, MutableMapping
 import lxml.objectify
 
 
-class Qualys_Mixin:
-    """A mixin class to be used with dataclass objects representing Qualys API parameters.
-
-    A _check_parameters method must be defined in each class which inherits from this one.  This
-    method will check for things such as mutual exclusiveness or whether a string value is one of
-    an acceptable list of values.
-
-    The __post_init__ method ensures that parameters are checked after class creation, and the
-    __setattr__ method ensure that this is checked after parameters change.
-    """
-
-    def __post_init__(self) -> None:
-        self._check_parameters()
-
-    def __setattr__(self, __name: str, __value: Any) -> None:
-        super().__setattr__(__name, __value)
-        self._check_parameters()
-
-    def _check_parameters(self) -> None:
-        """Confirms that any value with additional restrictions meets those restrictions."""
-
-
 def ips_to_qualys_format(
     ip_list: Union[
         ipaddress.IPv4Address,
@@ -73,9 +51,7 @@ def ips_to_qualys_format(
     return output
 
 
-def remove_nones_from_dict(
-    d: MutableMapping[str, Optional[str]]
-) -> dict[str, str]:
+def remove_nones_from_dict(d: MutableMapping[str, Optional[str]]) -> dict[str, str]:
     """Removes all keys from a dictionary whose values are None.
 
     Args:
@@ -86,11 +62,7 @@ def remove_nones_from_dict(
         A dictionary containing the same information, with any keys whose values were None removed.
     """
 
-    output = {}
-    for key, value in d.items():
-        if value is not None:
-            output[key] = value
-    return output
+    return {k: v for k, v in d.items() if v is not None}
 
 
 def parse_elements(xml: lxml.objectify.ObjectifiedElement) -> dict[str, Any]:

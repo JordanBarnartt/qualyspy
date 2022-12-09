@@ -32,7 +32,7 @@ URLS = json.load(importlib.resources.files("qualyspy").joinpath("urls.json").ope
 
 
 @dataclasses.dataclass
-class Filter(qutils.Qualys_Mixin):
+class Filter:
     """A filter to restrict the scan list output."""
 
     scan_ref: Optional[str] = None
@@ -148,34 +148,6 @@ class Filter(qutils.Qualys_Mixin):
             "client_name": self.client_name,
         }
         return params
-
-    def _check_parameters(self) -> None:
-        """Confirms that any value with additional restrictions meets those restrictions."""
-
-        good_states = {
-            None,
-            "Running",
-            "Paused",
-            "Canceled",
-            "Finished",
-            "Error",
-            "Queued",
-            "Loading",
-        }
-
-        if self.state:
-            for state in self.state:
-                if state not in good_states:
-                    raise ValueError(f"{state} not one of {good_states}")
-
-        good_types = {None, "On-Demand", "Scheduled", "API"}
-        if self.type_ not in good_types:
-            raise ValueError(f"{self.scan_type} not one of {good_types}")
-
-        if self.client_id and self.client_name:
-            raise ValueError(
-                "client_id and client_name cannot both be defined in the same Filter"
-            )
 
 
 @dataclasses.dataclass
@@ -450,7 +422,7 @@ def scan_list(
 
 
 @dataclasses.dataclass
-class Scan_Asset_Ips_Groups(qutils.Qualys_Mixin):
+class Scan_Asset_Ips_Groups:
     """A description of the IPs or Groups to be scanned."""
 
     ip: Optional[
@@ -509,24 +481,6 @@ class Scan_Asset_Ips_Groups(qutils.Qualys_Mixin):
     """Specify 1 to distribute the scan to the target asset groups' scanner appliances. Appliances
     in each asset group are tasked with scanning the IPs in the group. By default up to 5 appliances
     per group will be used"""
-
-    def _check_parameters(self) -> None:
-        """Confirms that any value with additional restrictions meets those restrictions."""
-
-        if not self.ip and not self.asset_groups and not self.asset_group_ids:
-            raise ValueError(
-                "one of the parameters 'ip', 'asset_groups', 'asset_group_ids' must be defined."
-            )
-        if self.default_scanner and not (self.asset_groups or self.asset_group_ids):
-            raise ValueError(
-                "default_scanner is only valid when the scan target is specified using asset_groups"
-                " or asset_group_ids"
-            )
-        if self.scanners_in_ag and not (self.asset_groups or self.asset_group_ids):
-            raise ValueError(
-                "scanners_in_ag is only valid when the scan target is specified using asset_groups"
-                " or asset_group_ids"
-            )
 
     def get_params(self) -> MutableMapping[str, str]:
         """Get the parameters of the object in a format to be ingested by the Qualys API.
@@ -600,21 +554,6 @@ class Scan_Asset_Tags:
     """Specify True to distribute the scan to scanner appliances that match the asset tags specified
     for the scan target.
     """
-
-    def _check_parameters(self) -> None:
-        """Confirms that any value with additional restrictions meets those restrictions."""
-
-        good_tag_selectors = ["all", "any"]
-        if (
-            self.tag_include_selector not in good_tag_selectors
-            or self.tag_exclude_selector not in good_tag_selectors
-        ):
-            raise ValueError(
-                f"tag_include_selector and tag_exclude_selector must be one of {good_tag_selectors}"
-            )
-        good_set_bys = ["id", "name"]
-        if self.tag_set_by not in good_set_bys:
-            raise ValueError(f"parameter good_set_by must be one of {good_set_bys}")
 
     def get_params(self) -> MutableMapping[str, str]:
         """Get the parameters of the object in a format to be ingested by the Qualys API.
@@ -733,16 +672,6 @@ def launch_scan(
             A dictionary containing the status text of the operation, and the scan ID and reference
             name if the scam was successfully launched.
     """
-
-    if iscanner_id and iscanner_name:
-        raise ValueError("both iscanner_id and iscanner_name cannot be specified")
-    if not option_title and not option_id:
-        raise ValueError("one of option_title, option_id must be specified")
-    elif option_title and option_id:
-        raise ValueError("option_title and option_id cannot both be specified")
-    good_priorities = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-    if priority not in good_priorities:
-        raise ValueError(f"priority must be one of {good_priorities}")
 
     if iscanner_id and not isinstance(iscanner_id, str):
         iscanner_id = ",".join(iscanner_id)
