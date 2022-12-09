@@ -5,11 +5,13 @@ compliance.
 """
 
 import dataclasses
-from collections.abc import MutableSequence
-from typing import Union, Optional
+import importlib.resources
 import ipaddress
 import json
-import importlib.resources
+from collections.abc import MutableSequence
+from typing import Optional, Union
+
+import lxml.objectify
 
 import qualyspy.qualysapi as qualysapi
 import qualyspy.utils as qutils
@@ -27,7 +29,7 @@ class Ip_Set:
         ipaddress.ip_address('192.168.0.1') in ip_set_example
     """
 
-    ips_qualys_format: MutableSequence[str]
+    ips_qualys_format: MutableSequence[lxml.objectify.ObjectifiedElement]
     """IP addresses and ranges in the set in Qualys format (i.e. a range is specified with a hypen,
     for examples, 10.10.10.44-10.10.10.90
     """
@@ -91,10 +93,6 @@ def list_ips(
     Returns:
         An Ip_Set object containing the list of IP addresses in the account.
     """
-
-    good_tracking_methods = ["IP", "DNS", "NETBIOS"]
-    if tracking_method and tracking_method not in good_tracking_methods:
-        raise ValueError(f"tracking method must be one of {good_tracking_methods}.")
 
     if compliance_enabled is not None:
         if compliance_enabled:
@@ -194,18 +192,6 @@ def add_ips(
     Returns:
         A dictionary containing information on the status of the operation.
     """
-
-    good_tracking_methods = ["IP", "DNS", "NETBIOS"]
-    if tracking_method and tracking_method not in good_tracking_methods:
-        raise ValueError(f"tracking method must be one of {good_tracking_methods}.")
-    if not enable_vm and not enable_pc:
-        raise ValueError("at least one of enable_vm and enable_pc must be enabled")
-    if ud1 and len(ud1) > 128:
-        raise ValueError("The value of ud1 must be no more than 128 characters.")
-    if ud2 and len(ud2) > 128:
-        raise ValueError("The value of ud2 must be no more than 128 characters.")
-    if ud3 and len(ud3) > 128:
-        raise ValueError("The value of ud3 must be no more than 128 characters.")
 
     params = {
         "ips": qutils.ips_to_qualys_format(ips),
@@ -310,25 +296,6 @@ def update_ips(
             There is more than one asset record for one of the IP addresses specified.
     """
 
-    good_tracking_methods = ["IP", "DNS", "NETBIOS"]
-    if tracking_method and tracking_method not in good_tracking_methods:
-        raise ValueError(f"tracking method must be one of {good_tracking_methods}.")
-    if isinstance(ips, MutableSequence):
-        if host_dns and len(ips) > 1:
-            raise ValueError(
-                "only a single IP can be specified when host_dns is specified"
-            )
-        if host_netbios and len(ips) > 1:
-            raise ValueError(
-                "only a single IP can be specified when host_netbios is specified"
-            )
-    if ud1 and len(ud1) > 128:
-        raise ValueError("The value of ud1 must be no more than 128 characters.")
-    if ud2 and len(ud2) > 128:
-        raise ValueError("The value of ud2 must be no more than 128 characters.")
-    if ud3 and len(ud3) > 128:
-        raise ValueError("The value of ud3 must be no more than 128 characters.")
-
     params = {
         "ips": qutils.ips_to_qualys_format(ips),
         "network_id": network_id,
@@ -348,7 +315,7 @@ def update_ips(
 
     if response.tag == "DUPLICATE_HOSTS_ERROR_OUTPUT":
         err = (
-            response.RESPONSE.WARNING.TEXT
+            str(response.RESPONSE.WARNING.TEXT)
             + "\n\n"
             + "Duplicate hosts (IP, DNS Hostname, NetBIOS Hostname, Last Scandate, Tracking):\n"
         )
@@ -465,7 +432,7 @@ class Ars_Factors:
 
 
 @dataclasses.dataclass
-class Host(qutils.Qualys_Mixin):
+class Host:
     id: str
     """The host ID."""
 
@@ -547,10 +514,3 @@ class Host(qutils.Qualys_Mixin):
     comments: Optional[str] = None
     user_def: Optional[User_Def] = None
     asset_group_ids: Optional[str] = None
-
-    def _check_parameters(self) -> None:
-        """Confirms that any value with additional restrictions meets those restrictions."""
-
-        good_tracking_methods = ["IP", "DNS", "NETBIOS", "EC2"]
-        if self.tracking_method not in good_tracking_methods:
-            raise ValueError(f"tracking_method must be one of {good_tracking_methods}")

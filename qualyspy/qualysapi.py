@@ -31,6 +31,10 @@ CREDENTIALS = {
 }
 
 
+class Qualys_API_Error(Exception):
+    """Exception raised when the Qualys API returns a non-200 response."""
+
+
 class Connection:
     """A connection to a Qualys API endpoint.
 
@@ -114,7 +118,13 @@ class Connection:
                 raise ValueError(f"{method} is not a supported")
 
         if response.status_code != requests.codes.ok:
-            response.raise_for_status()
+            status_code = response.status_code
+            reason = response.reason
+            url = response.url
+            text = response.text
+            err = f"{status_code} error: {reason} for url: {url}\n\n{text}"
+            self.__del__()
+            raise Qualys_API_Error(err)
 
         return response.text
 

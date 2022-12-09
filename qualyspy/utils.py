@@ -1,8 +1,9 @@
 import ipaddress
-from typing import Any, Union, Optional
-from collections.abc import MutableSequence, MutableMapping
-import lxml.objectify
 import math
+from collections.abc import MutableMapping, MutableSequence
+from typing import Any, Optional, Union
+
+import lxml.objectify
 
 
 def ips_to_qualys_format(
@@ -53,7 +54,7 @@ def ips_to_qualys_format(
 
 
 def ips_from_qualys_format(
-    ip_list: MutableSequence[lxml.objectify.StringElement],
+    ip_list: MutableSequence[lxml.objectify.ObjectifiedElement],
 ) -> MutableSequence[
     Union[
         ipaddress.IPv4Address,
@@ -84,6 +85,8 @@ def ips_from_qualys_format(
     ] = []
 
     for ip in ip_list:
+        if not ip.text:
+            raise ValueError(f"ip {ip} does not have a text value")
         if "-" in ip.text:
             # Check if the size of the range is a power of 2, and if so, represent it as a network
             #  rather than a list of individual addresses.

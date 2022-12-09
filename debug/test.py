@@ -36,7 +36,7 @@ def test_fetch_scan(conn):
     print("Success!")
 
 def test_list_ips(conn):
-    output = assets.list_ips(conn)
+    output = assets.list_ips(conn, tracking_method="NOT REAL")
     print("Success!")
 
 
