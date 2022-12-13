@@ -1,9 +1,15 @@
 import ipaddress
 import math
 from collections.abc import MutableMapping, MutableSequence
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, Tuple
+import datetime
+import json
+import importlib.resources
 
 import lxml.objectify
+
+
+URLS = json.load(importlib.resources.files("qualyspy").joinpath("urls.json").open())
 
 
 def ips_to_qualys_format(
@@ -17,6 +23,18 @@ def ips_to_qualys_format(
                 ipaddress.IPv4Address,
                 ipaddress.IPv6Address,
                 ipaddress.IPv4Network,
+                ipaddress.IPv6Network,
+            ]
+        ],
+        MutableSequence[
+            Union[
+                ipaddress.IPv4Address,
+                ipaddress.IPv4Network,
+            ]
+        ],
+        MutableSequence[
+            Union[
+                ipaddress.IPv6Address,
                 ipaddress.IPv6Network,
             ]
         ],
@@ -172,3 +190,55 @@ def parse_simple_return(xml: lxml.objectify.ObjectifiedElement) -> dict[str, Any
         output[str(item.KEY)] = item.VALUE
 
     return output
+
+
+def to_comma_separated(input: Any) -> Optional[str]:
+    """Converts a list of items into a single string containing each item's string representations
+    sorted by a comma, for easy ingestion into the Qualys API.  If a non-list object is passed,
+    returns the string representation of the object
+    """
+
+    if input is None:
+        return None
+
+    if not isinstance(input, MutableSequence):
+        return str(input)
+
+    output = ""
+    for item in input:
+        output += str(item) + ","
+
+    output.rstrip(",")  # Remove final comma
+    return output
+
+
+def datetime_to_qualys_format(dt: Optional[datetime.datetime]) -> Optional[str]:
+    """Converts a Python datetime object to the string format used by the Qualys API."""
+
+    if dt is None:
+        return None
+    else:
+        return dt.isoformat()
+
+
+def datetime_from_qualys_format(dt: str) -> datetime.datetime:
+    """Converts a datetime string as returned by the Qualys API into a Python datetime object."""
+
+    return datetime.datetime.fromisoformat(dt)
+
+
+def parse_optional_bool(b: Optional[bool], returns: Tuple[str, str] = ("1", "0")) -> Optional[str]:
+    """Converts a bool or None to a value parseably by the Qualys API.
+    
+        Args:
+            b: The boolean value to parse.
+            returns: The values to return depending on if the input is True or
+            False (in that order).
+    """
+
+    if b is None:
+        return None
+    elif b:
+        return returns[0]
+    else:
+        return returns[1]

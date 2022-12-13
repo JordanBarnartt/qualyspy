@@ -1,11 +1,12 @@
 import dataclasses
 import datetime
 import ipaddress
-import re
 from collections.abc import MutableMapping, MutableSequence
 from typing import Optional, Tuple, Union
+import urllib.parse
 
-import qualysapi
+import qualyspy.qualysapi as qualysapi
+import qualyspy.qutils as qutils
 
 
 @dataclasses.dataclass
@@ -280,12 +281,67 @@ class Host:
     """The asset group IDs for the asset groups which the host belongs to."""
 
 
+def _separate_ips(
+    ips: Optional[
+        Union[
+            ipaddress.IPv4Address,
+            ipaddress.IPv4Network,
+            ipaddress.IPv6Address,
+            ipaddress.IPv6Network,
+            MutableSequence[
+                Union[
+                    ipaddress.IPv4Address,
+                    ipaddress.IPv4Network,
+                    ipaddress.IPv6Address,
+                    ipaddress.IPv6Network,
+                ]
+            ],
+        ]
+    ] = None
+) -> Tuple[
+    Optional[MutableSequence[Union[ipaddress.IPv4Address, ipaddress.IPv4Network]]],
+    Optional[MutableSequence[Union[ipaddress.IPv6Address, ipaddress.IPv6Network]]],
+]:
+    """Separate a list of IP addresses and networks into a tuple of IPv4 address/networks and
+    IPv6 addresses and networks.
+    """
+
+    if ips:
+        if not isinstance(ips, MutableSequence):
+            ips = [ips]
+        ip4 = [
+            ip
+            for ip in ips
+            if (
+                isinstance(ip, ipaddress.IPv4Address)
+                or isinstance(ip, ipaddress.IPv4Network)
+            )
+        ]
+        ip6 = [
+            ip
+            for ip in ips
+            if (
+                isinstance(ip, ipaddress.IPv6Address)
+                or isinstance(ip, ipaddress.IPv6Network)
+            )
+        ]
+
+    if len(ip4) == 0 and len(ip6) == 0:
+        return (None, None)
+    elif len(ip6) == 0:
+        return (ip4, None)
+    elif len(ip4) == 0:
+        return (None, ip6)
+    else:
+        return (ip4, ip6)
+
+
 def host_list(
     conn: qualysapi.Connection,
     show_asset_id: Optional[bool] = False,
     all_details: Optional[bool] = False,
     show_ag_info: Optional[bool] = False,
-    os_pattern: Optional[re.Pattern] = None,
+    os_pattern: Optional[str] = None,
     truncation_limit: Optional[int] = None,
     ips: Optional[
         Union[
@@ -303,7 +359,7 @@ def host_list(
             ],
         ]
     ] = None,
-    ag_ids: Optional[Union[str, MutableSequence[str]]] = None,
+    ag_ids: Optional[Union[int, range, MutableSequence[Union[int, range]]]] = None,
     ag_titles: Optional[Union[str, MutableSequence[str]]] = None,
     ids: Optional[Union[int, range, MutableSequence[Union[int, range]]]] = None,
     id_min: Optional[int] = None,
@@ -323,11 +379,11 @@ def host_list(
     scap_scan_since: Optional[datetime.datetime] = None,
     no_scap_scan_since: Optional[datetime.datetime] = None,
     use_tags: Optional[bool] = False,
-    tag_set_by_name: Optional[bool] = False,
-    tag_include_all: Optional[bool] = False,
-    tag_exclude_all: Optional[bool] = False,
+    tag_set_by_name: Optional[bool] = None,
+    tag_include_all: Optional[bool] = None,
+    tag_exclude_all: Optional[bool] = None,
     tag_set_include: Optional[Union[str, MutableSequence[str]]] = None,
-    tag_set_exlude: Optional[Union[str, MutableSequence[str]]] = None,
+    tag_set_exclude: Optional[Union[str, MutableSequence[str]]] = None,
     show_tags: Optional[bool] = False,
     show_ars: Optional[bool] = None,
     ars_min: Optional[int] = None,
@@ -339,7 +395,12 @@ def host_list(
     cloud_tag_fields: Optional[
         MutableSequence[Union[str, MutableMapping[str, str]]]
     ] = None,
-) -> Tuple[Union[MutableSequence[Host], MutableSequence[str]], Warning, Glossary]:
+    post: bool = False,
+) -> Tuple[
+    Optional[Union[MutableSequence[Host], MutableSequence[str]]],
+    Optional[Warning],
+    Optional[Glossary],
+]:
     """Download a list of scanned hosts in the user's account. By default, all scanned hosts in the
     user account are included and basic information about each host is provided. Hosts in the XML
     output are sorted by host ID in ascending order.
@@ -375,13 +436,16 @@ def host_list(
             the host ID, IP address, tracking method, DNS and NetBIOS hostnames, and operating
             system. Setting this parameter to true will show all host information. All host
             information includes the basic host information plus the last vulnerability and
-            compliance scan dates.
+            compliance scan dates.  If this value is set to None, only the host IDs will be
+            returned.
         show_ag_info:
             Show asset group information. Asset group information includes the asset group ID and
             title.
         os_pattern:
             Show only hosts which have an operating system matching a certain regular expression. An
-            empty value cannot be specified. Use re.compile("%5E%24") to match empty string.
+            empty value cannot be specified. "%5E%24" to match empty string. The regular expression
+            string you enter must follow the PCRE standard and should not be URL-encoded (the
+            function will perform the encoding).
         truncation_limit:
             Specify the maximum number of host records processed per request. When not specified,
             the truncation limit is set to 1000 host records. You may specify a value less than the
@@ -400,5 +464,326 @@ def host_list(
         ips:
             Show only certain IP addresses/ranges. One or more IPs/ranges may be specified.
         ag_ids:
-            
+            Show only hosts belonging to asset groups with certain IDs. One or more asset group IDs
+            and/or ranges may be specified.
+        ag_titles:
+            Show only hosts belonging to asset groups with certain strings in the asset group title.
+            One or more asset group titles may be specified.
+        ids:
+            Show only certain host IDs/ranges. One or more host IDs/ranges may be specified.
+        id_min:
+            Show only hosts which have a minimum host ID value. A valid host ID is required.
+        id_max:
+            Show only hosts which have a maximum host ID value. A valid host ID is required.
+        network_ids:
+            Restrict the request to certain custom network IDs.
+        compliance_enabled:
+            Use this parameter to filter the scanned hosts list to show either:
+            1) a list of scanned compliance hosts, or
+            2) a list of scanned vulnerability management hosts.
+
+            Specify True to list scanned compliance hosts in the user's account. These hosts are
+            assigned to the policy compliance module.
+
+            Specify False to list scanned hosts which are not assigned to the policy compliance
+            module.
+        no_vm_scan_since:
+            Show hosts not scanned since a certain date and time.
+        no_compliance_scan_since:
+            Show compliance hosts not scanned since a certain date and time.
+        vm_scan_since:
+            Show hosts that were last scanned for vulnerabilities since a certain date and time.
+        compliance_scan_since:
+            Show hosts that were last scanned for compliance since a certain date and time.
+        vm_processed_before:
+            Show hosts with vulnerability scan results processed before a certain date and time.
+        vm_processed_after:
+            Show hosts with vulnerability scan results processed after a certain date and time.
+        vm_scan_date_before:
+            Show hosts with a vulnerability scan end date before a certain date and time.
+        vm_scan_date_after:
+            Show hosts with a vulnerability scan end date after a certain date and time.
+        vm_auth_scan_date_before:
+            Show hosts with a successful authenticated vulnerability scan end date before a certain
+            date and time.
+        vm_auth_scan_date_after:
+            Show hosts with a successful authenticated vulnerability scan end date after a certain
+            date and time.
+        scap_scan_since:
+            Show hosts that were last scanned for SCAP since a certain date and time. Hosts that
+            were the target of a SCAP scan since the date/time will be shown.
+        no_scap_scan_since:
+             Show hosts not scanned for SCAP since a certain date and time.
+        use_tags:
+            Specify False (the default) if you want to select hosts based on IP addresses/ranges
+            and/or asset groups. Specify True if you want to select hosts based on asset tags.
+        tag_set_by_name:
+            Specify False (the default) to select a tag set by providing tag IDs. Specify True to
+            select a tag set by providing tag names.
+        tag_include_all:
+            Specify False (the default) to include hosts that match at least one of the selected
+            tags. Specify True to include hosts that match all of the selected tags.
+        tag_exclude_all:
+            Specify False (the default) to exclude hosts that match at least one of the selected
+            tags. Specify True to exclude hosts that match all of the selected tags.
+        tag_set_include:
+            Specify a tag set to include. Hosts that match these tags will be included. You identify
+            the tag set by providing tag name or IDs.
+        tag_set_exclude:
+            Specify a tag set to exclude. Hosts that match these tags will be excluded. You identify
+            the tag set by providing tag name or IDs.
+        show_tags:
+            Specify True to include asset tags associated with each host in the output.
+        show_ars:
+            Specify True to show the ARS value in the output. Specify False if you do not want to
+            show the ARS value.
+        ars_min:
+            Show only asset records with an ARS value greater than or equal to the ARS min value
+            specified. ars_min can only be specified when show_ars=True. When ars_min and ars_max
+            are specified in the same request, the ars_min value must be less than the ars_max
+            value.
+        ars_max:
+            Show only detection records with an ARS value less than or equal to the ARS max value
+            specified. ars_max can only be specified when show_ars=True. When ars_min and ars_max
+            are specified in the same request, the ars_min value must be less than the ars_max
+            value.
+        show_ars_factors:
+            Specify True to show ARS contributing factors associated with each asset record in the
+            output. Specify False if you do not want to show ARS contributing factors.
+        host_metadata:
+            Specify “all” to list all cloud assets with their metadata or specify the name of the
+            cloud provider to show only the assets managed by the cloud provider.
+            Valid values: "all", "ec2", "google", "azure"
+        host_metadata_fields:
+            Specify metadata fields to only return data for certain attributes.
+        show_cloud_tags:
+            Specify True to display cloud provider tags for each scanned host asset in the output.
+            The default value of the parameter is set to False. When set to False, Qualys will not
+            show the cloud provider tags for the scanned assets.
+        cloud_tag_fields:
+            Specify cloud tags or cloud tag and name combinations to only return information for
+            specified cloud tags. A cloud tag name and value combination is specified in a mapping.
+            For each cloud tag, Qualys shows the cloud tag's name, its value, and last success date
+            (the tag last success date/time, fetched from instance).
+
+            If this parameter is not specified and "show_cloud_tags" is set to True, the cloud
+            provider tags will be included for the assets.
+        post:
+            Run as a POST request. There are known limits for the amount of data that can be sent
+            using the GET method, so POST should be used in those cases.
+
+        Returns:
+            A tuple containing three objects in the following order:
+            - Either a list of Host objects containing information on each host, or a list of host
+            IDs if all_details=None.
+            - If the truncation limit is reached, the second item will be a Warning object which
+            includes a URL to the next page of results.  Otherwise, None.
+            - A glossary of definitions associated with a hosts in the output.
     """
+
+    if all_details is None:
+        details = "None"
+    elif not all_details:
+        details = "Basic"
+    else:
+        details = "All"
+    if show_ag_info and all_details is not None:
+        details += "/AGs"
+
+    ip4, ip6 = _separate_ips(ips)
+
+    params = {
+        "show_asset_id": qutils.parse_optional_bool(show_asset_id),
+        "details": details,
+        "os_pattern": urllib.parse.quote(os_pattern) if os_pattern else None,
+        "truncation_limit": str(truncation_limit) if truncation_limit else None,
+        "ips": qutils.ips_to_qualys_format(ip4) if ip4 else None,
+        "ipv6": qutils.ips_to_qualys_format(ip6) if ip6 else None,
+        "ag_ids": qutils.to_comma_separated(ag_ids) if ag_ids else None,
+        "ag_titles": qutils.to_comma_separated(ag_titles),
+        "ids": qutils.to_comma_separated(ids) if ids else None,
+        "id_min": str(id_min) if id_min else None,
+        "id_max": str(id_max) if id_max else None,
+        "network_ids": qutils.to_comma_separated(network_ids),
+        "compliance_enabled": qutils.parse_optional_bool(compliance_enabled),
+        "no_vm_scan_since": qutils.datetime_to_qualys_format(no_vm_scan_since),
+        "no_compliance_scan_since": qutils.datetime_to_qualys_format(
+            no_compliance_scan_since
+        ),
+        "vm_scan_since": qutils.datetime_to_qualys_format(vm_scan_since),
+        "compliance_scan_since": qutils.datetime_to_qualys_format(
+            compliance_scan_since
+        ),
+        "vm_processed_before": qutils.datetime_to_qualys_format(vm_processed_before),
+        "vm_processed_after": qutils.datetime_to_qualys_format(vm_processed_after),
+        "vm_scan_date_before": qutils.datetime_to_qualys_format(vm_scan_date_before),
+        "vm_scan_date_after": qutils.datetime_to_qualys_format(vm_scan_date_after),
+        "vm_auth_scan_date_before": qutils.datetime_to_qualys_format(
+            vm_auth_scan_date_before
+        ),
+        "vm_auth_scan_date_after": qutils.datetime_to_qualys_format(
+            vm_auth_scan_date_after
+        ),
+        "scap_scan_since": qutils.datetime_to_qualys_format(scap_scan_since),
+        "no_scap_scan_since": qutils.datetime_to_qualys_format(no_scap_scan_since),
+        "use_tags": "1" if use_tags else "0",
+        "tag_set_by": qutils.parse_optional_bool(tag_set_by_name, ("name", "id")),
+        "tag_include_selector": qutils.parse_optional_bool(tag_include_all, ("all", "any")),
+        "tag_exclude_selector": qutils.parse_optional_bool(tag_exclude_all, ("all", "any")),
+        "tag_set_include": qutils.to_comma_separated(tag_set_include),
+        "tag_set_exclude": qutils.to_comma_separated(tag_set_exclude),
+        "show_tags": qutils.parse_optional_bool(show_tags),
+        "show_ars": qutils.parse_optional_bool(show_ars),
+        "ars_min": str(ars_min) if ars_min else None,
+        "ars_max": str(ars_max) if ars_max else None,
+        "show_ars_factors": qutils.parse_optional_bool(show_ars_factors),
+        "host_metadata": host_metadata if host_metadata else None,
+        "host_metadata_fields": qutils.to_comma_separated(host_metadata_fields),
+        "show_cloud_tags": qutils.parse_optional_bool(show_cloud_tags),
+        "cloud_tag_fields": qutils.to_comma_separated(cloud_tag_fields),
+    }
+
+    params_filtered = qutils.remove_nones_from_dict(params)
+
+    if post:
+        raw = conn.post(qutils.URLS["Host List"], params=params_filtered)
+    else:
+        raw = conn.get(qutils.URLS["Host List"], params=params_filtered)
+    if raw.tag == "SIMPLE_RETURN":
+        raise qualysapi.Qualys_API_Error(
+            f"Error {str(raw.RESPONSE.CODE)}: {str(raw.RESPONSE.TEXT)}"
+        )
+
+    if all_details is None:
+        id_set = [str(id) for id in raw.ID_SET]
+    else:
+        hosts: list[Host] = []
+        for host in raw.RESPONSE.HOST_LIST.HOST:
+            h = Host(
+                id=host.ID,
+                asset_id=host.ASSET_ID,
+                ip=ipaddress.IPv4Address(host.IP),
+                ipv6=ipaddress.IPv6Address(host.IPV6),
+                asset_risk_score=int(host.ASSET_RISK_SCORE),
+                asset_criticality_score=int(host.ASSET_CRITICALITY_SCORE),
+                ars_factors=Ars_Factors(
+                    ars_formula=host.ARS_FACTORS.ARS_FORMULA,
+                    vuln_count=host.ARS_FACTORS.VULN_COUNT,
+                ),
+                tracking_method=host.TRACKING_METHOD,
+                network_id=host.NETWORK_ID,
+                dns=host.DNS,
+                dns_data=Dns_Data(
+                    hostname=host.DNS_DATA.HOSTNAME,
+                    domain=host.DNS_DATA.DOMAIN,
+                    fqdn=host.DNS_DATA.FQDN,
+                ),
+                cloud_service=host.CLOUD_SERVICE,
+                cloud_resource_id=host.CLOUD_RESOURCE_ID,
+                ec2_instance_id=host.EC2_INSTANCE_ID,
+                netbios=host.NETBIOS,
+                os=host.OS,
+                qg_hostid=host.QG_HOSTID,
+                tags=[Tag(tag_id=tag.TAG_ID, name=tag.NAME) for tag in host.TAGS],
+                metadata=Metadata(
+                    ec2=[
+                        Attribute(
+                            name=attr.NAME,
+                            last_status=attr.LAST_STATUS,
+                            value=attr.VALUE,
+                            last_success_date=attr.LAST_SUCCESS_DATE,
+                            last_error_date=attr.LAST_ERROR_DATE,
+                            last_error=attr.LAST_ERROR,
+                        )
+                        for attr in host.METADATA.EC2.ATTRIBUTE
+                    ],
+                    google=[
+                        Attribute(
+                            name=attr.NAME,
+                            last_status=attr.LAST_STATUS,
+                            value=attr.VALUE,
+                            last_success_date=attr.LAST_SUCCESS_DATE,
+                            last_error_date=attr.LAST_ERROR_DATE,
+                            last_error=attr.LAST_ERROR,
+                        )
+                        for attr in host.METADATA.EC2.ATTRIBUTE
+                    ],
+                    azure=[
+                        Attribute(
+                            name=attr.NAME,
+                            last_status=attr.LAST_STATUS,
+                            value=attr.VALUE,
+                            last_success_date=attr.LAST_SUCCESS_DATE,
+                            last_error_date=attr.LAST_ERROR_DATE,
+                            last_error=attr.LAST_ERROR,
+                        )
+                        for attr in host.METADATA.EC2.ATTRIBUTE
+                    ],
+                ),
+                cloud_provider_tags=[
+                    Cloud_Tag(
+                        name=tag.NAME,
+                        value=tag.VALUE,
+                        last_success_date=tag.LAST_SUCCESS_DATE,
+                    )
+                    for tag in host.TAGS
+                ],
+                last_vuln_scan_datetime=qutils.datetime_from_qualys_format(
+                    host.LAST_VULN_SCAN_DATETIME
+                ),
+                last_vm_scanned_date=qutils.datetime_from_qualys_format(
+                    host.LAST_VM_SCANNED_DATE
+                ),
+                last_vm_scanned_duration=datetime.timedelta(
+                    seconds=host.LAST_VM_SCANNED_DURATION
+                ),
+                last_vm_auth_scanned_date=qutils.datetime_from_qualys_format(
+                    host.LAST_VM_AUTH_SCANNED_DATE
+                ),
+                last_vm_auth_scanned_duration=datetime.timedelta(
+                    seconds=host.LAST_VM_AUTH_SCANNED_DURATION
+                ),
+                last_compliance_scan_datetime=qutils.datetime_from_qualys_format(
+                    host.LAST_COMPLIANCE_SCAN_DATETIME
+                ),
+                last_scap_scan_datetime=qutils.datetime_from_qualys_format(
+                    host.LAST_SCAP_SCAN_DATETIME
+                ),
+                owner=host.OWNER,
+                comments=host.COMMENTS,
+                value_1=host.USER_DEF.VALUE_1,
+                value_2=host.USER_DEF.VALUE_2,
+                value_3=host.USER_DEF.VALUE_3,
+                asset_group_ids=host.ASSET_GROUP_IDS,
+            )
+        hosts.append(h)
+
+    if raw.RESPONSE.WARNING.CODE:
+        warning = Warning(
+            text=raw.WARNING.TEXT, code=raw.WARNING.CODE, url=raw.WARNING.URL
+        )
+    else:
+        warning = None
+
+    glossary = Glossary(
+        label_1=raw.RESPONSE.GLOSSARY.USER_DEF.LABEL_1,
+        label_2=raw.RESPONSE.GLOSSARY.USER_DEF.LABEL_2,
+        label_3=raw.RESPONSE.GLOSSARY.USER_DEF.LABEL_3,
+        user_list=[
+            User(
+                user_login=user.USER_LOGIN,
+                first_name=user.FIRST_NAME,
+                last_name=user.LAST_NAME,
+            )
+            for user in raw.RESPONSE.GLOSSARY.USER_LIST.USER
+        ],
+        asset_group_list=[
+            Asset_Group(id=asset_group.ID, title=asset_group.TITLE)
+            for asset_group in raw.RESPONSE.GLOSSARY.ASSET_GROUP_LIST.ASSET_GROUP
+        ],
+    )
+
+    if all_details is None:
+        return (id_set, warning, glossary)
+    else:
+        return (hosts, warning, glossary)

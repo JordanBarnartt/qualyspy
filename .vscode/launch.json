@@ -1,6 +1,7 @@
 {
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "Python: Current File",
             "type": "python",
@@ -13,7 +14,7 @@
             "name": "QualysPy",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/debug/test.py",
+            "program": "${workspaceFolder}/debug/test2.py",
             "console": "integratedTerminal",
             "justMyCode": true
         },
