@@ -10,7 +10,7 @@ class Asset_Group_List:
 
 @dataclasses.dataclass
 class User:
-    user_login: str
+    user_login: User_Login
     first_name: str
     last_name: str
 
@@ -37,7 +37,7 @@ class Id_Set:
 @dataclasses.dataclass
 class Cloud_Tag:
     name: str
-    value: str
+    value: Value
     last_success_date: str
 
 @dataclasses.dataclass
@@ -48,7 +48,7 @@ class Cloud_Provider_Tags:
 class Attribute:
     name: str
     last_status: str
-    value: str
+    value: Value
     last_success_date: Optional[str] = None
     last_error_date: Optional[str] = None
     last_error: Optional[str] = None
@@ -132,31 +132,3 @@ class Host:
 @dataclasses.dataclass
 class Host_List:
     host: MutableSequence[Host]
-
-@dataclasses.dataclass
-class Response (datetime,:
-    host_list|id_set): Optional[Host_List|id_Set)] = None
-    warning: Optional[Warning] = None
-    glossary: Optional[Glossary] = None
-
-@dataclasses.dataclass
-class Param:
-    key: str
-    value: str
-
-@dataclasses.dataclass
-class Param_List:
-    param: MutableSequence[Param]
-
-@dataclasses.dataclass
-class Request:
-    datetime: str
-    user_login: str
-    resource: str
-    param_list: Optional[Param_List] = None
-    post_data: Optional[str] = None
-
-@dataclasses.dataclass
-class Host_List_Output:
-    request: Optional[Request] = None
-    response: Response
