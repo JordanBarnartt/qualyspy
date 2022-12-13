@@ -1,7 +1,8 @@
 import dataclasses
 import datetime
 import ipaddress
-from collections.abc import MutableSequence
+import re
+from collections.abc import MutableMapping, MutableSequence
 from typing import Optional, Tuple, Union
 
 import qualysapi
@@ -284,7 +285,7 @@ def host_list(
     show_asset_id: Optional[bool] = False,
     all_details: Optional[bool] = False,
     show_ag_info: Optional[bool] = False,
-    os_pattern: Optional[str] = None,
+    os_pattern: Optional[re.Pattern] = None,
     truncation_limit: Optional[int] = None,
     ips: Optional[
         Union[
@@ -303,8 +304,41 @@ def host_list(
         ]
     ] = None,
     ag_ids: Optional[Union[str, MutableSequence[str]]] = None,
-    ag_titles: Optional[Union[str, MutableSequence[str]]] = None
-    ids
+    ag_titles: Optional[Union[str, MutableSequence[str]]] = None,
+    ids: Optional[Union[int, range, MutableSequence[Union[int, range]]]] = None,
+    id_min: Optional[int] = None,
+    id_max: Optional[int] = None,
+    network_ids: Optional[Union[str, MutableSequence[str]]] = None,
+    compliance_enabled: Optional[bool] = None,
+    no_vm_scan_since: Optional[datetime.datetime] = None,
+    no_compliance_scan_since: Optional[datetime.datetime] = None,
+    vm_scan_since: Optional[datetime.datetime] = None,
+    compliance_scan_since: Optional[datetime.datetime] = None,
+    vm_processed_before: Optional[datetime.datetime] = None,
+    vm_processed_after: Optional[datetime.datetime] = None,
+    vm_scan_date_before: Optional[datetime.datetime] = None,
+    vm_scan_date_after: Optional[datetime.datetime] = None,
+    vm_auth_scan_date_before: Optional[datetime.datetime] = None,
+    vm_auth_scan_date_after: Optional[datetime.datetime] = None,
+    scap_scan_since: Optional[datetime.datetime] = None,
+    no_scap_scan_since: Optional[datetime.datetime] = None,
+    use_tags: Optional[bool] = False,
+    tag_set_by_name: Optional[bool] = False,
+    tag_include_all: Optional[bool] = False,
+    tag_exclude_all: Optional[bool] = False,
+    tag_set_include: Optional[Union[str, MutableSequence[str]]] = None,
+    tag_set_exlude: Optional[Union[str, MutableSequence[str]]] = None,
+    show_tags: Optional[bool] = False,
+    show_ars: Optional[bool] = None,
+    ars_min: Optional[int] = None,
+    ars_max: Optional[int] = None,
+    show_ars_factors: Optional[bool] = None,
+    host_metadata: Optional[str] = None,
+    host_metadata_fields: Optional[MutableSequence[str]] = None,
+    show_cloud_tags: Optional[bool] = False,
+    cloud_tag_fields: Optional[
+        MutableSequence[Union[str, MutableMapping[str, str]]]
+    ] = None,
 ) -> Tuple[Union[MutableSequence[Host], MutableSequence[str]], Warning, Glossary]:
     """Download a list of scanned hosts in the user's account. By default, all scanned hosts in the
     user account are included and basic information about each host is provided. Hosts in the XML
@@ -328,4 +362,43 @@ def host_list(
     - High (700-849)
     - Medium (500-699)
     - Low (0-499)
+
+    Args:
+        conn:
+            A connection to the Qualys API.
+        show_asset_ids:
+            When specified, we show the asset ID of the scanned hosts in the output. The default
+            value of this parameter is set to False. When set to False, Qualys does not show the
+            asset id information for the scanned hosts.
+        all_details:
+            By default, only basic host information will be shown. Basic host information includes
+            the host ID, IP address, tracking method, DNS and NetBIOS hostnames, and operating
+            system. Setting this parameter to true will show all host information. All host
+            information includes the basic host information plus the last vulnerability and
+            compliance scan dates.
+        show_ag_info:
+            Show asset group information. Asset group information includes the asset group ID and
+            title.
+        os_pattern:
+            Show only hosts which have an operating system matching a certain regular expression. An
+            empty value cannot be specified. Use re.compile("%5E%24") to match empty string.
+        truncation_limit:
+            Specify the maximum number of host records processed per request. When not specified,
+            the truncation limit is set to 1000 host records. You may specify a value less than the
+            default (1-999) or greater than the default (1001-1000000).
+
+            If the requested list identifies more host records than the truncation limit, then the
+            output includes a Warning object with the URL for making another request for the next
+            batch of host records.
+
+            You can specify truncation_limit=0 for no truncation limit. This means that the output
+            is not paginated and all the records are returned in a single output. WARNING: This can
+            generate very large output and processing large XML files can consume a lot of resources
+            on the client side. In this case it is recommended to use the pagination logic and
+            parallel processing. The previous page can be processed while the next page is
+            downloaded.
+        ips:
+            Show only certain IP addresses/ranges. One or more IPs/ranges may be specified.
+        ag_ids:
+            
     """
