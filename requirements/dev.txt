@@ -1,0 +1,8 @@
+-r deploy.txt
+black
+mypy
+pylama
+Sphinx
+types-lxml
+types-python-dateutil
+types-requests
