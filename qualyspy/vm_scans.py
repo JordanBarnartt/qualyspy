@@ -26,7 +26,7 @@ from typing import Any, Optional, TextIO, Union
 import dateutil.parser
 
 import qualyspy.qualysapi as qualysapi
-import qualyspy.utils as qutils
+import qualyspy.qutils as qutils
 
 URLS = json.load(importlib.resources.files("qualyspy").joinpath("urls.json").open())
 

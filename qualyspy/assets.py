@@ -14,7 +14,7 @@ from typing import Optional, Union
 import lxml.objectify
 
 import qualyspy.qualysapi as qualysapi
-import qualyspy.utils as qutils
+import qualyspy.qutils as qutils
 
 URLS = json.load(importlib.resources.files("qualyspy").joinpath("urls.json").open())
 
