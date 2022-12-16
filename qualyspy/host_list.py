@@ -1,8 +1,10 @@
+"""Python wrapper for the host_list Qualys API."""
+
 import dataclasses
 import datetime
 import ipaddress
 from collections.abc import MutableMapping, MutableSequence
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 import urllib.parse
 
 import qualyspy.qualysapi as qualysapi
@@ -298,7 +300,7 @@ def _separate_ips(
             ],
         ]
     ] = None
-) -> Tuple[
+) -> tuple[
     Optional[MutableSequence[Union[ipaddress.IPv4Address, ipaddress.IPv4Network]]],
     Optional[MutableSequence[Union[ipaddress.IPv6Address, ipaddress.IPv6Network]]],
 ]:
@@ -336,9 +338,26 @@ def _separate_ips(
         return (ip4, ip6)
 
 
+def _parse_details(all_details: Optional[bool], show_ag_info: Optional[bool]) -> str:
+    """Create the correct details string to be ingested in the Qualys API based on input to the
+    host_list function.
+    """
+
+    if all_details is None:
+        details = "None"
+    elif not all_details:
+        details = "Basic"
+    else:
+        details = "All"
+    if show_ag_info and all_details is not None:
+        details += "/AGs"
+
+    return details
+
+
 def host_list(
     conn: qualysapi.Connection,
-    show_asset_id: Optional[bool] = False,
+    show_asset_ids: Optional[bool] = False,
     all_details: Optional[bool] = False,
     show_ag_info: Optional[bool] = False,
     os_pattern: Optional[str] = None,
@@ -396,7 +415,7 @@ def host_list(
         MutableSequence[Union[str, MutableMapping[str, str]]]
     ] = None,
     post: bool = False,
-) -> Tuple[
+) -> tuple[
     Optional[Union[MutableSequence[Host], MutableSequence[str]]],
     Optional[Warning],
     Optional[Glossary],
@@ -581,19 +600,11 @@ def host_list(
             - A glossary of definitions associated with a hosts in the output.
     """
 
-    if all_details is None:
-        details = "None"
-    elif not all_details:
-        details = "Basic"
-    else:
-        details = "All"
-    if show_ag_info and all_details is not None:
-        details += "/AGs"
-
+    details = _parse_details(all_details, show_ag_info)
     ip4, ip6 = _separate_ips(ips)
 
     params = {
-        "show_asset_id": qutils.parse_optional_bool(show_asset_id),
+        "show_asset_id": qutils.parse_optional_bool(show_asset_ids),
         "details": details,
         "os_pattern": urllib.parse.quote(os_pattern) if os_pattern else None,
         "truncation_limit": str(truncation_limit) if truncation_limit else None,
@@ -628,8 +639,12 @@ def host_list(
         "no_scap_scan_since": qutils.datetime_to_qualys_format(no_scap_scan_since),
         "use_tags": "1" if use_tags else "0",
         "tag_set_by": qutils.parse_optional_bool(tag_set_by_name, ("name", "id")),
-        "tag_include_selector": qutils.parse_optional_bool(tag_include_all, ("all", "any")),
-        "tag_exclude_selector": qutils.parse_optional_bool(tag_exclude_all, ("all", "any")),
+        "tag_include_selector": qutils.parse_optional_bool(
+            tag_include_all, ("all", "any")
+        ),
+        "tag_exclude_selector": qutils.parse_optional_bool(
+            tag_exclude_all, ("all", "any")
+        ),
         "tag_set_include": qutils.to_comma_separated(tag_set_include),
         "tag_set_exclude": qutils.to_comma_separated(tag_set_exclude),
         "show_tags": qutils.parse_optional_bool(show_tags),
@@ -659,129 +674,39 @@ def host_list(
     else:
         hosts: list[Host] = []
         for host in raw.RESPONSE.HOST_LIST.HOST:
-            h = Host(
-                id=host.ID,
-                asset_id=host.ASSET_ID,
-                ip=ipaddress.IPv4Address(host.IP),
-                ipv6=ipaddress.IPv6Address(host.IPV6),
-                asset_risk_score=int(host.ASSET_RISK_SCORE),
-                asset_criticality_score=int(host.ASSET_CRITICALITY_SCORE),
-                ars_factors=Ars_Factors(
-                    ars_formula=host.ARS_FACTORS.ARS_FORMULA,
-                    vuln_count=host.ARS_FACTORS.VULN_COUNT,
-                ),
-                tracking_method=host.TRACKING_METHOD,
-                network_id=host.NETWORK_ID,
-                dns=host.DNS,
-                dns_data=Dns_Data(
-                    hostname=host.DNS_DATA.HOSTNAME,
-                    domain=host.DNS_DATA.DOMAIN,
-                    fqdn=host.DNS_DATA.FQDN,
-                ),
-                cloud_service=host.CLOUD_SERVICE,
-                cloud_resource_id=host.CLOUD_RESOURCE_ID,
-                ec2_instance_id=host.EC2_INSTANCE_ID,
-                netbios=host.NETBIOS,
-                os=host.OS,
-                qg_hostid=host.QG_HOSTID,
-                tags=[Tag(tag_id=tag.TAG_ID, name=tag.NAME) for tag in host.TAGS],
-                metadata=Metadata(
-                    ec2=[
-                        Attribute(
-                            name=attr.NAME,
-                            last_status=attr.LAST_STATUS,
-                            value=attr.VALUE,
-                            last_success_date=attr.LAST_SUCCESS_DATE,
-                            last_error_date=attr.LAST_ERROR_DATE,
-                            last_error=attr.LAST_ERROR,
-                        )
-                        for attr in host.METADATA.EC2.ATTRIBUTE
-                    ],
-                    google=[
-                        Attribute(
-                            name=attr.NAME,
-                            last_status=attr.LAST_STATUS,
-                            value=attr.VALUE,
-                            last_success_date=attr.LAST_SUCCESS_DATE,
-                            last_error_date=attr.LAST_ERROR_DATE,
-                            last_error=attr.LAST_ERROR,
-                        )
-                        for attr in host.METADATA.EC2.ATTRIBUTE
-                    ],
-                    azure=[
-                        Attribute(
-                            name=attr.NAME,
-                            last_status=attr.LAST_STATUS,
-                            value=attr.VALUE,
-                            last_success_date=attr.LAST_SUCCESS_DATE,
-                            last_error_date=attr.LAST_ERROR_DATE,
-                            last_error=attr.LAST_ERROR,
-                        )
-                        for attr in host.METADATA.EC2.ATTRIBUTE
-                    ],
-                ),
-                cloud_provider_tags=[
-                    Cloud_Tag(
-                        name=tag.NAME,
-                        value=tag.VALUE,
-                        last_success_date=tag.LAST_SUCCESS_DATE,
-                    )
-                    for tag in host.TAGS
-                ],
-                last_vuln_scan_datetime=qutils.datetime_from_qualys_format(
-                    host.LAST_VULN_SCAN_DATETIME
-                ),
-                last_vm_scanned_date=qutils.datetime_from_qualys_format(
-                    host.LAST_VM_SCANNED_DATE
-                ),
-                last_vm_scanned_duration=datetime.timedelta(
-                    seconds=host.LAST_VM_SCANNED_DURATION
-                ),
-                last_vm_auth_scanned_date=qutils.datetime_from_qualys_format(
-                    host.LAST_VM_AUTH_SCANNED_DATE
-                ),
-                last_vm_auth_scanned_duration=datetime.timedelta(
-                    seconds=host.LAST_VM_AUTH_SCANNED_DURATION
-                ),
-                last_compliance_scan_datetime=qutils.datetime_from_qualys_format(
-                    host.LAST_COMPLIANCE_SCAN_DATETIME
-                ),
-                last_scap_scan_datetime=qutils.datetime_from_qualys_format(
-                    host.LAST_SCAP_SCAN_DATETIME
-                ),
-                owner=host.OWNER,
-                comments=host.COMMENTS,
-                value_1=host.USER_DEF.VALUE_1,
-                value_2=host.USER_DEF.VALUE_2,
-                value_3=host.USER_DEF.VALUE_3,
-                asset_group_ids=host.ASSET_GROUP_IDS,
+            h = qutils.elements_to_class(
+                host,
+                Host,
+                {
+                    "ars_factors": Ars_Factors,
+                    "dns_data": Dns_Data,
+                    "tag": Tag,
+                    "metadata": Metadata,
+                    "attribute": Attribute,
+                    "cloud_tag": Cloud_Tag,
+                },
+                {
+                    "tags": "tag",
+                    "ec2": "attribute",
+                    "google": "attribute",
+                    "azure": "attribute",
+                    "cloud_provider_tags": "cloud_tag",
+                },
             )
-        hosts.append(h)
+            hosts.append(h)
 
-    if raw.RESPONSE.WARNING.CODE:
-        warning = Warning(
-            text=raw.WARNING.TEXT, code=raw.WARNING.CODE, url=raw.WARNING.URL
+    warning = None
+    if raw.RESPONSE.find("WARNING") is not None:
+        warning = qutils.elements_to_class(raw.RESPONSE.WARNING, Warning)
+
+    glossary = None
+    if raw.RESPONSE.find("GLOSSARY") is not None:
+        glossary = qutils.elements_to_class(
+            raw.RESPONSE.GLOSSARY,
+            Glossary,
+            {"user": User, "asset_group": Asset_Group},
+            {"user_list": "user", "asset_group_list": "asset_group"},
         )
-    else:
-        warning = None
-
-    glossary = Glossary(
-        label_1=raw.RESPONSE.GLOSSARY.USER_DEF.LABEL_1,
-        label_2=raw.RESPONSE.GLOSSARY.USER_DEF.LABEL_2,
-        label_3=raw.RESPONSE.GLOSSARY.USER_DEF.LABEL_3,
-        user_list=[
-            User(
-                user_login=user.USER_LOGIN,
-                first_name=user.FIRST_NAME,
-                last_name=user.LAST_NAME,
-            )
-            for user in raw.RESPONSE.GLOSSARY.USER_LIST.USER
-        ],
-        asset_group_list=[
-            Asset_Group(id=asset_group.ID, title=asset_group.TITLE)
-            for asset_group in raw.RESPONSE.GLOSSARY.ASSET_GROUP_LIST.ASSET_GROUP
-        ],
-    )
 
     if all_details is None:
         return (id_set, warning, glossary)

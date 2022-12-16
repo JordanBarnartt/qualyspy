@@ -1,18 +1,13 @@
-.. QualysPy documentation master file, created by
-   sphinx-quickstart on Fri Nov 11 01:03:32 2022.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Welcome to QualysPy's documentation!
 ====================================
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 3
    :caption: Contents:
 
+   qualyspy.qualysapi
+   qualyspy.host_list
    modules
-
-
 
 Indices and tables
 ==================

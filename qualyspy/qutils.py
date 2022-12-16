@@ -1,11 +1,12 @@
 import ipaddress
 import math
 from collections.abc import MutableMapping, MutableSequence
-from typing import Any, Optional, Union, Tuple
+from typing import Any, Optional, Union, TypeVar
 import datetime
 import json
 import importlib.resources
 
+import lxml.etree
 import lxml.objectify
 
 
@@ -149,27 +150,75 @@ def remove_nones_from_dict(d: MutableMapping[str, Optional[str]]) -> dict[str, s
     return {k: v for k, v in d.items() if v is not None}
 
 
-def parse_elements(xml: lxml.objectify.ObjectifiedElement) -> dict[str, Any]:
-    """Parse a tree of lxml objects into a dictionary of tag:value pairs, where tags with
-    descendants are themselves dictionarys.
+# def parse_elements(xml: lxml.objectify.ObjectifiedElement) -> dict[str, Any]:
+#     """Parse a tree of lxml objects into a dictionary of tag:value pairs, where tags with
+#     descendants are themselves dictionarys.
+
+#     Args:
+#         xml:
+#             The xml tree to be parsed.
+
+#     Returns:
+#         A dictionary containing the information from the lxml object, in the same hierarchy.
+#     """
+
+#     elements_dict: dict[str, Any] = {}
+
+#     for child in xml.iterchildren():
+#         if type(child) == lxml.objectify.ObjectifiedElement:
+#             elements_dict[child.tag.lower()] = parse_elements(child)
+#         elif child.text:
+#             elements_dict[child.tag.lower()] = child.text
+
+#     return elements_dict
+
+
+C = TypeVar("C")
+
+
+def elements_to_class(
+    xml: Union[lxml.objectify.ObjectifiedElement, lxml.etree._Element],
+    output_class: type[C],
+    classmap: MutableMapping[str, Any] = {},
+    list_elements: MutableMapping[str, str] = {},
+) -> C:
+    """Parse a tree of lxml elements into a given class.  The output class can have attributes which
+    are themselves different classes, or which convert a group of identically named subelements to
+    a list.
 
     Args:
         xml:
-            The xml tree to be parsed.
-
-    Returns:
-        A dictionary containing the information from the lxml object, in the same hierarchy.
+            The XML tree to be parsed.
+        output_class:
+            The Python class which the tree should be converted to.
+        classmap:
+            A mapping where the keys are element tags in the XML tree which should be converted to
+            classes to be used as attributes of output_class, and the values are the classes to
+            convert the subelements of the corresponding element into.
+        list_elements:
+            A mapping where the keys are element tags in the XML tree which contain a number of
+            subelements with identical tags which should be converted into a list as an attribute
+            of output_class, and the values are the names of the corresponding identical tags.
     """
 
     elements_dict: dict[str, Any] = {}
 
     for child in xml.iterchildren():
-        if type(child) == lxml.objectify.ObjectifiedElement:
-            elements_dict[child.tag.lower()] = parse_elements(child)
+        t = child.tag.lower()
+        if len([n for n in child.iterdescendants()]) > 0:
+            if t in list_elements:
+                elements_dict[t] = []
+                subelements = child.findall(list_elements[t].upper())
+                for subelement in subelements:
+                    elements_dict[t].append(
+                        elements_to_class(subelement, classmap[list_elements[t]])
+                    )
+            else:
+                elements_dict[t] = elements_to_class(child, classmap[t])
         elif child.text:
-            elements_dict[child.tag.lower()] = child.text
+            elements_dict[t] = child.text
 
-    return elements_dict
+    return output_class(**elements_dict)
 
 
 def parse_simple_return(xml: lxml.objectify.ObjectifiedElement) -> dict[str, Any]:
@@ -227,13 +276,15 @@ def datetime_from_qualys_format(dt: str) -> datetime.datetime:
     return datetime.datetime.fromisoformat(dt)
 
 
-def parse_optional_bool(b: Optional[bool], returns: Tuple[str, str] = ("1", "0")) -> Optional[str]:
+def parse_optional_bool(
+    b: Optional[bool], returns: tuple[str, str] = ("1", "0")
+) -> Optional[str]:
     """Converts a bool or None to a value parseably by the Qualys API.
-    
-        Args:
-            b: The boolean value to parse.
-            returns: The values to return depending on if the input is True or
-            False (in that order).
+
+    Args:
+        b: The boolean value to parse.
+        returns: The values to return depending on if the input is True or
+        False (in that order).
     """
 
     if b is None:

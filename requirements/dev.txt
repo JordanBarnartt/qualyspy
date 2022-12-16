@@ -6,3 +6,4 @@ Sphinx
 types-lxml
 types-python-dateutil
 types-requests
+sphinx-rtd-theme
