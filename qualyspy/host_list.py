@@ -15,7 +15,7 @@ import qualyspy.qutils as qutils
 class Asset_Group:
     """An asset group which a host in the host list output belongs to."""
 
-    id: str
+    id: int
     """An asset group ID."""
 
     title: str
@@ -174,7 +174,7 @@ class Host:
     id: str
     """The host ID."""
 
-    asset_id: Optional[str] = None
+    asset_id: Optional[int] = None
     """The asset ID of the host."""
 
     ip: Optional[ipaddress.IPv4Address] = None
@@ -692,6 +692,22 @@ def host_list(
                     "azure": "attribute",
                     "cloud_provider_tags": "cloud_tag",
                 },
+                {
+                    "asset_id": int,
+                    "ip": ipaddress.ip_address,
+                    "ipv6": ipaddress.ip_address,
+                    "asset_risk_score": int,
+                    "asset_criticality_score": int,
+                    "last_vuln_scan_datetime": qutils.datetime_from_qualys_format,
+                    "last_vm_scanned_date": qutils.datetime_from_qualys_format,
+                    "last_vm_scanned_duration": qutils.timedelta_from_qualys_format,
+                    "last_vm_auth_scanned_date": qutils.datetime_from_qualys_format,
+                    "last_vm_auth_scanned_duration": qutils.timedelta_from_qualys_format,
+                    "last_compliance_scan_datetime": qutils.datetime_from_qualys_format,
+                    "last_scap_scan_datetime": qutils.datetime_from_qualys_format,
+                    "last_success_date": qutils.datetime_from_qualys_format,
+                    "last_error_date": qutils.datetime_from_qualys_format,
+                }
             )
             hosts.append(h)
 
@@ -706,6 +722,7 @@ def host_list(
             Glossary,
             {"user": User, "asset_group": Asset_Group},
             {"user_list": "user", "asset_group_list": "asset_group"},
+            {"id": int}
         )
 
     if all_details is None:

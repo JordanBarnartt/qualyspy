@@ -1,10 +1,11 @@
 import ipaddress
 import math
 from collections.abc import MutableMapping, MutableSequence
-from typing import Any, Optional, Union, TypeVar
+from typing import Any, Optional, Union, TypeVar, Callable
 import datetime
 import json
 import importlib.resources
+import zoneinfo
 
 import lxml.etree
 import lxml.objectify
@@ -180,7 +181,8 @@ def elements_to_class(
     xml: Union[lxml.objectify.ObjectifiedElement, lxml.etree._Element],
     output_class: type[C],
     classmap: MutableMapping[str, Any] = {},
-    list_elements: MutableMapping[str, str] = {},
+    listmap: MutableMapping[str, str] = {},
+    funcmap: MutableMapping[str, Callable[[str], Any]] = {},
 ) -> C:
     """Parse a tree of lxml elements into a given class.  The output class can have attributes which
     are themselves different classes, or which convert a group of identically named subelements to
@@ -195,10 +197,16 @@ def elements_to_class(
             A mapping where the keys are element tags in the XML tree which should be converted to
             classes to be used as attributes of output_class, and the values are the classes to
             convert the subelements of the corresponding element into.
-        list_elements:
+        listmap:
             A mapping where the keys are element tags in the XML tree which contain a number of
             subelements with identical tags which should be converted into a list as an attribute
             of output_class, and the values are the names of the corresponding identical tags.
+        funcmap:
+            A mapping where the keys are element tags in the XML tree, and the values are functions
+            which act on the text of the corresponding tag to output the value which should be
+            included in the class. Note that this is distinctive from classmap, which is used to
+            identify attributes of a class.  Elements in classmap should not be included in typemap,
+            but attributes of those classes may need to be.  If
     """
 
     elements_dict: dict[str, Any] = {}
@@ -206,17 +214,28 @@ def elements_to_class(
     for child in xml.iterchildren():
         t = child.tag.lower()
         if len([n for n in child.iterdescendants()]) > 0:
-            if t in list_elements:
+            if t in listmap:
                 elements_dict[t] = []
-                subelements = child.findall(list_elements[t].upper())
+                subelements = child.findall(listmap[t].upper())
                 for subelement in subelements:
                     elements_dict[t].append(
-                        elements_to_class(subelement, classmap[list_elements[t]])
+                        elements_to_class(
+                            subelement,
+                            classmap[listmap[t]],
+                            classmap,
+                            listmap,
+                            funcmap,
+                        )
                     )
             else:
-                elements_dict[t] = elements_to_class(child, classmap[t])
+                elements_dict[t] = elements_to_class(
+                    child, classmap[t], classmap, listmap, funcmap
+                )
         elif child.text:
-            elements_dict[t] = child.text
+            if t in funcmap and funcmap[t] is not None:
+                elements_dict[t] = funcmap[t](child.text)
+            else:
+                elements_dict[t] = child.text
 
     return output_class(**elements_dict)
 
@@ -273,7 +292,16 @@ def datetime_to_qualys_format(dt: Optional[datetime.datetime]) -> Optional[str]:
 def datetime_from_qualys_format(dt: str) -> datetime.datetime:
     """Converts a datetime string as returned by the Qualys API into a Python datetime object."""
 
-    return datetime.datetime.fromisoformat(dt)
+    output = datetime.datetime.strptime(dt, "%Y-%m-%dT%H:%M:%SZ")
+    return datetime.datetime.combine(
+        output.date(), output.time(), zoneinfo.ZoneInfo(key="Etc/UTC")
+    )
+
+
+def timedelta_from_qualys_format(td: str) -> datetime.timedelta:
+    """Converts a duration string as returned by the Qualys API into a Python timedelta object."""
+
+    return datetime.timedelta(seconds=int(td))
 
 
 def parse_optional_bool(
