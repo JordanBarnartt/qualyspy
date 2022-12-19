@@ -180,6 +180,7 @@ C = TypeVar("C")
 def elements_to_class(
     xml: Union[lxml.objectify.ObjectifiedElement, lxml.etree._Element],
     output_class: type[C],
+    /,
     classmap: MutableMapping[str, Any] = {},
     listmap: MutableMapping[str, str] = {},
     funcmap: MutableMapping[str, Callable[[str], Any]] = {},
@@ -302,6 +303,17 @@ def timedelta_from_qualys_format(td: str) -> datetime.timedelta:
     """Converts a duration string as returned by the Qualys API into a Python timedelta object."""
 
     return datetime.timedelta(seconds=int(td))
+
+
+def bool_from_qualys_format(b: str) -> bool:
+    """Converts a bool as returned by the Qualys API into a Python bool."""
+
+    if b == "0":
+        return False
+    elif b == "1":
+        return True
+    else:
+        raise ValueError("value must be '0' or '1'")
 
 
 def parse_optional_bool(

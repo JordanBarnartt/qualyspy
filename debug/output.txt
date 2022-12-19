@@ -1,57 +1,49 @@
 
 @dataclasses.dataclass
-class Asset_Group:
-    id: str
-    title: str
-
-@dataclasses.dataclass
-class Asset_Group_List:
-    asset_group: MutableSequence[Asset_Group]
-
-@dataclasses.dataclass
-class User:
-    user_login: User_Login
-    first_name: str
-    last_name: str
-
-@dataclasses.dataclass
-class User_List:
-    user: MutableSequence[User]
-
-@dataclasses.dataclass
-class Glossary:
-    user_def: Optional[User_Def] = None
-    user_list: Optional[User_List] = None
-    asset_group_list: Optional[Asset_Group_List] = None
-
-@dataclasses.dataclass
 class Warning:
     code: Optional[str] = None
     text: str
     url: Optional[str] = None
 
 @dataclasses.dataclass
-class Id_Set:
-    (id|id_range): MutableSequence[(id|id_Range)]
+class Qds_Factors:
+    qds_factor)*><!elementqds_factor(#pcdata: Qds_Factor)*><!elementqds_Factor(#pcdata
 
 @dataclasses.dataclass
-class Cloud_Tag:
-    name: str
-    value: Value
-    last_success_date: str
+class Detection:
+    qid: str
+    type: str
+    severity: Optional[str] = None
+    port: Optional[str] = None
+    protocol: Optional[str] = None
+    fqdn: Optional[str] = None
+    ssl: Optional[str] = None
+    instance: Optional[str] = None
+    results: Optional[str] = None
+    status: Optional[str] = None
+    first_found_datetime: Optional[str] = None
+    last_found_datetime: Optional[str] = None
+    qds: Optional[str] = None
+    qds_factors: Optional[Qds_Factors] = None
+    times_found: Optional[str] = None
+    last_test_datetime: Optional[str] = None
+    last_update_datetime: Optional[str] = None
+    last_fixed_datetime: Optional[str] = None
+    first_reopened_datetime: Optional[str] = None
+    last_reopened_datetime: Optional[str] = None
+    times_reopened: Optional[str] = None
+    service: Optional[str] = None
+    is_ignored: Optional[str] = None
+    is_disabled: Optional[str] = None
+    affect_running_kernel: Optional[str] = None
+    affect_running_service: Optional[str] = None
+    affect_exploitable_config: Optional[str] = None
+    last_processed_datetime: Optional[str] = None
+    asset_cve: Optional[Asset_Cve] = None
 
 @dataclasses.dataclass
-class Cloud_Provider_Tags:
-    cloud_tag: MutableSequence[Cloud_Tag]
-
-@dataclasses.dataclass
-class Attribute:
-    name: str
-    last_status: str
-    value: Value
-    last_success_date: Optional[str] = None
-    last_error_date: Optional[str] = None
-    last_error: Optional[str] = None
+class Detection_List:
+    detection: MutableSequence[Detection]
 
 @dataclasses.dataclass
 class Azure:
@@ -66,22 +58,15 @@ class Metadata:
     ec2|google|azure)+><!elementec2(attribute: Optional[MutableSequence[Ec2|google|azure)+><!elementec2(attribute]] = None
 
 @dataclasses.dataclass
-class User_Def:
-    label_1: Optional[str] = None
-    label_2: Optional[str] = None
-    label_3: Optional[str] = None
-    value_1: Optional[str] = None
-    value_2: Optional[str] = None
-    value_3: Optional[str] = None
-
-@dataclasses.dataclass
 class Tag:
     tag_id: Optional[str] = None
-    name: Optional[str] = None
+    name: str
+    color: Optional[str] = None
+    background_color: Optional[str] = None
 
 @dataclasses.dataclass
 class Tags:
-    tag: Optional[MutableSequence[Tag]] = None
+    tag: MutableSequence[Tag]
 
 @dataclasses.dataclass
 class Dns_Data:
@@ -90,21 +75,15 @@ class Dns_Data:
     fqdn: Optional[str] = None
 
 @dataclasses.dataclass
-class Ars_Factors:
-    ars_formula: str
-    vuln_count: Optional[MutableSequence[str]] = None
-
-@dataclasses.dataclass
 class Host:
     id: str
-    asset_id: Optional[str] = None
+    asset_id: Optional[Asset_Id] = None
     ip: Optional[str] = None
     ipv6: Optional[str] = None
-    asset_risk_score: Optional[str] = None
-    asset_criticality_score: Optional[str] = None
-    ars_factors: Optional[Ars_Factors] = None
     tracking_method: Optional[str] = None
     network_id: Optional[str] = None
+    os: Optional[str] = None
+    os_cpe: Optional[str] = None
     dns: Optional[str] = None
     dns_data: Optional[Dns_Data] = None
     cloud_provider: Optional[str] = None
@@ -112,23 +91,14 @@ class Host:
     cloud_resource_id: Optional[str] = None
     ec2_instance_id: Optional[str] = None
     netbios: Optional[str] = None
-    os: Optional[str] = None
     qg_hostid: Optional[str] = None
-    tags: Optional[Tags] = None
-    metadata: Optional[Metadata] = None
-    cloud_provider_tags: Optional[Cloud_Provider_Tags] = None
-    last_vuln_scan_datetime: Optional[str] = None
+    last_scan_datetime: Optional[str] = None
     last_vm_scanned_date: Optional[str] = None
     last_vm_scanned_duration: Optional[str] = None
     last_vm_auth_scanned_date: Optional[str] = None
     last_vm_auth_scanned_duration: Optional[str] = None
-    last_compliance_scan_datetime: Optional[str] = None
-    last_scap_scan_datetime: Optional[str] = None
-    owner: Optional[str] = None
-    comments: Optional[Comments] = None
-    user_def: Optional[User_Def] = None
-    asset_group_ids: Optional[str] = None
-
-@dataclasses.dataclass
-class Host_List:
-    host: MutableSequence[Host]
+    last_pc_scanned_date: Optional[str] = None
+    tags: Optional[Tags] = None
+    metadata: Optional[Metadata] = None
+    cloud_provider_tags: Optional[Cloud_Provider_Tags] = None
+    detection_list: Detection_List

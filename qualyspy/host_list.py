@@ -677,7 +677,7 @@ def host_list(
             h = qutils.elements_to_class(
                 host,
                 Host,
-                {
+                classmap={
                     "ars_factors": Ars_Factors,
                     "dns_data": Dns_Data,
                     "tag": Tag,
@@ -685,14 +685,14 @@ def host_list(
                     "attribute": Attribute,
                     "cloud_tag": Cloud_Tag,
                 },
-                {
+                listmap={
                     "tags": "tag",
                     "ec2": "attribute",
                     "google": "attribute",
                     "azure": "attribute",
                     "cloud_provider_tags": "cloud_tag",
                 },
-                {
+                funcmap={
                     "asset_id": int,
                     "ip": ipaddress.ip_address,
                     "ipv6": ipaddress.ip_address,
@@ -720,9 +720,9 @@ def host_list(
         glossary = qutils.elements_to_class(
             raw.RESPONSE.GLOSSARY,
             Glossary,
-            {"user": User, "asset_group": Asset_Group},
-            {"user_list": "user", "asset_group_list": "asset_group"},
-            {"id": int}
+            classmap={"user": User, "asset_group": Asset_Group},
+            listmap={"user_list": "user", "asset_group_list": "asset_group"},
+            funcmap={"id": int}
         )
 
     if all_details is None:
