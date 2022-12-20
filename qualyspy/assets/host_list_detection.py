@@ -537,7 +537,7 @@ def host_list_detection(
             output_format type "python".
         suppress_duplicated_data_from_csv:
             By default or when set to False, host details will be repeated in each line of detection
-            information in the CSV output. When set to True, host details will not be repeated 
+            information in the CSV output. When set to True, host details will not be repeated
             (suppressed) in each detection line. This parameter must be specified with:
             output_format="csv" or output_format="csv_no_metadata".
         truncation_limit:
@@ -605,7 +605,96 @@ def host_list_detection(
         vm_auth_scan_date_after:
             Show hosts with a successful authenticated vulnerability scan end date after a certain
             date and time.
-        status
+        status:
+            Show only hosts with one or more of these status values: New, Active, Re-Opened, Fixed.
+        compliance_enabled:
+            Specify True to list compliance hosts in the user's account that have been scanned and
+            processed. These hosts are assigned to the policy compliance module. Specify False to
+            list scanned hosts which are not assigned to the policy compliance module.
+        os_pattern:
+            Show only hosts which have an operating system matching a certain regular expression. An
+            empty value cannot be specified. Use “%5E%24” to match empty string. The regular
+            expression string you enter must follow the PCRE standard does not need to be URL
+            encoded.
+        qids:
+            Show only detection records with certain QIDs.
+        severities:
+            Show only detection records which have certain severities.
+        filter_superseded_qids:
+            When unspecified or set to False, the XML output includes all QIDs even if they've been
+            superseded. Specify True to filter out QIDs that have been superseded by another QID in
+            the results.
+        show_igs:
+            Specify True to show detection records with information gathered along with confirmed
+            vulnerabilities and potential vulnerabilities. Specify False (default) to hide
+            information gathered.
+
+            The show_igs parameter is required in one use case. The parameter show_igs=True must be
+            specified if both these conditions are met:
+            1) search lists are included using the parameter include_search_list_titles or
+            include_search_list_ids, and
+            2) if the included search lists contain only information gathered
+        include_search_list_titles:
+            Show detection records only when a record's QID is included in one or more of the
+            specified search list titles.
+        exclude_search_list_titles:
+            Show detection records only when a record's QID is is excluded from one or more of the
+            specified search list titles.
+        include_search_list_ids:
+            Show detection records only when a record's QID is included in one or more of the
+            specified search list ids.
+        exclude_search_list_ids:
+            Show detection records only when a record's QID IS EXCLUDED from one or more of the
+            specified search list ids.
+        use_tags:
+            Specify False (the default) if you want to select hosts based on IP addresses/ranges
+            and/or asset groups. Specify True if you want to select hosts based on asset tags.
+        tag_set_by_name:
+            Specify False (the default) to select a tag set by providing tag IDs. Specify True to
+            select a tag set by providing tag names.
+        tag_include_all:
+            Speify False (the default) to include hosts that match at least one of the selected
+            tags. Specify True to include hosts that match all of the selected tags.
+        tag_exclude_all:
+            Speify False (the default) to exclude hosts that match at least one of the selected
+            tags. Specify True to exclude hosts that match all of the selected tags.
+        tag_set_include:
+            Specify a tag set to include. Hosts that match these tags will be included.
+        tag_set_exclude:
+            Specify a tag set to exclude. Hosts that match these tags will be excluded.
+        show_tags:
+            Specify True to display asset tags associated with each host in the output.
+        show_qds:
+            Specify True to show the QDS value in the output for each detection record. Specify
+            False if you do not want to show the QDS value.
+        qds_min:
+            Show only detection records with a QDS value greater than or equal to the QDS min value
+            specified.
+        qds_max:
+            Show only detection records with a QDS value less than or equal to the QDS max value
+            specified.
+        show_qds_factors:
+            Specify True to show QDS contributing factors associated with each detection record in
+            the output. Specify False if you do not want to show QDS contributing factors.
+        host_metadata:
+            Specify “all” to list all cloud assets with their metadata or specify the name of the
+            cloud provider to show only the assets managed by the cloud provider.
+            Valid values: all, ec2, google, azure
+        host_metadata_fields:
+            Specify metadata fields to only return data for certain attributes.
+        show_cloud_tags:
+            Specify True to display cloud provider tags for each scanned host asset in the output.
+            The default value of the parameter is set to False. When set to False, Qualys will not
+            show the cloud provider tags for the scanned assets.
+        cloud_tag_fields:
+            Specify cloud tags or cloud tag and name combinations to only return information for
+            specified cloud tags. A cloud tag name and value combination is specified with a colon
+            (for example:SomeTag6:AY_ec2). For each cloud tag, Qualys will show the cloud tag's
+            name, its value, and last success date (the tag last success date/time, fetched from
+            instance).
+        post:
+            Run as a POST request. There are known limits for the amount of data that can be sent
+            using the GET method, so POST should be used in those cases.
     """
 
     ip4, ip6 = _separate_ips(ips)
