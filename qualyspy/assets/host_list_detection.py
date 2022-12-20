@@ -1,8 +1,10 @@
+"""Python wrapper for the Qualys Host List Detection API."""
+
 import dataclasses
 import datetime
 import ipaddress
 from collections.abc import MutableSequence
-from typing import Optional, Union
+from typing import Optional, TextIO, Union
 
 import qualyspy.qualysapi as qualysapi
 import qualyspy.qutils as qutils
@@ -313,11 +315,15 @@ class Host:
 
 
 def _calc_arf_filter(running: Optional[bool], only: Optional[bool]) -> str:
+    """Determine the value of the ARF Filter as expected by Qualys for the Host List Detection API
+    given the boolean values corresponding to it.
+    """
+
     if running is None and not only:
         arf_filter = "0"
     elif running and not only:
         arf_filter = "1"
-    elif not running and only:
+    elif not running:
         arf_filter = "2"
     elif running and only:
         arf_filter = "3"
@@ -393,7 +399,8 @@ def host_list_detection(
     only_service_vulns: Optional[bool] = False,
     config_vulnerable: Optional[bool] = None,
     only_config_vulns: Optional[bool] = None,
-    output_format: Optional[str] = None,
+    output_format: str = "python",
+    output_file: Optional[Union[str, TextIO]] = None,
     suppress_duplicated_data_from_csv: Optional[bool] = None,
     truncation_limit: Optional[int] = None,
     detection_updated_since: Optional[datetime.datetime] = None,
@@ -461,7 +468,145 @@ def host_list_detection(
     show_cloud_tags: Optional[bool] = False,
     cloud_tag_fields: Optional[Union[str, MutableSequence[str]]] = None,
     post: bool = False,
-) -> tuple[MutableSequence[Host], Optional[Warning]]:
+) -> Optional[tuple[MutableSequence[Host], Optional[Warning]]]:
+    """Download a list of hosts with the hosts latest vulnerability data, based on the host based
+    scan data available in the user's account.
+
+    Args:
+        conn:
+            A connection to the Qualys API.
+        show_asset_id:
+            When specified, Qualys will show the asset ID of the scanned hosts in the output. The
+            default value of this parameter is set to False. When set to False, Qualys does not show
+            the asset id information for the scanned hosts.
+        show_results:
+            When not specified, results are included in the output. Specify show_results=0 to
+            exclude the results. If you exclude the results, CSV will have an empty Results column,
+            and XML will not contain the Results tag.
+        show_reopened_info:
+            When not specified, reopened info for reopened vulnerabilities is not included in the
+            output. Specify show_reopened_info=True to include reopened info i.e. first/last
+            reopened date, times reopened.
+        kernel_running:
+            When not specified, vulnerabilities are not filtered based on kernel activity. When set
+            to True, exclude kernel related vulnerabilites found on non-running kernels. When set
+            to False, show only vulnerabilities running on non-running kernels.
+        only_kernel_vulns:
+            When not specified or set to False, show all vulnerabilities.  When set to True, show
+            only kernel related vulnerabilities.
+        service_running:
+            When not specified, vulnerabilities are not filtered based on currently running
+            services. When set to True, exclude service related vulnerabilites found on non-running
+            services. When set to False, show only vulnerabilities running on non-running services.
+        only_service_vulns:
+            When not specified or set to False, show all vulnerabilities.  When set to True, show
+            only service related vulnerabilities.
+        config_vulnerable:
+            When not specified, vulnerabilities are not filtered based on host configuration. When
+            set to True, exclude exclude vulnerabilities that are exploitable due to host
+            configuration. When set to False, only include config related vulnerabilities that are
+            not exploitable.
+        only_config_vulns:
+            When not specified or set to False, show all vulnerabilities.  When set to True, show
+            only host configuration related vulnerabilities.
+        output_format:
+            Specifies the format of the host detection list output. When not specified, the output
+            format is Python objects. Valid values are: "python", "csv", "csv_no_metadata",
+            "csv_ms_excel", or "csv_no_metadata_ms_excel".
+
+            XML (default) - Specifies XML format for the output.
+
+            CSV - Specifies CSV format for the output. The output is structured in these sections:
+            HEADER_CSV, BODY_CSV (lists host records matching filters) and FOOTER_CSV (lists status
+            messages and truncation details, if applicable).
+
+            CSV_NO_METADATA - Specifies CSV format for the output with no metadata. In this case,
+            the output will not be structured with header, body and footer sections, and will not
+            indicate whether the list is truncated.
+
+            CSV_MS_EXCEL - When specified we will use CSV format for the output with MS Excel
+            restriction on the maximum length allowed for a string value in the output. A value in
+            the output will be truncated if the length of the value exceeds the maximum length
+            supported in MS Excel.
+
+            CSV_NO_METADATA_MS_EXCEL - When specified we will use CSV format for the output with no
+            metadata with MS Excel restrictions on the maximum length allowed for a string value in
+            the output.
+        output_file:
+            A file object or path for the API response to be written to.  Does not apply to
+            output_format type "python".
+        suppress_duplicated_data_from_csv:
+            By default or when set to False, host details will be repeated in each line of detection
+            information in the CSV output. When set to True, host details will not be repeated 
+            (suppressed) in each detection line. This parameter must be specified with:
+            output_format="csv" or output_format="csv_no_metadata".
+        truncation_limit:
+            Specifies the maximum number of host records processed per request. When not specified,
+            the truncation limit is set to 1000 host records. You may specify a value less than the
+            default (1-999) or greater than the default (1001-1000000). Specify 0 for no truncation
+            limit.
+
+            If the requested list identifies more host records than the truncation limit and
+            output_format="python", then the second item of the returned tuple is a Warning object
+            containing the URL for making another request for the next batch of host records.
+
+            If the requested list identifies more host records than the truncation limit and
+            output_format is a CSV type, then the CSV output includes “Truncated” in the FOOTER_CSV
+            section and the URL for making another request for the next batch of host records.
+        detection_updated_since:
+            Show only detections whose detection status changed after a certain date and time. For
+            detections that have never changed the date is applied to the last detection date.
+        detection_updated_before:
+            Show only detections whose detection status changed before a certain date and time.
+        detection_processed_before:
+            Show detections with vulnerability scan results processed before a certain date and
+            time.
+        detection_processed_after:
+            Show detections with vulnerability scan results processed after a certain date and time.
+        detection_last_tested_since:
+            Show only detections that were last tested on or after a certain date and time.
+        detection_last_tested_before:
+            Show only detections that were last tested before a certain date and time.
+        include_ignored:
+            Use this parameter to include or exclude the QIDs that were ignored during detection.
+            Specify include_ignored=True to include results in the output.
+        include_disabled:
+            Use this parameter to include or exclude the QIDs that were disabled during detection.
+            Specify include_disabled=True to include results in the output.
+        ids:
+            Show only certain host IDs/ranges.
+        id_min:
+            Show only hosts which have a minimum host ID value.
+        id_max:
+            Show only hosts which have a maximum host ID value.
+        ips:
+            Show only certain IP addresses/ranges.
+        ag_ids:
+            Show only hosts belonging to asset groups with certain IDs.
+        ag_titles:
+            Show only hosts belonging to asset groups with certain strings in the asset group title.
+        network_ids:
+            Restrict the request to certain custom network IDs.
+        vm_scan_since:
+            Show hosts scanned and processed since a certain date and time.
+        no_vm_scan_since:
+            Show hosts not scanned and processed since a certain date and time.
+        vm_processed_before:
+            Show hosts with vulnerability scan results processed before a certain date and time.
+        vm_processed_after:
+            Show hosts with vulnerability scan results processed after a certain date and time.
+        vm_scan_date_before:
+            Show hosts with a vulnerability scan end date before a certain date and time.
+        vm_scan_date_after:
+            Show hosts with a vulnerability scan end date after a certain date and time.
+        vm_auth_scan_date_before:
+            Show hosts with a successful authenticated vulnerability scan end date before a certain
+            date and time.
+        vm_auth_scan_date_after:
+            Show hosts with a successful authenticated vulnerability scan end date after a certain
+            date and time.
+        status
+    """
 
     ip4, ip6 = _separate_ips(ips)
 
@@ -472,7 +617,7 @@ def host_list_detection(
         "arf_kernel_filter": _calc_arf_filter(kernel_running, only_kernal_vulns),
         "arf_service_filter": _calc_arf_filter(service_running, only_service_vulns),
         "arf_config_filter": _calc_arf_filter(config_vulnerable, only_config_vulns),
-        "output_format": output_format if output_format else None,
+        "output_format": "XML" if output_format == "python" else output_format.upper(),
         "suppress_duplicated_data_from_csv": qutils.parse_optional_bool(
             suppress_duplicated_data_from_csv
         ),
@@ -555,16 +700,16 @@ def host_list_detection(
 
     params_filtered = qutils.remove_nones_from_dict(params)
 
-    if post:
-        raw = conn.post(qutils.URLS["Host List Detection"], params=params_filtered)
-    else:
-        raw = conn.get(qutils.URLS["Host List Detection"], params=params_filtered)
-    if raw.tag == "SIMPLE_RETURN":
-        raise qualysapi.Qualys_API_Error(
-            f"Error {str(raw.RESPONSE.CODE)}: {str(raw.RESPONSE.TEXT)}"
-        )
-
-    host_list: list[Host] = []
+    if output_format == "python":
+        if post:
+            raw = conn.post(qutils.URLS["Host List Detection"], params=params_filtered)
+        else:
+            raw = conn.get(qutils.URLS["Host List Detection"], params=params_filtered)
+        if raw.tag == "SIMPLE_RETURN":
+            raise qualysapi.Qualys_API_Error(
+                f"Error {str(raw.RESPONSE.CODE)}: {str(raw.RESPONSE.TEXT)}"
+            )
+        host_list: list[Host] = []
     for host in raw.RESPONSE.HOST_LIST.HOST:
         h = qutils.elements_to_class(
             host,
@@ -623,8 +768,23 @@ def host_list_detection(
         )
         host_list.append(h)
 
-    warning = None
-    if raw.RESPONSE.find("WARNING") is not None:
-        warning = qutils.elements_to_class(raw.RESPONSE.WARNING, Warning)
+        warning = None
+        if raw.RESPONSE.find("WARNING") is not None:
+            warning = qutils.elements_to_class(raw.RESPONSE.WARNING, Warning)
 
-    return (host_list, warning)
+        return (host_list, warning)
+
+    else:
+        if post:
+            conn.post_file(
+                qutils.URLS["Host List Detection"],
+                params=params_filtered,
+                output_file=output_file,
+            )
+        else:
+            conn.get_file(
+                qutils.URLS["Host List Detection"],
+                params=params_filtered,
+                output_file=output_file,
+            )
+        return None
