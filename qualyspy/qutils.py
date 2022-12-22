@@ -151,27 +151,13 @@ def remove_nones_from_dict(d: MutableMapping[str, Optional[str]]) -> dict[str, s
     return {k: v for k, v in d.items() if v is not None}
 
 
-# def parse_elements(xml: lxml.objectify.ObjectifiedElement) -> dict[str, Any]:
-#     """Parse a tree of lxml objects into a dictionary of tag:value pairs, where tags with
-#     descendants are themselves dictionarys.
-
-#     Args:
-#         xml:
-#             The xml tree to be parsed.
-
-#     Returns:
-#         A dictionary containing the information from the lxml object, in the same hierarchy.
-#     """
-
-#     elements_dict: dict[str, Any] = {}
-
-#     for child in xml.iterchildren():
-#         if type(child) == lxml.objectify.ObjectifiedElement:
-#             elements_dict[child.tag.lower()] = parse_elements(child)
-#         elif child.text:
-#             elements_dict[child.tag.lower()] = child.text
-
-#     return elements_dict
+def _apply_funcmap(
+    tag: str, funcmap: MutableMapping[str, Callable[[str], Any]], element_text: str
+) -> Any:
+    if tag in funcmap and funcmap[tag] is not None:
+        return funcmap[tag](element_text)
+    else:
+        return element_text
 
 
 C = TypeVar("C")
@@ -219,24 +205,26 @@ def elements_to_class(
                 elements_dict[t] = []
                 subelements = child.findall(listmap[t].upper())
                 for subelement in subelements:
-                    elements_dict[t].append(
-                        elements_to_class(
-                            subelement,
-                            classmap[listmap[t]],
-                            classmap,
-                            listmap,
-                            funcmap,
+                    if listmap[t] in classmap:
+                        elements_dict[t].append(
+                            elements_to_class(
+                                subelement,
+                                classmap[listmap[t]],
+                                classmap,
+                                listmap,
+                                funcmap,
+                            )
                         )
-                    )
+                    elif subelement.text:
+                        elements_dict[t].append(
+                            _apply_funcmap(listmap[t], funcmap, subelement.text)
+                        )
             else:
                 elements_dict[t] = elements_to_class(
                     child, classmap[t], classmap, listmap, funcmap
                 )
         elif child.text:
-            if t in funcmap and funcmap[t] is not None:
-                elements_dict[t] = funcmap[t](child.text)
-            else:
-                elements_dict[t] = child.text
+            elements_dict[t] = _apply_funcmap(t, funcmap, child.text)
 
     return output_class(**elements_dict)
 

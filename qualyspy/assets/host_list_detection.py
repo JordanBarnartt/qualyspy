@@ -390,7 +390,6 @@ def _separate_ips(
 
 def host_list_detection(
     conn: qualysapi.Connection,
-    /,
     show_asset_id: Optional[bool] = False,
     show_results: Optional[bool] = True,
     show_reopened_info: Optional[bool] = False,
@@ -800,63 +799,68 @@ def host_list_detection(
                 f"Error {str(raw.RESPONSE.CODE)}: {str(raw.RESPONSE.TEXT)}"
             )
         host_list: list[Host] = []
-        for host in raw.RESPONSE.HOST_LIST.HOST:
-            h = qutils.elements_to_class(
-                host,
-                Host,
-                classmap={
-                    "dns_data": Dns_Data,
-                    "tag": Tag,
-                    "metadata": Metadata,
-                    "attribute": Attribute,
-                    "cloud_tag": Cloud_Tag,
-                    "detection": Detection,
-                },
-                listmap={
-                    "detection_list": "detection",
-                    "tags": "tag",
-                    "cloud_provider_tags": "cloud_tag",
-                    "ec2": "attribute",
-                    "google": "attribute",
-                    "azure": "attribute",
-                },
-                funcmap={
-                    "id": int,
-                    "asset_id": int,
-                    "ip": ipaddress.ip_address,
-                    "ipv6": ipaddress.ip_address,
-                    "last_scan_datetime": qutils.datetime_from_qualys_format,
-                    "last_vm_scanned_date": qutils.datetime_from_qualys_format,
-                    "last_vm_scanned_duration": qutils.timedelta_from_qualys_format,
-                    "last_vm_auth_scanned_date": qutils.datetime_from_qualys_format,
-                    "last_vm_auth_scanned_duration": qutils.timedelta_from_qualys_format,
-                    "last_pc_scanned_date": qutils.datetime_from_qualys_format,
-                    "last_success_date": qutils.datetime_from_qualys_format,
-                    "last_error_date": qutils.datetime_from_qualys_format,
-                    "qid": int,
-                    "severity": int,
-                    "port": int,
-                    "ssl": qutils.bool_from_qualys_format,
-                    "first_found_datetime": qutils.datetime_from_qualys_format,
-                    "last_found_datetime": qutils.datetime_from_qualys_format,
-                    "qds": int,
-                    "times_found": int,
-                    "times found": int,
-                    "last_test_datetime": qutils.datetime_from_qualys_format,
-                    "last_update_datetime": qutils.datetime_from_qualys_format,
-                    "last_fixed_datetime": qutils.datetime_from_qualys_format,
-                    "first_reopened_date": qutils.datetime_from_qualys_format,
-                    "last_reopened_date": qutils.datetime_from_qualys_format,
-                    "times_reopened": int,
-                    "is_ignored": qutils.bool_from_qualys_format,
-                    "is_disabled": qutils.bool_from_qualys_format,
-                    "affect_running_kernel": qutils.bool_from_qualys_format,
-                    "affect_running_service": qutils.bool_from_qualys_format,
-                    "affect_exploitable_config": qutils.bool_from_qualys_format,
-                    "last_processed_datetime": qutils.datetime_from_qualys_format,
-                },
-            )
-            host_list.append(h)
+        try:
+            for host in raw.RESPONSE.HOST_LIST.HOST:
+                h = qutils.elements_to_class(
+                    host,
+                    Host,
+                    classmap={
+                        "dns_data": Dns_Data,
+                        "tag": Tag,
+                        "metadata": Metadata,
+                        "attribute": Attribute,
+                        "cloud_tag": Cloud_Tag,
+                        "detection": Detection,
+                    },
+                    listmap={
+                        "detection_list": "detection",
+                        "tags": "tag",
+                        "cloud_provider_tags": "cloud_tag",
+                        "ec2": "attribute",
+                        "google": "attribute",
+                        "azure": "attribute",
+                    },
+                    funcmap={
+                        "id": int,
+                        "asset_id": int,
+                        "ip": ipaddress.ip_address,
+                        "ipv6": ipaddress.ip_address,
+                        "last_scan_datetime": qutils.datetime_from_qualys_format,
+                        "last_vm_scanned_date": qutils.datetime_from_qualys_format,
+                        "last_vm_scanned_duration": qutils.timedelta_from_qualys_format,
+                        "last_vm_auth_scanned_date": qutils.datetime_from_qualys_format,
+                        "last_vm_auth_scanned_duration": qutils.timedelta_from_qualys_format,
+                        "last_pc_scanned_date": qutils.datetime_from_qualys_format,
+                        "last_success_date": qutils.datetime_from_qualys_format,
+                        "last_error_date": qutils.datetime_from_qualys_format,
+                        "qid": int,
+                        "severity": int,
+                        "port": int,
+                        "ssl": qutils.bool_from_qualys_format,
+                        "first_found_datetime": qutils.datetime_from_qualys_format,
+                        "last_found_datetime": qutils.datetime_from_qualys_format,
+                        "qds": int,
+                        "times_found": int,
+                        "times found": int,
+                        "last_test_datetime": qutils.datetime_from_qualys_format,
+                        "last_update_datetime": qutils.datetime_from_qualys_format,
+                        "last_fixed_datetime": qutils.datetime_from_qualys_format,
+                        "first_reopened_date": qutils.datetime_from_qualys_format,
+                        "last_reopened_date": qutils.datetime_from_qualys_format,
+                        "times_reopened": int,
+                        "is_ignored": qutils.bool_from_qualys_format,
+                        "is_disabled": qutils.bool_from_qualys_format,
+                        "affect_running_kernel": qutils.bool_from_qualys_format,
+                        "affect_running_service": qutils.bool_from_qualys_format,
+                        "affect_exploitable_config": qutils.bool_from_qualys_format,
+                        "last_processed_datetime": qutils.datetime_from_qualys_format,
+                    },
+                )
+                host_list.append(h)
+
+        except AttributeError:
+            # No detections returned
+            pass
 
         warning = None
         if raw.RESPONSE.find("WARNING") is not None:

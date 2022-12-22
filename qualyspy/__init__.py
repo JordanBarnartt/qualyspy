@@ -9,3 +9,4 @@ sys.path.insert(0, parentdir)
 from qualyspy.qualysapi import Connection
 from qualyspy.assets.host_list import host_list
 from qualyspy.assets.host_list_detection import host_list_detection
+from qualyspy.scan_configuration.knowledgebase import knowledgebase

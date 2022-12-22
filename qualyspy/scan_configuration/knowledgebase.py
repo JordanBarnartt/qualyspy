@@ -306,8 +306,13 @@ class Bugtraq:
 
 @dataclasses.dataclass
 class Last_Customization:
+    """Information on the last time this vulnerability was customized by a user."""
+
     datetime: datetime.datetime
+    """The date this vulnerability was last customized by a user."""
+
     user_login: Optional[str] = None
+    """The user ID responsible for the last customization."""
 
 
 @dataclasses.dataclass
@@ -357,7 +362,6 @@ class Vuln:
     category: Optional[str] = None
     """The vulnerability category."""
 
-    detection_info: Optional[str] = None
     last_customization: Optional[Last_Customization] = None
     """The date this vulnerability was last customized by a user, in YYYY-MM-DDTHH:MM:SSZ format
     (UTC/GMT).
@@ -473,8 +477,8 @@ def knowledgebase(
     params: dict[str, Optional[str]] = {
         "details": qutils.parse_optional_bool(all_details, returns=("All", "Basic")),
         "ids": qutils.to_comma_separated(ids),
-        "id_min": str(id_min),
-        "id_max": str(id_max),
+        "id_min": str(id_min) if id_min else None,
+        "id_max": str(id_max) if id_max else None,
         "is_patchable": qutils.parse_optional_bool(is_patchable),
         "last_modified_after": qutils.datetime_to_qualys_format(last_modified_after),
         "last_modified_before": qutils.datetime_to_qualys_format(last_modified_before),
@@ -501,3 +505,77 @@ def knowledgebase(
         "show_disabled_flag": qutils.parse_optional_bool(show_disabled_flag),
         "show_qid_change_log": qutils.parse_optional_bool(show_qid_change_log),
     }
+
+    params_filtered = qutils.remove_nones_from_dict(params)
+
+    if post:
+        raw = conn.post(qutils.URLS["KnowledgeBase"], params=params_filtered)
+    else:
+        raw = conn.get(qutils.URLS["KnowledgeBase"], params=params_filtered)
+
+    if all_details is None:
+        id_set = [str(id) for id in raw.ID_SET]
+    else:
+        vulns: list[Vuln] = []
+        for vuln in raw.RESPONSE.VULN_LIST.VULN:
+            v = qutils.elements_to_class(
+                vuln,
+                Vuln,
+                classmap={
+                    "discovery": Discovery,
+                    "last_customization": Last_Customization,
+                    "correlation": Correlation,
+                    "cvss": Cvss,
+                    "cvss_v3": Cvss_V3,
+                    "bugtraq": Bugtraq,
+                    "software": Software,
+                    "vendor_reference": Vendor_Reference,
+                    "cve": Cve,
+                    "compliance": Compliance,
+                    "correlation": Correlation,
+                    "explt_src": Explt_Src,
+                    "explt": Explt,
+                    "mw_src": Mw_Src,
+                    "mw_info": Mw_Info,
+                    "access": Access,
+                    "impact": Impact,
+                    "attack": Attack,
+                    "change_log_info": Change_Log_Info,
+                },
+                listmap={
+                    "bugtraq_list": "bugtraq",
+                    "software_list": "software",
+                    "vendor_reference_list": "vendor_reference",
+                    "cve_list": "cve",
+                    "compliance_list": "compliance",
+                    "pci_reasons": "pci_reason",
+                    "threat_intelligence": "threat_intel",
+                    "change_log_list": "change_log_info",
+                    "exploits": "explt_src",
+                    "malware": "mw_src",
+                    "explt_list": "explt",
+                    "mw_list": "mw_info",
+                    "auth_type_list": "auth_type",
+                },
+                funcmap={
+                    "qid": int,
+                    "severity_level": int,
+                    "patchable": qutils.bool_from_qualys_format,
+                    "last_service_modification_datetime": qutils.datetime_from_qualys_format,
+                    "pci_flag": qutils.bool_from_qualys_format,
+                    "is_disable": qutils.bool_from_qualys_format,
+                    "datetime": qutils.datetime_from_qualys_format,
+                    "id": int,
+                    "remote": qutils.bool_from_qualys_format,
+                },
+            )
+            vulns.append(v)
+
+        warning = None
+        if raw.RESPONSE.find("WARNING") is not None:
+            warning = qutils.elements_to_class(raw.RESPONSE.WARNING, Warning)
+
+    if all_details is None:
+        return (id_set, warning)
+    else:
+        return (vulns, warning)
