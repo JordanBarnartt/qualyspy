@@ -697,6 +697,7 @@ def host_list_detection(
             using the GET method, so POST should be used in those cases.
     """
 
+    ip4, ip6 = (None, None)
     if ips:
         ip4, ip6 = _separate_ips(ips)
 
