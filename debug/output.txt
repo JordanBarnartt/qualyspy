@@ -6,99 +6,207 @@ class Warning:
     url: Optional[str] = None
 
 @dataclasses.dataclass
-class Qds_Factors:
-    qds_factor)*><!elementqds_factor(#pcdata: Qds_Factor)*><!elementqds_Factor(#pcdata
+class Id_Set:
+    (id|id_range): MutableSequence[(id|id_Range)]
 
 @dataclasses.dataclass
-class Detection:
-    qid: str
+class Change_Log_Info:
+    change_date: str
+    comments: str
+
+@dataclasses.dataclass
+class Change_Log_List:
+    change_log_info: MutableSequence[Change_Log_Info]
+
+@dataclasses.dataclass
+class Auth_Type_List:
+    auth_type: MutableSequence[str]
+
+@dataclasses.dataclass
+class Discovery:
+    remote: str
+    auth_type_list: Optional[Auth_Type_List] = None
+    additional_info: Optional[str] = None
+
+@dataclasses.dataclass
+class Threat_Intelligence:
+    threat_intel: MutableSequence[str]
+
+@dataclasses.dataclass
+class Pci_Reasons:
+    pci_reason: MutableSequence[str]
+
+@dataclasses.dataclass
+class Attack:
+    vector: Optional[str] = None
+    complexity: Optional[str] = None
+
+@dataclasses.dataclass
+class Cvss_V3:
+    base: Optional[str] = None
+    temporal: Optional[str] = None
+    vector_string: Optional[str] = None
+    cvss3_version: Optional[str] = None
+    attack: Optional[Attack] = None
+    impact: Optional[Impact] = None
+    privileges_required: Optional[str] = None
+    user_interaction: Optional[str] = None
+    scope: Optional[str] = None
+    exploit_code_maturity: Optional[str] = None
+    remediation_level: Optional[str] = None
+    report_confidence: Optional[str] = None
+
+@dataclasses.dataclass
+class Impact:
+    confidentiality: Optional[str] = None
+    integrity: Optional[str] = None
+    availability: Optional[str] = None
+
+@dataclasses.dataclass
+class Access:
+    vector: Optional[str] = None
+    complexity: Optional[str] = None
+
+@dataclasses.dataclass
+class Cvss:
+    base: Optional[str] = None
+    temporal: Optional[str] = None
+    vector_string: Optional[str] = None
+    access: Optional[Access] = None
+    impact: Optional[Impact] = None
+    authentication: Optional[str] = None
+    exploitability: Optional[str] = None
+    remediation_level: Optional[str] = None
+    report_confidence: Optional[str] = None
+
+@dataclasses.dataclass
+class Mw_Info:
+    mw_id: str
+    mw_type: Optional[str] = None
+    mw_platform: Optional[str] = None
+    mw_alias: Optional[str] = None
+    mw_rating: Optional[str] = None
+    mw_link: Optional[str] = None
+
+@dataclasses.dataclass
+class Mw_List:
+    mw_info: MutableSequence[Mw_Info]
+
+@dataclasses.dataclass
+class Mw_Src:
+    src_name: str
+    mw_list: Mw_List
+
+@dataclasses.dataclass
+class Malware:
+    mw_src: MutableSequence[Mw_Src]
+
+@dataclasses.dataclass
+class Explt:
+    ref: str
+    desc: str
+    link: Optional[str] = None
+
+@dataclasses.dataclass
+class Explt_List:
+    explt: MutableSequence[Explt]
+
+@dataclasses.dataclass
+class Explt_Src:
+    src_name: str
+    explt_list: Explt_List
+
+@dataclasses.dataclass
+class Exploits:
+    explt_src: MutableSequence[Explt_Src]
+
+@dataclasses.dataclass
+class Correlation:
+    exploits: Optional[Exploits] = None
+    malware: Optional[Malware] = None
+
+@dataclasses.dataclass
+class Compliance:
     type: str
-    severity: Optional[str] = None
-    port: Optional[str] = None
-    protocol: Optional[str] = None
-    fqdn: Optional[str] = None
-    ssl: Optional[str] = None
-    instance: Optional[str] = None
-    results: Optional[str] = None
-    status: Optional[str] = None
-    first_found_datetime: Optional[str] = None
-    last_found_datetime: Optional[str] = None
-    qds: Optional[str] = None
-    qds_factors: Optional[Qds_Factors] = None
-    times_found: Optional[str] = None
-    last_test_datetime: Optional[str] = None
-    last_update_datetime: Optional[str] = None
-    last_fixed_datetime: Optional[str] = None
-    first_reopened_datetime: Optional[str] = None
-    last_reopened_datetime: Optional[str] = None
-    times_reopened: Optional[str] = None
-    service: Optional[str] = None
-    is_ignored: Optional[str] = None
-    is_disabled: Optional[str] = None
-    affect_running_kernel: Optional[str] = None
-    affect_running_service: Optional[str] = None
-    affect_exploitable_config: Optional[str] = None
-    last_processed_datetime: Optional[str] = None
-    asset_cve: Optional[Asset_Cve] = None
+    section: str
+    description: str
 
 @dataclasses.dataclass
-class Detection_List:
-    detection: MutableSequence[Detection]
+class Compliance_List:
+    compliance: MutableSequence[Compliance]
 
 @dataclasses.dataclass
-class Azure:
-    attribute: Optional[MutableSequence[Attribute]] = None
-
-@dataclasses.dataclass
-class Google:
-    attribute: Optional[MutableSequence[Attribute]] = None
-
-@dataclasses.dataclass
-class Metadata:
-    ec2|google|azure)+><!elementec2(attribute: Optional[MutableSequence[Ec2|google|azure)+><!elementec2(attribute]] = None
-
-@dataclasses.dataclass
-class Tag:
-    tag_id: Optional[str] = None
-    name: str
-    color: Optional[str] = None
-    background_color: Optional[str] = None
-
-@dataclasses.dataclass
-class Tags:
-    tag: MutableSequence[Tag]
-
-@dataclasses.dataclass
-class Dns_Data:
-    hostname: Optional[str] = None
-    domain: Optional[str] = None
-    fqdn: Optional[str] = None
-
-@dataclasses.dataclass
-class Host:
+class Cve:
     id: str
-    asset_id: Optional[Asset_Id] = None
-    ip: Optional[str] = None
-    ipv6: Optional[str] = None
-    tracking_method: Optional[str] = None
-    network_id: Optional[str] = None
-    os: Optional[str] = None
-    os_cpe: Optional[str] = None
-    dns: Optional[str] = None
-    dns_data: Optional[Dns_Data] = None
-    cloud_provider: Optional[str] = None
-    cloud_service: Optional[str] = None
-    cloud_resource_id: Optional[str] = None
-    ec2_instance_id: Optional[str] = None
-    netbios: Optional[str] = None
-    qg_hostid: Optional[str] = None
-    last_scan_datetime: Optional[str] = None
-    last_vm_scanned_date: Optional[str] = None
-    last_vm_scanned_duration: Optional[str] = None
-    last_vm_auth_scanned_date: Optional[str] = None
-    last_vm_auth_scanned_duration: Optional[str] = None
-    last_pc_scanned_date: Optional[str] = None
-    tags: Optional[Tags] = None
-    metadata: Optional[Metadata] = None
-    cloud_provider_tags: Optional[Cloud_Provider_Tags] = None
-    detection_list: Detection_List
+    url: str
+
+@dataclasses.dataclass
+class Cve_List:
+    cve: MutableSequence[Cve]
+
+@dataclasses.dataclass
+class Vendor_Reference:
+    id: str
+    url: str
+
+@dataclasses.dataclass
+class Vendor_Reference_List:
+    vendor_reference: MutableSequence[Vendor_Reference]
+
+@dataclasses.dataclass
+class Software:
+    product: str
+    vendor: str
+
+@dataclasses.dataclass
+class Software_List:
+    software: MutableSequence[Software]
+
+@dataclasses.dataclass
+class Bugtraq:
+    id: str
+    url: str
+
+@dataclasses.dataclass
+class Bugtraq_List:
+    bugtraq: MutableSequence[Bugtraq]
+
+@dataclasses.dataclass
+class Last_Customization:
+    datetime: Datetime
+    user_login: Optional[User_Login] = None
+
+@dataclasses.dataclass
+class Vuln:
+    qid: str
+    vuln_type: str
+    severity_level: str
+    title: str
+    category: Optional[str] = None
+    detection_info: Optional[str] = None
+    last_customization: Optional[Last_Customization] = None
+    last_service_modification_datetime: Optional[str] = None
+    published_datetime: str
+    bugtraq_list: Optional[Bugtraq_List] = None
+    patchable: str
+    software_list: Optional[Software_List] = None
+    vendor_reference_list: Optional[Vendor_Reference_List] = None
+    cve_list: Optional[Cve_List] = None
+    diagnosis: Optional[str] = None
+    diagnosis_comment: Optional[str] = None
+    consequence: Optional[str] = None
+    consequence_comment: Optional[str] = None
+    solution: Optional[str] = None
+    solution_comment: Optional[str] = None
+    compliance_list: Optional[Compliance_List] = None
+    correlation: Optional[Correlation] = None
+    cvss: Optional[Cvss] = None
+    cvss_v3: Optional[Cvss_V3] = None
+    pci_flag: Optional[str] = None
+    automatic_pci_fail: Optional[str] = None
+    pci_reasons: Optional[Pci_Reasons] = None
+    threat_intelligence: Optional[Threat_Intelligence] = None
+    supported_modules: Optional[str] = None
+    discovery: Discovery
+    is_disabled: Optional[str] = None
+    change_log_list: Optional[Change_Log_List] = None

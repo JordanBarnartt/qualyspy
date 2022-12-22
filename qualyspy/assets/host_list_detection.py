@@ -390,6 +390,7 @@ def _separate_ips(
 
 def host_list_detection(
     conn: qualysapi.Connection,
+    /,
     show_asset_id: Optional[bool] = False,
     show_results: Optional[bool] = True,
     show_reopened_info: Optional[bool] = False,

@@ -357,6 +357,7 @@ def _parse_details(all_details: Optional[bool], show_ag_info: Optional[bool]) ->
 
 def host_list(
     conn: qualysapi.Connection,
+    /,
     show_asset_ids: Optional[bool] = False,
     all_details: Optional[bool] = False,
     show_ag_info: Optional[bool] = False,
