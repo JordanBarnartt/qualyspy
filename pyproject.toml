@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "QualysPy"
+version = "0.1.2"
+authors = [
+  { name="Jordan Barnartt", email="jbarnart@uwaterloo.ca" },
+]
+description = "A Python wrapper for the Qualys API."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Information Technology",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: BSD License",
+    "Natural Language :: English",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Security",
+    "Typing :: Typed",
+]
+dependencies = [
+  "lxml",
+  "requests",
+  "python-dateutil",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/JordanBarnartt/qualyspy"
+"Bug Tracker" = "https://github.com/JordanBarnartt/qualyspy/issues"
