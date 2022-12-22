@@ -697,7 +697,8 @@ def host_list_detection(
             using the GET method, so POST should be used in those cases.
     """
 
-    ip4, ip6 = _separate_ips(ips)
+    if ips:
+        ip4, ip6 = _separate_ips(ips)
 
     params: dict[str, Optional[str]] = {
         "show_asset_id": qutils.parse_optional_bool(show_asset_id),
