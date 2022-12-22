@@ -48,6 +48,9 @@ class Discovery:
     auth_type_list: Optional[MutableSequence[str]] = None
     """Authentication types used to detect the vulnerability using trusted scanning."""
 
+    additional_info: Optional[str] = None
+    """Additional information related to the discovery of the vulnerability."""
+
 
 @dataclasses.dataclass
 class Attack:
@@ -565,7 +568,6 @@ def knowledgebase(
                     "pci_flag": qutils.bool_from_qualys_format,
                     "is_disable": qutils.bool_from_qualys_format,
                     "datetime": qutils.datetime_from_qualys_format,
-                    "id": int,
                     "remote": qutils.bool_from_qualys_format,
                 },
             )

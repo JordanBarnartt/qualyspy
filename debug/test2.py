@@ -12,9 +12,5 @@ import ipaddress
 
 if __name__ == "__main__":
     conn = qualyspy.Connection()
-    hosts = qualyspy.host_list_detection(
-        conn,
-        ips=ipaddress.ip_address("129.97.3.12"),
-    )
-    vulns = qualyspy.knowledgebase(conn, ids=105142)
+    qualyspy.knowledgebase(conn, ids=198862)
     print("Success!")
