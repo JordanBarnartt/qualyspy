@@ -695,6 +695,13 @@ def host_list_detection(
         post:
             Run as a POST request. There are known limits for the amount of data that can be sent
             using the GET method, so POST should be used in those cases.
+
+    Returns:
+        A tuple containing two objects in the following order\n
+        A list of Host objects containing information on the vulnerabilities detected on each
+        host.\n
+        If the truncation limit is reached, the second item will be a Warning object which
+        includes a URL to the next page of results.  Otherwise, None.\n
     """
 
     ip4, ip6 = (None, None)

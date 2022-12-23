@@ -343,7 +343,7 @@ class Vuln:
     title: str
     """The vulnerability title."""
 
-    published_datetime: str
+    published_datetime: datetime.datetime
     """The date this vulnerability was published by the service, in YYYY-MM-DDTHH:MM:SSZ format
     (UTC/GMT).
     """
@@ -637,6 +637,7 @@ def knowledgebase(
                 funcmap={
                     "qid": int,
                     "severity_level": int,
+                    "published_datetime": qutils.datetime_from_qualys_format,
                     "patchable": qutils.bool_from_qualys_format,
                     "last_service_modification_datetime": qutils.datetime_from_qualys_format,
                     "pci_flag": qutils.bool_from_qualys_format,
