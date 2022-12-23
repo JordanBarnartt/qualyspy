@@ -6,7 +6,9 @@ Welcome to QualysPy's documentation!
    :caption: Contents:
 
    qualyspy.qualysapi
-   qualyspy.host_list
+   qualyspy.assets.host_list_detection
+   qualyspy.assets.host_list
+   qualyspy.scan_configuration.knowledgebase
    modules
 
 Indices and tables

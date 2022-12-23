@@ -68,13 +68,13 @@ class Impact:
     """CVSS impact metrics."""
 
     confidentiality: Optional[str] = None
-    """CVSS confidentiality impact metric. S"""
+    """CVSS confidentiality impact metric."""
 
     integrity: Optional[str] = None
     """CVSS integrity impact metric."""
 
     availability: Optional[str] = None
-    """CVSS availability impact metric. """
+    """CVSS availability impact metric """
 
 
 @dataclasses.dataclass
@@ -464,7 +464,7 @@ def knowledgebase(
     published_after: Optional[datetime.datetime] = None,
     published_before: Optional[datetime.datetime] = None,
     discovery_method: Optional[str] = None,
-    discovery_auth_types: Optional[str] = None,
+    discovery_auth_types: Optional[Union[str, MutableSequence[str]]] = None,
     show_pci_reasons: Optional[bool] = None,
     show_supported_modules_info: Optional[bool] = None,
     show_disabled_flag: Optional[bool] = None,
@@ -475,7 +475,81 @@ def knowledgebase(
 ]:
     """Download a list of vulnerabilities from Qualys' KnowledgeBase. Several input parameters grant
     users control over which vulnerabilities to download and the amount of detail to download, and
-    the output provides a rich information source for each vulnerability."""
+    the output provides a rich information source for each vulnerability.
+
+    Args:
+        all_details:
+            By default, only basic host information will be shown. Basic host information includes
+            the host ID, IP address, tracking method, DNS and NetBIOS hostnames, and operating
+            system. Setting this parameter to true will show all host information. All host
+            information includes the basic host information plus the last vulnerability and
+            compliance scan dates.  If this value is set to None, only the host IDs will be
+            returned.
+        ids:
+            Include only vulnerabilities that have QID numbers matching the QID numbers you specify.
+        id_min:
+            Show only vulnerabilities that have a QID number greater than or equal to a QID number
+            you specify.
+        id_max:
+            Show only vulnerabilities that have a QID number less than or equal to a QID number you
+            specify.
+        is_patchable:
+            Show only vulnerabilities that are patchable or not patchable. A vulnerability is
+            considered patchable when a patch exists for it. When True is specified, only
+            vulnerabilities that are patchable will be included in the output. When False is
+            specified, only vulnerabilities that are not patchable will be included in the output.
+            When unspecified, patchable and unpatchable vulnerabilities will be included in the
+            output.
+        last_modified_after:
+            Show only vulnerabilities last modified after a certain date and time.
+        last_modified_before:
+            Show only vulnerabilities last modified before a certain date and time.
+        last_modified_by_user_after:
+            Show only vulnerabilities last modified by a user after a certain date and time.
+        last_modified_by_user_before:
+            Show only vulnerabilities last modified by a user before a certain date and time.
+        last_modified_by_service_after:
+            Show only vulnerabilities last modified by the service after a certain date and time.
+        last_modified_by_service_before:
+            Show only vulnerabilities last modified by the service before a certain date and time.
+        published_after:
+            Show only vulnerabilities published after a certain date and time.
+        published_before:
+            Show only vulnerabilities published before a certain date and time.
+        discovery_method:
+            Show only vulnerabilities assigned a certain discovery method. A valid value is:
+            Remote, Authenticated, RemoteOnly, AuthenticatedOnly, or RemoteAndAuthenticated.
+
+            When “Authenticated” is specified, the service shows vulnerabilities that have at least
+            one associated authentication type. Vulnerabilities that have at least one
+            authentication type can be detected in two ways: 1) remotely without using
+            authentication, and 2) using authentication.
+        discovery_auth_types:
+            Show only vulnerabilities having one or more authentication types. A valid value is:
+            Windows, Oracle, Unix, SNMP, DB2, HTTP, PANOS, TOMCAT, MARIADB, MongoDB, WEBLOGIC,
+            MySQL, VMware.
+        show_pci_reasons:
+            show reasons for passing or failing PCI compliance. Specify True to view the reasons in
+            the output. When unspecified, the reasons are not included in the output.
+        show_supported_modules_info:
+            Qualys modules that can be used to detect each vulnerability. Specify True to view
+            supported modules in the output. When unspecified, supported modules are not included in
+            the output.
+        show_disabled_flag:
+            Specify True to include the disabled flag for each vulnerability in the output.
+        show_qid_change_log:
+            Specify True to include QID changes for each vulnerability in the output.
+        post:
+            Run as a POST request. There are known limits for the amount of data that can be sent
+            using the GET method, so POST should be used in those cases.
+
+    Returns:
+        A tuple containing two objects in the following order:
+            - Either a list of Host objects containing information on each host, or a list of host
+            IDs if all_details=None.
+            - If the truncation limit is reached, the second item will be a Warning object which
+            includes a URL to the next page of results.  Otherwise, None.
+    """
 
     params: dict[str, Optional[str]] = {
         "details": qutils.parse_optional_bool(all_details, returns=("All", "Basic")),
@@ -500,7 +574,7 @@ def knowledgebase(
         "published_after": qutils.datetime_to_qualys_format(published_after),
         "published_before": qutils.datetime_to_qualys_format(published_before),
         "discovery_method": discovery_method,
-        "discovery_auth_types": discovery_auth_types,
+        "discovery_auth_types": qutils.to_comma_separated(discovery_auth_types),
         "show_pci_reasons": qutils.parse_optional_bool(show_pci_reasons),
         "show_supported_modules_info": qutils.parse_optional_bool(
             show_supported_modules_info
