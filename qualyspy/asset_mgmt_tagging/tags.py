@@ -2,8 +2,9 @@
 
 import dataclasses
 import datetime
+import json
 from collections.abc import MutableSequence
-from typing import Optional
+from typing import Any, Optional, Union
 
 import qualyspy.qualysapi as qualysapi
 import qualyspy.qutils as qutils
@@ -12,8 +13,9 @@ import qualyspy.qutils as qutils
 @dataclasses.dataclass
 class TagSimple:
     """A simple representation of a Qualys Asset Tag, containing only the name and ID of the tag.
-
     Child tags will appear in this format.
+
+    Not intended to be intantied manually, but as a result of function calls.
     """
 
     name: Optional[str] = None
@@ -29,7 +31,10 @@ class TagSimple:
 
 @dataclasses.dataclass
 class Tag(TagSimple):
-    """A representation of a Qualys Asset Tag."""
+    """A representation of a Qualys Asset Tag.
+
+    Not intended to be intantied manually, but as a result of function calls.
+    """
 
     parent_tag_id: Optional[int] = None
     """ID of the parent tag of this tag."""
@@ -73,4 +78,46 @@ class Tag(TagSimple):
     description: Optional[str] = None
     """Description of the tag."""
 
-def 
+
+def create_tag(
+    conn: qualysapi.Connection,
+    name: str,
+    /,
+    parent_tag_id: Optional[int] = None,
+    color: Optional[str] = None,
+    rule_text: Optional[str] = None,
+    rule_type: Optional[str] = None,
+    children: Optional[MutableSequence[Union[str, int]]] = None,
+    criticality_score: Optional[int] = None,
+    description: Optional[str] = None,
+) -> None:
+    elements = {
+        "name": name,
+        "parentTagId": str(parent_tag_id) if parent_tag_id else None,
+        "color": color,
+        "ruleText": rule_text,
+        "ruleType": rule_type,
+        "criticalityScore": str(criticality_score) if criticality_score else None,
+        "description": description,
+    }
+
+    elements_parsed: dict[str, Any] = {
+        "ServiceRequest": {"data": {"Tag": qutils.remove_nones_from_dict(elements)}}
+    }
+
+    if children is not None:
+        tag = elements_parsed["ServiceRequest"]["data"]["Tag"]
+        tag["children"] = {"set": {"TagSimple": []}}
+        for child in children:
+            if isinstance(child, str):
+                tag["children"]["set"]["TagSimple"].append({"name": child})
+            elif isinstance(child, int):
+                tag["children"]["set"]["TagSimple"].append({"id": str(child)})
+
+    conn.headers["Content-Type"] = "application/json"
+    conn.headers["Accept"] = "application/xml"
+    response = conn.post(qutils.URLS["Create Tag"], json.dumps(elements_parsed), use_auth=True)
+
+    response_code = str(response.responseCode)
+    if response_code != "SUCCESS":
+        raise qualysapi.Qualys_API_Error(response.responseErrorDetails.errorMessage)

@@ -32,19 +32,21 @@ CREDENTIALS = {
 
 
 class Qualys_API_Error(Exception):
-    """Exception raised when the Qualys API returns a non-200 response."""
+    """Exception raised when the Qualys API returns a non-200 response, or some other error."""
 
 
 class Connection:
     """A connection to a Qualys API endpoint.
 
     When an object of this class is removed from memory, a logout API request will be made.
+
+    Attributes:
+        headers: A dictionary containing the headers passed into API requests.  If
+        "X-Requested-With" is not specified, it will be included with the value
+        "qualyspy python package".
     """
 
-    headers = {"X-Requested-With": "qualysapi python package"}
-    """A dictionary containing the headers passed into API requests."""
-
-    def __init__(self) -> None:
+    def __init__(self, /, headers: Optional[dict[str, str]] = None) -> None:
         """Instantiates a Connection object.
 
         Using the credentials in the configuration file, connect to the Qualys API endpoint
@@ -54,6 +56,13 @@ class Connection:
         Raises:
             HTTPError: An error occured when connecting to the API endpoint.
         """
+
+        if headers is None:
+            self.headers = {}
+        else:
+            self.headers = headers
+        self.headers.setdefault("X-Requested-With", "qualyspy python package")
+
         data = {
             "username": CREDENTIALS["username"],
             "password": CREDENTIALS["password"],
@@ -81,23 +90,20 @@ class Connection:
         )
 
     def _perform_request(
-        self, method: str, path: str, params: Optional[Mapping[str, Any]] = None
+        self,
+        method: str,
+        path: str,
+        params: Optional[Mapping[str, Any]] = None,
+        data: Optional[Union[Mapping[str, Any], str]] = None,
+        use_auth: bool = False,
     ) -> str:
         """Helper method for "request" methods.  Performs the API request and returns the text as
         a string, to be parsed by the calling function.
-
-        Args:
-            method:
-                The method of the request (ex. get, post)
-            path:
-                The path of the API request. ex. /api/2.0/fo/scan/?action=list
-            params:
-                An optional dictionary of request parameters, the contents of which depend
-                on the particular API request being made.
-
-        Returns:
-            A string containing the text of the API response.
         """
+
+        auth = None
+        if use_auth:
+            auth = (CREDENTIALS["username"], CREDENTIALS["password"])
 
         match method:
             case "get":
@@ -106,13 +112,15 @@ class Connection:
                     headers=self.headers,
                     cookies=self._cookies,
                     params=params,
+                    auth=auth,
                 )
             case "post":
                 response = requests.post(
                     API_ROOT + path,
                     headers=self.headers,
                     cookies=self._cookies,
-                    params=params,
+                    data=data,
+                    auth=auth,
                 )
             case _:
                 raise ValueError(f"{method} is not a supported")
@@ -132,7 +140,10 @@ class Connection:
         self,
         method: str,
         path: str,
+        /,
         params: Optional[Mapping[str, Any]] = None,
+        data: Optional[Union[Mapping[str, Any], str]] = None,
+        use_auth: bool = False,
     ) -> lxml.objectify.ObjectifiedElement:
         """Performs an API request to the connection for a given API path and returns the result.
 
@@ -143,13 +154,18 @@ class Connection:
                 The path of the API request. ex. /api/2.0/fo/scan/?action=list
             params:
                 An optional dictionary of request parameters, the contents of which depend
-                on the particular API request being made.
+                on the particular API request being made. Valid for GET requests only.
+            data:
+                A dictionary of information to be sent in the body of a POST request.
+            use_auth:
+                Use auth for authentication, rather than cookies. Which to use depends on the API
+                being called.
 
         Returns:
             An lxml.objectify object of the XML output of the API request.
         """
 
-        response = self._perform_request(method, path, params)
+        response = self._perform_request(method, path, params, data, use_auth)
 
         return lxml.objectify.fromstring(re.split("\n", response, 1)[1])
 
@@ -176,12 +192,13 @@ class Connection:
             An lxml.objectify object of the XML output of the API request.
         """
 
-        return self._request("get", path, params)
+        return self._request("get", path, params=params)
 
     def post(
         self,
         path: str,
-        params: Optional[Mapping[str, Any]] = None,
+        data: Optional[Union[Mapping[str, Any], str]] = None,
+        use_auth: bool = False,
     ) -> lxml.objectify.ObjectifiedElement:
         """Performs an POST request to the connection for a given API path and returns the result.
 
@@ -193,15 +210,17 @@ class Connection:
         Args:
             path:
                 The path of the API request. ex. /api/2.0/fo/scan/?action=list
-            params:
-                An optional dictionary of request parameters, the contents of which depend
-                on the particular API request being made.
+            data:
+                A dictionary of information to be sent in the body of a POST request.
+            use_auth:
+                Use auth for authentication, rather than cookies. Which to use depends on the API
+                being called.
 
         Returns:
             An lxml.objectify object of the XML output of the API request.
         """
 
-        return self._request("post", path, params)
+        return self._request("post", path, data=data, use_auth=use_auth)
 
     def _request_file(
         self,
