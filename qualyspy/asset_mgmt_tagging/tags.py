@@ -2,12 +2,17 @@
 
 import dataclasses
 import datetime
-import json
 from collections.abc import MutableSequence
 from typing import Any, Optional, Union
 
 import qualyspy.qualysapi as qualysapi
 import qualyspy.qutils as qutils
+
+
+def _create_service_request(elements: dict[str, Optional[str]]) -> dict[str, Any]:
+    return {
+        "ServiceRequest": {"data": {"Tag": qutils.remove_nones_from_dict(elements)}}
+    }
 
 
 @dataclasses.dataclass
@@ -78,6 +83,62 @@ class Tag(TagSimple):
     description: Optional[str] = None
     """Description of the tag."""
 
+    def _get_children_list(self) -> MutableSequence[Union[str, int]]:
+        children_list: list[Union[str, int]] = []
+        if self.children:
+            for child in self.children:
+                if child.name:
+                    children_list.append(child.name)
+                elif child.id:
+                    children_list.append(child.id)
+        return children_list
+
+    def update_tag(
+        self,
+        conn: qualysapi.Connection,
+        /,
+        criticality_score: Optional[int] = None,
+        rule_type: Optional[str] = None,
+        rule_text: Optional[str] = None,
+        color: Optional[str] = None,
+        children: Optional[MutableSequence[Union[str, int]]] = None,
+    ) -> None:
+        """Update fields for a tag and collections of tags."""
+
+        elements = {
+            "criticalityScore": str(criticality_score),
+            "ruleType": rule_type,
+            "ruleText": rule_text,
+            "color": color,
+        }
+
+        elements_parsed = _create_service_request(elements)
+
+        if children is not None:
+            tag = elements_parsed["ServiceRequest"]["data"]["Tag"]
+            children_list = self._get_children_list()
+            to_add = set(children).difference(set(children_list))
+            to_remove = set(children_list).difference(set(children))
+            tag["children"] = {}
+            if len(to_add) > 0:
+                tag["children"]["set"] = []
+                tag["children"]["set"].append(
+                    [{"name": t} for t in to_add if isinstance(t, str)]
+                )
+                tag["children"]["set"].append(
+                    [{"id": t} for t in to_add if isinstance(t, int)]
+                )
+            if len(to_remove) > 0:
+                tag["children"]["remove"] = []
+                tag["children"]["remove"].append(
+                    [{"name": t} for t in to_add if isinstance(t, str)]
+                )
+                tag["children"]["remove"].append(
+                    [{"id": t} for t in to_add if isinstance(t, int)]
+                )
+
+        conn.post(qutils.URLS["Update Tag"], elements_parsed, use_auth=True)
+
 
 def create_tag(
     conn: qualysapi.Connection,
@@ -128,9 +189,8 @@ def create_tag(
         "description": description,
     }
 
-    elements_parsed: dict[str, Any] = {
-        "ServiceRequest": {"data": {"Tag": qutils.remove_nones_from_dict(elements)}}
-    }
+    elements_parsed = _create_service_request(elements)
+    tag = elements_parsed["ServiceRequest"]["data"]["Tag"]
 
     if children is not None:
         tag = elements_parsed["ServiceRequest"]["data"]["Tag"]
@@ -143,10 +203,10 @@ def create_tag(
 
     conn.headers["Content-Type"] = "application/json"
     conn.headers["Accept"] = "application/xml"
-    response = conn.post(
-        qutils.URLS["Create Tag"], json.dumps(elements_parsed), use_auth=True
-    )
+    response = conn.post(qutils.URLS["Create Tag"], elements_parsed, use_auth=True)
 
     response_code = str(response.responseCode)
     if response_code != "SUCCESS":
         raise qualysapi.Qualys_API_Error(response.responseErrorDetails.errorMessage)
+
+def search_tags(conn: qualysapi.Connection, )

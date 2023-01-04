@@ -220,7 +220,7 @@ class Connection:
             An lxml.objectify object of the XML output of the API request.
         """
 
-        return self._request("post", path, data=data, use_auth=use_auth)
+        return self._request("post", path, data=json.dumps(data), use_auth=use_auth)
 
     def _request_file(
         self,

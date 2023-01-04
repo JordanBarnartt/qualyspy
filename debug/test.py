@@ -10,4 +10,5 @@ import qualyspy
 
 if __name__ == "__main__":
     conn = qualyspy.Connection()
-    qualyspy.create_tag(conn, "QualysPy Test")
+    #qualyspy.create_tag(conn, "QualysPy Test")
+    qua
