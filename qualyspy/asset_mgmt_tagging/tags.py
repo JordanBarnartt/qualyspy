@@ -91,6 +91,33 @@ def create_tag(
     criticality_score: Optional[int] = None,
     description: Optional[str] = None,
 ) -> None:
+    """Create a new tag and possibly child tags.
+
+    Args:
+        conn:
+            A connection to the Qualys API.
+        name:
+            The name of the new tag.
+        parent_tag_id:
+            The ID of the tag which should be the parent of this tag.
+        color:
+            The hex code for the color of the tag.
+        rule_text:
+            The text of the dyanmic tag rule applied to this tag.
+        rule_type:
+            The type of dynamic tag rule this tag should have.  Must be one of: static, groovy,
+            os_regex, network_range, network_range_enhanced, name_contains, installed_software,
+            open_ports, vuln_exists, asset_search, cloud_asset, business_information.
+        children:
+            A list of tags which should be children of this tag.  A string will correspond to a tag
+            name and and int will correspond to a tag ID.  If a tag specified by name does not
+            exist, it will be created.
+        criticality_scrore:
+            The criticality score applied to hosts with this tag.
+        description:
+            The description of the tag.
+    """
+
     elements = {
         "name": name,
         "parentTagId": str(parent_tag_id) if parent_tag_id else None,
@@ -116,7 +143,9 @@ def create_tag(
 
     conn.headers["Content-Type"] = "application/json"
     conn.headers["Accept"] = "application/xml"
-    response = conn.post(qutils.URLS["Create Tag"], json.dumps(elements_parsed), use_auth=True)
+    response = conn.post(
+        qutils.URLS["Create Tag"], json.dumps(elements_parsed), use_auth=True
+    )
 
     response_code = str(response.responseCode)
     if response_code != "SUCCESS":
