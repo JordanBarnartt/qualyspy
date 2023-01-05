@@ -2,6 +2,7 @@
 
 import dataclasses
 import datetime
+import collections
 from collections.abc import MutableSequence
 from typing import Any, Optional, Union
 
@@ -209,4 +210,27 @@ def create_tag(
     if response_code != "SUCCESS":
         raise qualysapi.Qualys_API_Error(response.responseErrorDetails.errorMessage)
 
-def search_tags(conn: qualysapi.Connection, )
+_Tag_Filter = collections.namedtuple("Tag_Filter", ["field", "operator", "value"])
+
+def make_filter(field: str, operator: str, value: str) -> _Tag_Filter:
+    """Generate a filter to be passed into the search_tags function.
+
+    Args:
+        field:
+            The name of the field for which the filter should apply.  One of "id", "name", "parent",
+            "ruleType", "provider", "color".
+        operator:
+            The operator applied to the filter.  One of "equals", "not equals", "greater", "lesser",
+            "in", "contains".
+        value:
+            The value for the field to be compared to.
+    """
+
+    return _Tag_Filter(field, operator.upper(), value)
+
+
+def search_tags(
+    conn: qualysapi.Connection,
+    filters: Union[collections.namedtuple, MutableSequence[collections.namedtuple]],
+):
+    ...
