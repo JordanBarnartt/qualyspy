@@ -586,7 +586,7 @@ def knowledgebase(
     params_filtered = qutils.remove_nones_from_dict(params)
 
     if post:
-        raw = conn.post(qutils.URLS["KnowledgeBase"], params=params_filtered)
+        raw = conn.post(qutils.URLS["KnowledgeBase"], data=params_filtered)
     else:
         raw = conn.get(qutils.URLS["KnowledgeBase"], params=params_filtered)
 

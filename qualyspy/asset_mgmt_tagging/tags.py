@@ -202,17 +202,21 @@ def create_tag(
             elif isinstance(child, int):
                 tag["children"]["set"]["TagSimple"].append({"id": str(child)})
 
+    orig_headers = conn.headers
     conn.headers["Content-Type"] = "application/json"
     conn.headers["Accept"] = "application/xml"
     response = conn.post(qutils.URLS["Create Tag"], elements_parsed, use_auth=True)
+    conn.headers = orig_headers
 
     response_code = str(response.responseCode)
     if response_code != "SUCCESS":
         raise qualysapi.Qualys_API_Error(response.responseErrorDetails.errorMessage)
 
-_Tag_Filter = collections.namedtuple("Tag_Filter", ["field", "operator", "value"])
 
-def make_filter(field: str, operator: str, value: str) -> _Tag_Filter:
+Tag_Filter = collections.namedtuple("Tag_Filter", ["field", "operator", "value"])
+
+
+def make_filter(field: str, operator: str, value: str) -> Tag_Filter:
     """Generate a filter to be passed into the search_tags function.
 
     Args:
@@ -226,11 +230,20 @@ def make_filter(field: str, operator: str, value: str) -> _Tag_Filter:
             The value for the field to be compared to.
     """
 
-    return _Tag_Filter(field, operator.upper(), value)
+    return Tag_Filter(field, operator.upper(), value)
 
 
 def search_tags(
     conn: qualysapi.Connection,
-    filters: Union[collections.namedtuple, MutableSequence[collections.namedtuple]],
+    filters: Optional[Union[Tag_Filter, MutableSequence[Tag_Filter]]],
 ):
-    ...
+
+    elements = None
+    if filters:
+        elements = {"Criteria": filters}
+
+    orig_headers = conn.headers
+    conn.headers["Content-Type"] = "application/json"
+    conn.headers["Accept"] = "application/xml"
+    response = conn.post(qutils.URLS["Create Tag"], elements, use_auth=True)
+    conn.headers = orig_headers
