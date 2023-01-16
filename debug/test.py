@@ -10,7 +10,6 @@ import qualyspy
 
 if __name__ == "__main__":
     conn = qualyspy.Connection()
-    #qualyspy.create_tag(conn, "QualysPy Test")
-    filter = qualyspy.make_filter("name", "equals", "QualysPy Test")
-    output = qualyspy.search_tags(conn, filter)
+    filter = qualyspy.asset_mgmt_tagging.make_filter("id", "equals", "417045")
+    output = qualyspy.asset_mgmt_tagging.search_assets(conn, filter)
     print(output)

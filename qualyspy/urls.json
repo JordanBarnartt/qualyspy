@@ -16,5 +16,6 @@
     "KnowledgeBase": "/api/2.0/fo/knowledge_base/vuln/?action=list",
     "Create Tag": "/qps/rest/2.0/create/am/tag",
     "Update Tag": "/qps/rest/2.0/update/am/tag",
-    "Search Tags": "/qps/rest/2.0/search/am/tag"
+    "Search Tags": "/qps/rest/2.0/search/am/tag",
+    "Search Assets": "/qps/rest/2.0/search/am/asset"
 }

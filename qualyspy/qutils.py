@@ -1,15 +1,15 @@
-import ipaddress
-import math
-from collections.abc import MutableMapping, MutableSequence
-from typing import Any, Optional, Union, TypeVar, Callable
 import datetime
-import json
 import importlib.resources
+import ipaddress
+import json
+import math
+import re
 import zoneinfo
+from collections.abc import MutableMapping, MutableSequence
+from typing import Any, Callable, Optional, TypeVar, Union
 
 import lxml.etree
 import lxml.objectify
-
 
 URLS = json.load(importlib.resources.files("qualyspy").joinpath("urls.json").open())
 
@@ -203,14 +203,14 @@ def elements_to_class(
 
     for child in xml.iterchildren():
         t = name_converter(child.tag)
-        children_of_child = {
+        converted_names = {
             name_converter(ele.tag): ele.tag for ele in child.iterchildren()
         }
 
         if len([n for n in child.iterdescendants()]) > 0:
             if t in listmap:
                 elements_dict[t] = []
-                subelements = child.findall(children_of_child[listmap[t]])
+                subelements = child.findall(converted_names[listmap[t]])
                 for subelement in subelements:
                     if listmap[t] in classmap:
                         elements_dict[t].append(
@@ -334,3 +334,13 @@ def parse_optional_bool(
         return returns[0]
     else:
         return returns[1]
+
+
+def tagging_api_name_converter(attr: str) -> str:
+    if attr == "TagSimple":
+        return "Tag_Simple"
+    elif attr == "Asset":
+        return "Asset"
+    else:
+        # Convert camel case to snake case
+        return re.sub(r"(?<!^)(?=[A-Z])", "_", attr).lower()
