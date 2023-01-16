@@ -13,7 +13,7 @@ import io
 import json
 import os.path
 import re
-from collections.abc import Mapping
+from collections.abc import MutableMapping
 from typing import Any, Optional, TextIO, Union
 
 import lxml.objectify
@@ -41,12 +41,12 @@ class Connection:
     When an object of this class is removed from memory, a logout API request will be made.
 
     Attributes:
-        headers: A dictionary containing the headers passed into API requests.  If
+        add_headers: A dictionary containing the headers passed into API requests.  If
         "X-Requested-With" is not specified, it will be included with the value
         "qualyspy python package".
     """
 
-    def __init__(self, /, headers: Optional[dict[str, str]] = None) -> None:
+    def __init__(self, /, add_headers: Optional[dict[str, str]] = None) -> None:
         """Instantiates a Connection object.
 
         Using the credentials in the configuration file, connect to the Qualys API endpoint
@@ -57,18 +57,14 @@ class Connection:
             HTTPError: An error occured when connecting to the API endpoint.
         """
 
-        if headers is None:
-            self.headers = {}
-        else:
-            self.headers = headers
-        self.headers.setdefault("X-Requested-With", "qualyspy python package")
+        self._headers = {"X-Requested-With": "qualyspy python package"}
 
         data = {
             "username": CREDENTIALS["username"],
             "password": CREDENTIALS["password"],
         }
         conn = requests.post(
-            API_ROOT + URLS["Session Login"], headers=self.headers, data=data
+            API_ROOT + URLS["Session Login"], headers=self._headers, data=data
         )
         if conn.status_code == requests.codes.ok:
             self._cookies = {"QualysSession": conn.cookies["QualysSession"]}
@@ -85,7 +81,7 @@ class Connection:
         """
         requests.post(
             API_ROOT + URLS["Session Logout"],
-            headers=self.headers,
+            headers=self._headers,
             cookies=self._cookies,
         )
 
@@ -93,14 +89,21 @@ class Connection:
         self,
         method: str,
         path: str,
-        params: Optional[Mapping[str, Any]] = None,
-        data: Optional[Union[Mapping[str, Any], str]] = None,
+        params: Optional[MutableMapping[str, Any]] = None,
+        data: Optional[Union[MutableMapping[str, Any], str]] = None,
+        /,
         use_auth: bool = False,
+        add_headers: Optional[MutableMapping[str, str]] = None,
     ) -> str:
         """Helper method for "request" methods.  Performs the API request and returns the text as
         a string, to be parsed by the calling function.
         """
 
+        if add_headers is not None:
+            headers = add_headers
+            headers.update(self._headers)
+        else:
+            headers = self._headers
         auth = None
         if use_auth:
             auth = (CREDENTIALS["username"], CREDENTIALS["password"])
@@ -109,7 +112,7 @@ class Connection:
             case "get":
                 response = requests.get(
                     API_ROOT + path,
-                    headers=self.headers,
+                    headers=headers,
                     cookies=self._cookies,
                     params=params,
                     auth=auth,
@@ -117,7 +120,7 @@ class Connection:
             case "post":
                 response = requests.post(
                     API_ROOT + path,
-                    headers=self.headers,
+                    headers=headers,
                     cookies=self._cookies,
                     data=data,
                     auth=auth,
@@ -141,9 +144,10 @@ class Connection:
         method: str,
         path: str,
         /,
-        params: Optional[Mapping[str, Any]] = None,
-        data: Optional[Union[Mapping[str, Any], str]] = None,
+        params: Optional[MutableMapping[str, Any]] = None,
+        data: Optional[Union[MutableMapping[str, Any], str]] = None,
         use_auth: bool = False,
+        add_headers: Optional[MutableMapping[str, str]] = None,
     ) -> lxml.objectify.ObjectifiedElement:
         """Performs an API request to the connection for a given API path and returns the result.
 
@@ -165,14 +169,23 @@ class Connection:
             An lxml.objectify object of the XML output of the API request.
         """
 
-        response = self._perform_request(method, path, params, data, use_auth)
+        response = self._perform_request(
+            method, path, params, data, use_auth=use_auth, add_headers=add_headers
+        )
+        xml = lxml.objectify.fromstring(re.split("\n", response, 1)[1])
+        if "/qps/rest/2.0/" in path:
+            response_code = str(xml.responseCode)
+            if response_code != "SUCCESS":
+                raise Qualys_API_Error(xml.responseErrorDetails.errorMessage)
 
-        return lxml.objectify.fromstring(re.split("\n", response, 1)[1])
+        return xml
 
     def get(
         self,
         path: str,
-        params: Optional[Mapping[str, Any]] = None,
+        params: Optional[MutableMapping[str, Any]] = None,
+        *,
+        add_headers: Optional[MutableMapping[str, str]] = None,
     ) -> lxml.objectify.ObjectifiedElement:
         """Performs an GET request to the connection for a given API path and returns the result.
 
@@ -187,18 +200,23 @@ class Connection:
             params:
                 An optional dictionary of request parameters, the contents of which depend
                 on the particular API request being made.
+            add_headers:
+                Include additional headers in the request. These headers will not persist to the
+                next request.
 
         Returns:
             An lxml.objectify object of the XML output of the API request.
         """
 
-        return self._request("get", path, params=params)
+        return self._request("get", path, params=params, add_headers=add_headers)
 
     def post(
         self,
         path: str,
-        data: Optional[Union[Mapping[str, Any], str]] = None,
+        data: Optional[Union[MutableMapping[str, Any], str]] = None,
+        *,
         use_auth: bool = False,
+        add_headers: Optional[MutableMapping[str, str]] = None,
     ) -> lxml.objectify.ObjectifiedElement:
         """Performs an POST request to the connection for a given API path and returns the result.
 
@@ -215,18 +233,27 @@ class Connection:
             use_auth:
                 Use auth for authentication, rather than cookies. Which to use depends on the API
                 being called.
+            add_headers:
+                Include additional headers in the request. These headers will not persist to the
+                next request.
 
         Returns:
             An lxml.objectify object of the XML output of the API request.
         """
 
-        return self._request("post", path, data=json.dumps(data), use_auth=use_auth)
+        return self._request(
+            "post",
+            path,
+            data=json.dumps(data),
+            use_auth=use_auth,
+            add_headers=add_headers,
+        )
 
     def _request_file(
         self,
         method: str,
         path: str,
-        params: Optional[Mapping[str, Any]] = None,
+        params: Optional[MutableMapping[str, Any]] = None,
         output_file: Optional[Union[str, TextIO]] = None,
     ) -> None:
         """Performs an API request to the connection for a given API path and writes the result to
@@ -261,7 +288,7 @@ class Connection:
     def get_file(
         self,
         path: str,
-        params: Optional[Mapping[str, Any]] = None,
+        params: Optional[MutableMapping[str, Any]] = None,
         output_file: Optional[Union[str, TextIO]] = None,
     ) -> None:
         """Performs an GET request to the connection for a given API path and writes the result to
@@ -290,7 +317,7 @@ class Connection:
     def post_file(
         self,
         path: str,
-        params: Optional[Mapping[str, Any]] = None,
+        params: Optional[MutableMapping[str, Any]] = None,
         output_file: Optional[Union[str, TextIO]] = None,
     ) -> None:
         """Performs an POST request to the connection for a given API path and writes the result to

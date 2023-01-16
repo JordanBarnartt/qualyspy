@@ -800,7 +800,7 @@ def host_list_detection(
 
     if output_format == "python":
         if post:
-            raw = conn.post(qutils.URLS["Host List Detection"], params=params_filtered)
+            raw = conn.post(qutils.URLS["Host List Detection"], data=params_filtered)
         else:
             raw = conn.get(qutils.URLS["Host List Detection"], params=params_filtered)
         if raw.tag == "SIMPLE_RETURN":

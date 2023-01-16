@@ -166,10 +166,11 @@ C = TypeVar("C")
 def elements_to_class(
     xml: Union[lxml.objectify.ObjectifiedElement, lxml.etree._Element],
     output_class: type[C],
-    /,
+    *,
     classmap: MutableMapping[str, Any] = {},
     listmap: MutableMapping[str, str] = {},
     funcmap: MutableMapping[str, Callable[[str], Any]] = {},
+    name_converter: Callable[[str], str] = lambda x: x.upper(),
 ) -> C:
     """Parse a tree of lxml elements into a given class.  The output class can have attributes which
     are themselves different classes, or which convert a group of identically named subelements to
@@ -193,26 +194,33 @@ def elements_to_class(
             which act on the text of the corresponding tag to output the value which should be
             included in the class. Note that this is distinctive from classmap, which is used to
             identify attributes of a class.  Elements in classmap should not be included in typemap,
-            but attributes of those classes may need to be.  If
+            but attributes of those classes may need to be.
+        name_converter:
+            Function for converting attribute names in Python to element names in API.
     """
 
     elements_dict: dict[str, Any] = {}
 
     for child in xml.iterchildren():
-        t = child.tag.lower()
+        t = name_converter(child.tag)
+        children_of_child = {
+            name_converter(ele.tag): ele.tag for ele in child.iterchildren()
+        }
+
         if len([n for n in child.iterdescendants()]) > 0:
             if t in listmap:
                 elements_dict[t] = []
-                subelements = child.findall(listmap[t].upper())
+                subelements = child.findall(children_of_child[listmap[t]])
                 for subelement in subelements:
                     if listmap[t] in classmap:
                         elements_dict[t].append(
                             elements_to_class(
                                 subelement,
                                 classmap[listmap[t]],
-                                classmap,
-                                listmap,
-                                funcmap,
+                                classmap=classmap,
+                                listmap=listmap,
+                                funcmap=funcmap,
+                                name_converter=name_converter,
                             )
                         )
                     elif subelement.text:
@@ -221,7 +229,12 @@ def elements_to_class(
                         )
             else:
                 elements_dict[t] = elements_to_class(
-                    child, classmap[t], classmap, listmap, funcmap
+                    child,
+                    classmap[t],
+                    classmap=classmap,
+                    listmap=listmap,
+                    funcmap=funcmap,
+                    name_converter=name_converter,
                 )
         elif child.text:
             elements_dict[t] = _apply_funcmap(t, funcmap, child.text)

@@ -15,5 +15,6 @@
     "Host List Detection": "/api/2.0/fo/asset/host/vm/detection/?action=list",
     "KnowledgeBase": "/api/2.0/fo/knowledge_base/vuln/?action=list",
     "Create Tag": "/qps/rest/2.0/create/am/tag",
-    "Update Tag": "/qps/rest/2.0/update/am/tag"
+    "Update Tag": "/qps/rest/2.0/update/am/tag",
+    "Search Tags": "/qps/rest/2.0/search/am/tag"
 }

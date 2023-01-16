@@ -5,6 +5,7 @@ import datetime
 import collections
 from collections.abc import MutableSequence
 from typing import Any, Optional, Union
+import re
 
 import qualyspy.qualysapi as qualysapi
 import qualyspy.qutils as qutils
@@ -17,7 +18,7 @@ def _create_service_request(elements: dict[str, Optional[str]]) -> dict[str, Any
 
 
 @dataclasses.dataclass
-class TagSimple:
+class _Tag_Simple:
     """A simple representation of a Qualys Asset Tag, containing only the name and ID of the tag.
     Child tags will appear in this format.
 
@@ -36,7 +37,7 @@ class TagSimple:
 
 
 @dataclasses.dataclass
-class Tag(TagSimple):
+class Tag(_Tag_Simple):
     """A representation of a Qualys Asset Tag.
 
     Not intended to be intantied manually, but as a result of function calls.
@@ -75,7 +76,7 @@ class Tag(TagSimple):
     provider: Optional[str] = None
     """Source of the creation of the tag, if it was automatically generated."""
 
-    children: Optional[MutableSequence[TagSimple]] = None
+    children: Optional[MutableSequence[_Tag_Simple]] = None
     """A list of child tags under this tag."""
 
     criticality_score: Optional[int] = None
@@ -83,6 +84,15 @@ class Tag(TagSimple):
 
     description: Optional[str] = None
     """Description of the tag."""
+
+    def __setattr__(self, __name: str, __value: Any) -> None:
+        if __name == "children" and isinstance(__value, _Tag_Simple_Q_List):
+            children = []
+            for child in __value.list:
+                children.append(search_tags())
+            return super().__setattr__(__name, __value.list)
+        else:
+            return super().__setattr__(__name, __value)
 
     def _get_children_list(self) -> MutableSequence[Union[str, int]]:
         children_list: list[Union[str, int]] = []
@@ -174,7 +184,7 @@ def create_tag(
             A list of tags which should be children of this tag.  A string will correspond to a tag
             name and and int will correspond to a tag ID.  If a tag specified by name does not
             exist, it will be created.
-        criticality_scrore:
+        criticality_score:
             The criticality score applied to hosts with this tag.
         description:
             The description of the tag.
@@ -202,17 +212,19 @@ def create_tag(
             elif isinstance(child, int):
                 tag["children"]["set"]["TagSimple"].append({"id": str(child)})
 
-    conn.headers["Content-Type"] = "application/json"
-    conn.headers["Accept"] = "application/xml"
-    response = conn.post(qutils.URLS["Create Tag"], elements_parsed, use_auth=True)
+    add_headers = {"Content-Type": "application/json", "Accept": "application/xml"}
+    conn.post(
+        qutils.URLS["Create Tag"],
+        elements_parsed,
+        use_auth=True,
+        add_headers=add_headers,
+    )
 
-    response_code = str(response.responseCode)
-    if response_code != "SUCCESS":
-        raise qualysapi.Qualys_API_Error(response.responseErrorDetails.errorMessage)
 
-_Tag_Filter = collections.namedtuple("Tag_Filter", ["field", "operator", "value"])
+Tag_Filter = collections.namedtuple("Tag_Filter", ["field", "operator", "value"])
 
-def make_filter(field: str, operator: str, value: str) -> _Tag_Filter:
+
+def make_filter(field: str, operator: str, value: str) -> Tag_Filter:
     """Generate a filter to be passed into the search_tags function.
 
     Args:
@@ -226,11 +238,68 @@ def make_filter(field: str, operator: str, value: str) -> _Tag_Filter:
             The value for the field to be compared to.
     """
 
-    return _Tag_Filter(field, operator.upper(), value)
+    return Tag_Filter(field, operator.upper(), value)
+
+
+@dataclasses.dataclass
+class _Tag_Simple_Q_List:
+    count: Optional[int] = None
+    list: Optional[MutableSequence[_Tag_Simple]] = None
+    set: Optional[MutableSequence[_Tag_Simple]] = None
+    add: Optional[MutableSequence[_Tag_Simple]] = None
+    remove: Optional[MutableSequence[_Tag_Simple]] = None
+    update: Optional[MutableSequence[_Tag_Simple]] = None
+
+
+def _tagging_api_name_converter(attr: str) -> str:
+    if attr == "TagSimple":
+        return "Tag_Simple"
+    else:
+        # Convert camel case to snake case
+        return re.sub(r"(?<!^)(?=[A-Z])", "_", attr).lower()
 
 
 def search_tags(
     conn: qualysapi.Connection,
-    filters: Union[collections.namedtuple, MutableSequence[collections.namedtuple]],
-):
-    ...
+    filters: Union[Tag_Filter, MutableSequence[Tag_Filter]],
+) -> list[Tag]:
+    data: dict[str, Any] = {"ServiceRequest": {"filters": {"Criteria": []}}}
+    if not isinstance(filters, MutableSequence):
+        filters = [filters]
+    for filter in filters:
+        criteria = {
+            "field": filter.field,
+            "operator": filter.operator,
+            "value": filter.value,
+        }
+    data["ServiceRequest"]["filters"]["Criteria"].append(criteria)
+
+    add_headers = {"Content-Type": "application/json", "Accept": "application/xml"}
+    raw = conn.post(
+        qutils.URLS["Search Tags"], data, use_auth=True, add_headers=add_headers
+    )
+
+    tag_list = []
+    for tag in raw.data.Tag:
+        t = qutils.elements_to_class(
+            tag,
+            Tag,
+            classmap={"Tag_Simple": _Tag_Simple, "children": _Tag_Simple_Q_List},
+            listmap={
+                "list": "Tag_Simple",
+            },
+            funcmap={
+                "id": int,
+                "parent_tag_id": int,
+                "created": qutils.datetime_from_qualys_format,
+                "modified": qutils.datetime_from_qualys_format,
+                "src_asset_group_id": int,
+                "src_business_unit_id": int,
+                "src_operating_system_name": int,
+                "criticality_score": int,
+            },
+            name_converter=_tagging_api_name_converter,
+        )
+        tag_list.append(t)
+
+    return tag_list

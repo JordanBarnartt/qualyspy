@@ -11,4 +11,6 @@ import qualyspy
 if __name__ == "__main__":
     conn = qualyspy.Connection()
     #qualyspy.create_tag(conn, "QualysPy Test")
-    qua
+    filter = qualyspy.make_filter("name", "equals", "QualysPy Test")
+    output = qualyspy.search_tags(conn, filter)
+    print(output)
