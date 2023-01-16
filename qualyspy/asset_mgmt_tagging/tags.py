@@ -87,9 +87,6 @@ class Tag(_Tag_Simple):
 
     def __setattr__(self, __name: str, __value: Any) -> None:
         if __name == "children" and isinstance(__value, _Tag_Simple_Q_List):
-            children = []
-            for child in __value.list:
-                children.append(search_tags())
             return super().__setattr__(__name, __value.list)
         else:
             return super().__setattr__(__name, __value)
