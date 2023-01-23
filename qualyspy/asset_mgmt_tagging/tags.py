@@ -129,20 +129,22 @@ class Tag(Tag_Simple):
             tag["children"] = {}
             if len(to_add) > 0:
                 tag["children"]["set"] = []
-                tag["children"]["set"].append(
-                    [{"name": t} for t in to_add if isinstance(t, str)]
-                )
-                tag["children"]["set"].append(
-                    [{"id": t} for t in to_add if isinstance(t, int)]
-                )
+                tag["children"]["set"] += [
+                    {"name": t} for t in to_add if isinstance(t, str)
+                ]
+
+                tag["children"]["set"] += [
+                    {"id": t} for t in to_add if isinstance(t, int)
+                ]
+
             if len(to_remove) > 0:
                 tag["children"]["remove"] = []
-                tag["children"]["remove"].append(
-                    [{"name": t} for t in to_add if isinstance(t, str)]
-                )
-                tag["children"]["remove"].append(
-                    [{"id": t} for t in to_add if isinstance(t, int)]
-                )
+                tag["children"]["remove"] += [
+                    {"name": t} for t in to_add if isinstance(t, str)
+                ]
+                tag["children"]["remove"] += [
+                    {"id": t} for t in to_add if isinstance(t, int)
+                ]
 
         conn.post(qutils.URLS["Update Tag"], elements_parsed, use_auth=True)
 

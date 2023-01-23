@@ -43,6 +43,32 @@ class Asset:
         else:
             return super().__setattr__(__name, __value)
 
+    def update(
+        self,
+        conn: qualysapi.Connection,
+        name: Optional[str] = None,
+        tags_to_add: Optional[MutableSequence[Tag_Simple]] = None,
+        tags_to_remove: Optional[MutableSequence[Tag_Simple]] = None,
+    ) -> None:
+        url = qutils.URLS["Update Asset"] + "/" + str(self.id)
+        data: dict[str, Any] = {"ServiceRequest": {"data": {"Asset": {}}}}
+        data_inner = data["ServiceRequest"]["data"]["Asset"]
+
+        if name is not None:
+            data_inner["name"] = name
+
+        if tags_to_add or tags_to_remove:
+            data_inner["tags"] = {}
+        if tags_to_add:
+            data_inner["tags"]["add"] = {"TagSimple": []}
+            data_inner["tags"]["add"]["TagSimple"] += [{"id": tag.id} for tag in tags_to_add]
+        if tags_to_remove:
+            data_inner["tags"]["remove"] = {"TagSimple": []}
+            data_inner["tags"]["remove"]["TagSimple"] += [{"id": tag.id} for tag in tags_to_remove]
+
+        add_headers = {"Content-Type": "application/json", "Accept": "application/xml"}
+        conn.post(url, data, use_auth=True, add_headers=add_headers)
+
 
 def search_assets(
     conn: qualysapi.Connection,
@@ -80,7 +106,11 @@ def search_assets(
         a = qutils.elements_to_class(
             asset,
             Asset,
-            classmap={"Asset": Asset, "tags": _Tag_Simple_Q_List},
+            classmap={
+                "Asset": Asset,
+                "tags": _Tag_Simple_Q_List,
+                "Tag_Simple": Tag_Simple,
+            },
             listmap={
                 "list": "Tag_Simple",
             },
