@@ -662,7 +662,7 @@ def host_list(
     params_filtered = qutils.remove_nones_from_dict(params)
 
     if post:
-        raw = conn.post(qutils.URLS["Host List"], params=params_filtered)
+        raw = conn.post(qutils.URLS["Host List"], data=params_filtered)
     else:
         raw = conn.get(qutils.URLS["Host List"], params=params_filtered)
     if raw.tag == "SIMPLE_RETURN":
