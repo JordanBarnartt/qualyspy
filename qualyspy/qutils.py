@@ -170,7 +170,7 @@ def elements_to_class(
     classmap: MutableMapping[str, Any] = {},
     listmap: MutableMapping[str, str] = {},
     funcmap: MutableMapping[str, Callable[[str], Any]] = {},
-    name_converter: Callable[[str], str] = lambda x: x.upper(),
+    name_converter: Callable[[str], str] = lambda x: x.lower(),
 ) -> C:
     """Parse a tree of lxml elements into a given class.  The output class can have attributes which
     are themselves different classes, or which convert a group of identically named subelements to
