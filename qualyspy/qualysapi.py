@@ -13,11 +13,49 @@ import io
 import json
 import os.path
 import re
-from collections.abc import MutableMapping
+from collections.abc import MutableMapping, MutableSequence
 from typing import Any, Optional, TextIO, Union
 
 import lxml.objectify
 import requests
+
+import ssl
+import urllib3
+
+JSON_IN_JSON_OUT_HEADERS = {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+}
+JSON_IN_XML_OUT_HEADERS = {
+    "Accept": "application/json",
+    "Content-Type": "application/xml",
+}
+
+
+class CustomHttpAdapter(requests.adapters.HTTPAdapter):
+    """Transport adapter" that allows us to use custom ssl_context.
+
+    Workaround because Qualys API Gateway URL does not support Secure Renegotation, which is
+    enforced in OpenSSL 3.X.  Reference:
+    https://stackoverflow.com/questions/71603314/ssl-error-unsafe-legacy-renegotiation-disabled
+    """
+
+    def __init__(
+        self, ssl_context: Optional[ssl.SSLContext] = None, **kwargs: Any
+    ) -> None:
+        self.ssl_context = ssl_context
+        super().__init__(**kwargs)
+
+    def init_poolmanager(
+        self, connections: Any, maxsize: Any, block: bool = False, **kwargs: Any
+    ) -> None:
+        self.poolmanager = urllib3.poolmanager.PoolManager(
+            num_pools=connections,
+            maxsize=maxsize,
+            block=block,
+            ssl_context=self.ssl_context,
+        )
+
 
 CONFIG_FILE = os.path.expanduser("~/qualysapi.conf")
 URLS = json.load(importlib.resources.files("qualyspy").joinpath("urls.json").open())
@@ -25,6 +63,7 @@ URLS = json.load(importlib.resources.files("qualyspy").joinpath("urls.json").ope
 config = configparser.ConfigParser()
 config.read(CONFIG_FILE)
 API_ROOT = config["AUTHENTICATION"]["api_root"]
+API_GATEWAY_ROOT = config["AUTHENTICATION"]["api_gateway_root"]
 CREDENTIALS = {
     "username": config["AUTHENTICATION"]["username"],
     "password": config["AUTHENTICATION"]["password"],
@@ -41,23 +80,27 @@ class Connection:
     When an object of this class is removed from memory, a logout API request will be made.
 
     Attributes:
-        add_headers: A dictionary containing the headers passed into API requests.  If
-        "X-Requested-With" is not specified, it will be included with the value
-        "qualyspy python package".
+        add_headers:
+            A dictionary containing the headers passed into API requests.  If
+            "X-Requested-With" is not specified, it will be included with the value
+            "qualyspy python package".
+        apis:
+            Specifies which APIs should be authenticated to (since many Qualys APIs use different
+            authentication methods).  By default, on the VMDR API will be connected to.
+            Possible options include: VMDR, Asst_Mgmt_Tagging, CertView
     """
 
-    def __init__(self, /, add_headers: Optional[dict[str, str]] = None) -> None:
-        """Instantiates a Connection object.
-
-        Using the credentials in the configuration file, connect to the Qualys API endpoint
-        obtain a session key to use in future API requests.  Updates the cookies attribute of the
-        class.
-
-        Raises:
-            HTTPError: An error occured when connecting to the API endpoint.
+    def _connect_VMDR(
+        self,
+        /,
+        add_headers: Optional[MutableMapping[str, str]] = None,
+    ) -> None:
+        """Connect to the VMDR API.  Updates the cookies attribute of the class with the auth
+        cookie to be automatically used with any VMDR API calls.
         """
 
-        self._headers = {"X-Requested-With": "qualyspy python package"}
+        # Add to self._headers as this should be included on all future VMDR API calls
+        self._headers["X-Requested-With"] = "qualyspy python package"
 
         data = {
             "username": CREDENTIALS["username"],
@@ -67,12 +110,90 @@ class Connection:
             API_ROOT + URLS["Session Login"], headers=self._headers, data=data
         )
         if conn.status_code == requests.codes.ok:
-            self._cookies = {"QualysSession": conn.cookies["QualysSession"]}
+            self._cookies["QualysSession"] = conn.cookies["QualysSession"]
             with open("debug/cookies.txt", "a") as f:
                 f.write(str(conn.cookies["QualysSession"]) + "\n")
         else:
             print(conn.headers)
             conn.raise_for_status()
+
+    def _connect_CertView(self) -> None:
+        """Connects to the CertView API.  Adds a bearer token attribute to the class to be
+        automatically used with any CertView API calls.
+        """
+
+        data = {
+            "username": CREDENTIALS["username"],
+            "password": CREDENTIALS["password"],
+            "token": "true",
+            "permissions": "true",
+        }
+        headers = {"ContentType": "application/x-www-form-urlencoded"}
+
+        with requests.Session() as s:
+            ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+            ctx.options |= 0x4
+            s.mount("https://", CustomHttpAdapter(ctx))
+            conn = s.post(
+                API_GATEWAY_ROOT + URLS["CertView Authentication"],
+                headers=headers,
+                data=data,
+            )
+        self._bearer_token = conn.text
+
+    def register_in_out_headers(
+        self, api_match: str, in_header: str, out_header: str
+    ) -> None:
+        """Registers the 'Accept' and 'Content-Type' headers for a given API path.
+
+        Args:
+            api_match:
+                The portion of the API url to which the registration applies,
+                ex. '/qps/rest/2.0/' or '/certview/'
+            in_header:
+                The 'Accept' header to be used for this API endpoint.
+            out_header:
+                The 'Content-Type' header to be used for this API endpoint.
+        """
+        self._in_out_headers[api_match] = {
+            "Accept": in_header,
+            "Content-Type": out_header,
+        }
+
+    def __init__(
+        self,
+        /,
+        add_headers: Optional[MutableMapping[str, str]] = None,
+        apis: MutableSequence[str] = ["VMDR"],
+    ) -> None:
+        """Instantiates a Connection object.
+
+        Using the credentials in the configuration file, connect to the Qualys API endpoint
+        obtain a session key to use in future API requests.
+
+        Raises:
+            HTTPError: An error occured when connecting to the API endpoint.
+        """
+
+        self._cookies: dict[str, str] = {}
+        self._headers: dict[str, str] = {}
+        self._bearer_token = ""
+
+        self._in_out_headers: dict[str, dict[str, str]] = {}
+        self.register_in_out_headers(
+            "/api/2.0/fo/", "application/json", "application/xml"
+        )
+        self.register_in_out_headers(
+            "/qps/rest/2.0/", "application/json", "application/json"
+        )
+        self.register_in_out_headers(
+            "/certview/v2/certificates", "application/json", "application/json"
+        )
+
+        if "VMDR" in apis:
+            self._connect_VMDR()
+        if "CertView" in apis:
+            self._connect_CertView()
 
     def __del__(self) -> None:
         """Deletes a Connection object.
@@ -93,17 +214,20 @@ class Connection:
         data: Optional[Union[MutableMapping[str, Any], str]] = None,
         /,
         use_auth: bool = False,
-        add_headers: Optional[MutableMapping[str, str]] = None,
+        add_headers: MutableMapping[str, str] = {},
     ) -> str:
         """Helper method for "request" methods.  Performs the API request and returns the text as
         a string, to be parsed by the calling function.
         """
 
-        if add_headers is not None:
-            headers = add_headers
-            headers.update(self._headers)
-        else:
-            headers = self._headers
+        headers = self._headers
+        headers.update(add_headers)
+
+        root = API_ROOT
+        if "/certview/" in path:
+            root = API_GATEWAY_ROOT
+            headers["Authorization"] = "Bearer " + self._bearer_token
+
         auth = None
         if use_auth:
             auth = (CREDENTIALS["username"], CREDENTIALS["password"])
@@ -111,20 +235,33 @@ class Connection:
         match method:
             case "get":
                 response = requests.get(
-                    API_ROOT + path,
+                    root + path,
                     headers=headers,
                     cookies=self._cookies,
                     params=params,
                     auth=auth,
                 )
             case "post":
-                response = requests.post(
-                    API_ROOT + path,
-                    headers=headers,
-                    cookies=self._cookies,
-                    data=data,
-                    auth=auth,
-                )
+                if "/certview/" in path:
+                    with requests.Session() as s:
+                        ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+                        ctx.options |= 0x4
+                        s.mount("https://", CustomHttpAdapter(ctx))
+                        response = s.post(
+                            root + path,
+                            headers=headers,
+                            cookies=self._cookies,
+                            data=data,
+                            auth=auth,
+                        )
+                else:
+                    response = requests.post(
+                        root + path,
+                        headers=headers,
+                        cookies=self._cookies,
+                        data=data,
+                        auth=auth,
+                    )
             case _:
                 raise ValueError(f"{method} is not a supported")
 
@@ -147,8 +284,8 @@ class Connection:
         params: Optional[MutableMapping[str, Any]] = None,
         data: Optional[Union[MutableMapping[str, Any], str]] = None,
         use_auth: bool = False,
-        add_headers: Optional[MutableMapping[str, str]] = None,
-    ) -> lxml.objectify.ObjectifiedElement:
+        add_headers: MutableMapping[str, str] = {},
+    ) -> Any:
         """Performs an API request to the connection for a given API path and returns the result.
 
         Args:
@@ -168,25 +305,34 @@ class Connection:
         Returns:
             An lxml.objectify object of the XML output of the API request.
         """
+        for api in self._in_out_headers:
+            if path.startswith(api):
+                add_headers.update(self._in_out_headers[api])
 
         response = self._perform_request(
             method, path, params, data, use_auth=use_auth, add_headers=add_headers
         )
-        xml = lxml.objectify.fromstring(re.split("\n", response, 1)[1])
-        if "/qps/rest/2.0/" in path:
-            response_code = str(xml.responseCode)
-            if response_code != "SUCCESS":
-                raise Qualys_API_Error(xml.responseErrorDetails.errorMessage)
 
-        return xml
+        match add_headers["Content-Type"]:
+            case "application/xml":
+                xml = lxml.objectify.fromstring(re.split("\n", response, 1)[1])
+                if "/qps/rest/2.0/" in path:
+                    response_code = str(xml.responseCode)
+                    if response_code != "SUCCESS":
+                        raise Qualys_API_Error(xml.responseErrorDetails.errorMessage)
+                return xml
+            case "application/json":
+                return json.loads(response)
+            case _:
+                return response
 
     def get(
         self,
         path: str,
         params: Optional[MutableMapping[str, Any]] = None,
         *,
-        add_headers: Optional[MutableMapping[str, str]] = None,
-    ) -> lxml.objectify.ObjectifiedElement:
+        add_headers: MutableMapping[str, str] = {},
+    ) -> Any:
         """Performs an GET request to the connection for a given API path and returns the result.
 
         Normally, it is not intended that this function be called manually.  Instead, this would be
@@ -216,8 +362,8 @@ class Connection:
         data: Optional[Union[MutableMapping[str, Any], str]] = None,
         *,
         use_auth: bool = False,
-        add_headers: Optional[MutableMapping[str, str]] = None,
-    ) -> lxml.objectify.ObjectifiedElement:
+        add_headers: MutableMapping[str, str] = {},
+    ) -> Any:
         """Performs an POST request to the connection for a given API path and returns the result.
 
         Normally, it is not intended that this function be called manually.  Instead, this would be

@@ -166,7 +166,7 @@ C = TypeVar("C")
 def elements_to_class(
     xml: Union[lxml.objectify.ObjectifiedElement, lxml.etree._Element],
     output_class: type[C],
-    *,
+    /,
     classmap: MutableMapping[str, Any] = {},
     listmap: MutableMapping[str, str] = {},
     funcmap: MutableMapping[str, Callable[[str], Any]] = {},
@@ -240,6 +240,48 @@ def elements_to_class(
             elements_dict[t] = _apply_funcmap(t, funcmap, child.text)
 
     return output_class(**elements_dict)
+
+
+def json_to_class(
+    js: MutableMapping[str, Any],
+    output_class: type[C],
+    /,
+    classmap: MutableMapping[str, Any] = {},
+    listmap: MutableMapping[str, str] = {},
+    funcmap: MutableMapping[str, Callable[[str], Any]] = {},
+    name_converter: Callable[[str], str] = lambda x: x.lower(),
+) -> C:
+    params_dict: dict[str, Any] = {}
+
+    for ele in js:
+        ele_converted = name_converter(ele)
+        if ele in listmap:
+            params_dict[ele_converted] = [
+                json_to_class(
+                    inst,
+                    classmap[listmap[ele]],
+                    classmap=classmap,
+                    listmap=listmap,
+                    funcmap=funcmap,
+                    name_converter=name_converter,
+                )
+                for inst in js[ele]
+            ]
+        elif ele in classmap:
+            params_dict[ele_converted] = json_to_class(
+                js[ele],
+                classmap[ele],
+                classmap=classmap,
+                listmap=listmap,
+                funcmap=funcmap,
+                name_converter=name_converter,
+            )
+        elif ele in funcmap:
+            params_dict[ele_converted] = funcmap[ele](js[ele])
+        else:
+            params_dict[ele_converted] = js[ele]
+
+    return output_class(**params_dict)
 
 
 def parse_simple_return(xml: lxml.objectify.ObjectifiedElement) -> dict[str, Any]:
@@ -336,7 +378,7 @@ def parse_optional_bool(
         return returns[1]
 
 
-def tagging_api_name_converter(attr: str) -> str:
+def convert_camel_to_snake(attr: str) -> str:
     if attr == "TagSimple":
         return "Tag_Simple"
     elif attr == "Asset":
@@ -344,3 +386,41 @@ def tagging_api_name_converter(attr: str) -> str:
     else:
         # Convert camel case to snake case
         return re.sub(r"(?<!^)(?=[A-Z])", "_", attr).lower()
+
+
+def convert_dict_keys(
+    d: dict[str, Any], name_converter: Callable[[str], str] = lambda x: x.lower()
+) -> dict[str, Any]:
+    new_dict = {}
+    for k in d:
+        if isinstance(d[k], dict):
+            new_dict[k] = convert_dict_keys(d[k])
+        else:
+            new_dict[name_converter(k)] = d[k]
+
+    return new_dict
+
+
+class Filter:
+    """A filter indicating the field to be searched on, the operator to use, and the value
+    to search against.
+
+    The filter parameters that can be used for a given function call are dependent on what API is
+    being called.  Refer to the API documentation for a list of tokens and operators.
+
+    Args:
+        field:
+            The name of the field for which the filter should apply..
+        operator:
+            The operator applied to the filter.
+        value:
+            The value for the field to be compared to.
+    """
+
+    def __init__(self, field: str, operator: str, value: str) -> None:
+        self.field = field
+        self.operator = operator.upper()
+        self.value = value
+
+    def __call__(self) -> dict[str, str]:
+        return {"field": self.field, "operator": self.operator, "value": self.value}

@@ -11,5 +11,6 @@
     "python.linting.enabled": true,
     "python.linting.ignorePatterns": [
         "debug/*py"
-    ]
+    ],
+    "python.formatting.provider": "black"
 }

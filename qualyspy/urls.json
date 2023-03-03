@@ -18,5 +18,7 @@
     "Update Tag": "/qps/rest/2.0/update/am/tag",
     "Search Tags": "/qps/rest/2.0/search/am/tag",
     "Search Assets": "/qps/rest/2.0/search/am/asset",
-    "Update Asset": "/qps/rest/2.0/update/am/asset"
+    "Update Asset": "/qps/rest/2.0/update/am/asset",
+    "CertView Authentication": "/auth",
+    "List CertView Certificates": "/certview/v2/certificates"
 }

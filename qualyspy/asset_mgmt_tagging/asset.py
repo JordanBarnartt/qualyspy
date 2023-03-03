@@ -61,13 +61,16 @@ class Asset:
             data_inner["tags"] = {}
         if tags_to_add:
             data_inner["tags"]["add"] = {"TagSimple": []}
-            data_inner["tags"]["add"]["TagSimple"] += [{"id": tag.id} for tag in tags_to_add]
+            data_inner["tags"]["add"]["TagSimple"] += [
+                {"id": tag.id} for tag in tags_to_add
+            ]
         if tags_to_remove:
             data_inner["tags"]["remove"] = {"TagSimple": []}
-            data_inner["tags"]["remove"]["TagSimple"] += [{"id": tag.id} for tag in tags_to_remove]
+            data_inner["tags"]["remove"]["TagSimple"] += [
+                {"id": tag.id} for tag in tags_to_remove
+            ]
 
-        add_headers = {"Content-Type": "application/json", "Accept": "application/xml"}
-        conn.post(url, data, use_auth=True, add_headers=add_headers)
+        conn.post(url, data, use_auth=True)
 
 
 def search_assets(
@@ -94,10 +97,7 @@ def search_assets(
         }
     data["ServiceRequest"]["filters"]["Criteria"].append(criteria)
 
-    add_headers = {"Content-Type": "application/json", "Accept": "application/xml"}
-    raw = conn.post(
-        qutils.URLS["Search Assets"], data, use_auth=True, add_headers=add_headers
-    )
+    raw = conn.post(qutils.URLS["Search Assets"], data, use_auth=True)
 
     asset_list: list[Asset] = []
     if str(raw.count) == "0":
@@ -120,7 +120,7 @@ def search_assets(
                 "modified": qutils.datetime_from_qualys_format,
                 "criticality_score": int,
             },
-            name_converter=qutils.tagging_api_name_converter,
+            name_converter=qutils.convert_camel_to_snake,
         )
         asset_list.append(a)
 

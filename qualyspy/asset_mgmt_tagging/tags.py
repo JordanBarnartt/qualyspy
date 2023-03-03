@@ -281,7 +281,7 @@ def search_tags(
                 "src_operating_system_name": int,
                 "criticality_score": int,
             },
-            name_converter=qutils.tagging_api_name_converter,
+            name_converter=qutils.convert_camel_to_snake,
         )
         tag_list.append(t)
 
