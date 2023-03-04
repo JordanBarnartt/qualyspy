@@ -1,6 +1,8 @@
 import dataclasses
 import datetime
-from typing import Sequence, Optional
+import pathlib
+import sqlite3
+from typing import Sequence, Optional, Union
 from .. import qualysapi
 from .. import qutils
 
@@ -94,8 +96,54 @@ class Certificate:
     subject_alternative_names: Optional[Subject_Alternative_Names] = None
 
 
+def init_certificate_db(
+    path: Optional[Union[str, pathlib.Path]] = None,
+) -> None:
+    con = sqlite3.connect(str(path))
+    cur = con.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS certificate (
+        PRIMARY KEY (id),
+        certhash,
+        key_size,
+        serial_number,
+        vaid_to_date,
+        valid_to,
+        valid_from_date,
+        valid_from,
+        signature_algorithm,
+        extended_validation,
+        created_date,
+        dn,
+        FOREIGN KEY (subject) REFERECES subject(name),
+        update_date,
+        last_found,
+        imported,
+        self_signed,
+        FOREIGN KEY (issuer) REFERENCES issuer(name),
+        FORIGN_KEY (rootissuer) REFERENCES issuer(name),
+        issuer_category,
+        asset_count,
+        key_usage,
+        raw_data,
+        enhanced_key_usage,
+        subject_key_identifier,
+        auth_key_identifier,
+        )
+    """)
+
+
+def _list_certificates_db(
+    database: Optional[Union[str, pathlib.Path]] = None,
+) -> None:
+    con = sqlite3.connect(str(database))
+    cur = con.cursor()
+
+
 def list_certificates(
-    conn: qualysapi.Connection, filter: Optional[Sequence[qutils.Filter]] = None
+    conn: qualysapi.Connection,
+    filter: Optional[Sequence[qutils.Filter]] = None,
+    database: Optional[Union[str, pathlib.Path]] = None,
 ) -> list[Certificate]:
     """Retrieve a list of certificates.
 
