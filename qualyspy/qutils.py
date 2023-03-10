@@ -1,8 +1,10 @@
+import configparser
 import datetime
 import importlib.resources
 import ipaddress
 import json
 import math
+import os
 import re
 import zoneinfo
 from collections.abc import MutableMapping, MutableSequence
@@ -11,7 +13,18 @@ from typing import Any, Callable, Optional, TypeVar, Union
 import lxml.etree
 import lxml.objectify
 
+_CONFIG_FILE = os.path.expanduser("~/qualysapi.conf")
+config = configparser.ConfigParser()
+config.read(_CONFIG_FILE)
+
 URLS = json.load(importlib.resources.files("qualyspy").joinpath("urls.json").open())
+_DB_HOST = config["POSTGRESQL"]["host"]
+_DB_NAME = config["POSTGRESQL"]["db_name"]
+_DB_USER = config["POSTGRESQL"]["user"]
+_DB_PASSWORD = config["POSTGRESQL"]["password"]
+CONNECT_STRING = (
+    f"host={_DB_HOST} dbname={_DB_NAME} user={_DB_USER} password={_DB_PASSWORD}"
+)
 
 
 def ips_to_qualys_format(

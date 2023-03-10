@@ -1,12 +1,14 @@
 import dataclasses
 import datetime
-import pathlib
-import sqlite3
+import ipaddress
+import psycopg2
+import importlib.resources
 from typing import Sequence, Optional, Union
 from .. import qualysapi
 from .. import qutils
 
 JSON_HEADERS = {"Accept": "application/json", "Content-Type": "application/json"}
+SQL = importlib.resources.files("qualyspy").joinpath("certview").joinpath("sql")
 
 
 @dataclasses.dataclass
@@ -49,7 +51,7 @@ class Host_Instance:
 @dataclasses.dataclass
 class Asset_Interface:
     hostname: str
-    address: str
+    address: Union[ipaddress.IPv4Address, ipaddress.IPv6Address]
 
 
 @dataclasses.dataclass
@@ -96,54 +98,39 @@ class Certificate:
     subject_alternative_names: Optional[Subject_Alternative_Names] = None
 
 
-def init_certificate_db(
-    path: Optional[Union[str, pathlib.Path]] = None,
-) -> None:
-    con = sqlite3.connect(str(path))
-    cur = con.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS certificate (
-        PRIMARY KEY (id),
-        certhash,
-        key_size,
-        serial_number,
-        vaid_to_date,
-        valid_to,
-        valid_from_date,
-        valid_from,
-        signature_algorithm,
-        extended_validation,
-        created_date,
-        dn,
-        FOREIGN KEY (subject) REFERECES subject(name),
-        update_date,
-        last_found,
-        imported,
-        self_signed,
-        FOREIGN KEY (issuer) REFERENCES issuer(name),
-        FORIGN_KEY (rootissuer) REFERENCES issuer(name),
-        issuer_category,
-        asset_count,
-        key_usage,
-        raw_data,
-        enhanced_key_usage,
-        subject_key_identifier,
-        auth_key_identifier,
-        )
-    """)
+def init_certificate_db() -> None:
+    conn = psycopg2.connect(qutils.CONNECT_STRING)
+
+    with SQL.joinpath("certview.sql").open() as f:
+        create_commands = f.read()
+
+    with conn:
+        with conn.cursor() as curs:
+            curs.execute(create_commands)
+            curs.execute(
+                """
+            INSERT INTO certificate.meta (last_full_list)
+            VALUES ('-infinity')
+            """
+            )
+
+    conn.close()
 
 
-def _list_certificates_db(
-    database: Optional[Union[str, pathlib.Path]] = None,
-) -> None:
-    con = sqlite3.connect(str(database))
-    cur = con.cursor()
+def _get_last_full_list_date() -> datetime.datetime:
+    conn = psycopg2.connect(qutils.CONNECT_STRING)
+    with conn:
+        with conn.cursor() as curs:
+            curs.execute("SELECT last_full_list FROM certificate.meta")
+            last_full_list: datetime.datetime = curs.fetchone()
+    return last_full_list
 
 
 def list_certificates(
     conn: qualysapi.Connection,
-    filter: Optional[Sequence[qutils.Filter]] = None,
-    database: Optional[Union[str, pathlib.Path]] = None,
+    filter: Optional[Union[qutils.Filter, Sequence[qutils.Filter]]] = None,
+    db: bool = False,
+    db_cache: bool = True,
 ) -> list[Certificate]:
     """Retrieve a list of certificates.
 
@@ -157,7 +144,18 @@ def list_certificates(
             A filter on the results of the search, using the tokens listed at
             https://www.qualys.com/docs/qualys-certview-api-user-guide.pdf#M9.8.newlink.compatible
             (the same as if performin the search via the website).
+        db:
+            Output the results to the database configured in the QualysPy conf file, rather than
+            directly to Python objects.
+        db_cache:
+            When db is True and FIlter is None, only update those certificates which have been
+            modified since the last call with no filter.
     """
+
+    if db and db_cache and filter is None:
+        last_full_list = _get_last_full_list_date()
+        last_full_list_str = qutils.datetime_to_qualys_format(last_full_list)
+        filter = qutils.Filter("certificate.updateDate", "GREATER", last_full_list_str)
 
     if isinstance(filter, Sequence):
         filter_parsed = [f() for f in filter]
@@ -204,6 +202,7 @@ def list_certificates(
                     "valid_from_date": qutils.datetime_from_qualys_format,
                     "created_date": qutils.datetime_from_qualys_format,
                     "update_date": qutils.datetime_from_qualys_format,
+                    "address": ipaddress.ip_address,
                 },
                 name_converter=qutils.convert_camel_to_snake,
             )

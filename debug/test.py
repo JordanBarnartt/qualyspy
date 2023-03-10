@@ -8,11 +8,10 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
 from qualyspy.qualysapi import Connection
-from qualyspy.certview.certificate import list_certificates
+from qualyspy.certview.certificate import list_certificates, init_certificate_db
 from qualyspy.qutils import Filter
 
 if __name__ == "__main__":
     conn = Connection(apis = ["CertView"])
-    filter = Filter("asset.name", "EQUALS", "lib10zigprd02.lib.private.uwaterloo.ca")
-    certs = list_certificates(conn, filter=filter)
+    init_certificate_db()
     print("test")

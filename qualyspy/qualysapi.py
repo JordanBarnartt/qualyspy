@@ -7,11 +7,8 @@ Example:
     conn = qualysapi.Connection()
 """
 
-import configparser
-import importlib.resources
 import io
 import json
-import os.path
 import re
 from collections.abc import MutableMapping, MutableSequence
 from typing import Any, Optional, TextIO, Union
@@ -21,6 +18,8 @@ import requests
 
 import ssl
 import urllib3
+
+from . import qutils
 
 JSON_IN_JSON_OUT_HEADERS = {
     "Accept": "application/json",
@@ -57,16 +56,11 @@ class CustomHttpAdapter(requests.adapters.HTTPAdapter):
         )
 
 
-CONFIG_FILE = os.path.expanduser("~/qualysapi.conf")
-URLS = json.load(importlib.resources.files("qualyspy").joinpath("urls.json").open())
-
-config = configparser.ConfigParser()
-config.read(CONFIG_FILE)
-API_ROOT = config["AUTHENTICATION"]["api_root"]
-API_GATEWAY_ROOT = config["AUTHENTICATION"]["api_gateway_root"]
+API_ROOT = qutils.config["AUTHENTICATION"]["api_root"]
+API_GATEWAY_ROOT = qutils.config["AUTHENTICATION"]["api_gateway_root"]
 CREDENTIALS = {
-    "username": config["AUTHENTICATION"]["username"],
-    "password": config["AUTHENTICATION"]["password"],
+    "username": qutils.config["AUTHENTICATION"]["username"],
+    "password": qutils.config["AUTHENTICATION"]["password"],
 }
 
 
@@ -107,7 +101,7 @@ class Connection:
             "password": CREDENTIALS["password"],
         }
         conn = requests.post(
-            API_ROOT + URLS["Session Login"], headers=self._headers, data=data
+            API_ROOT + qutils.URLS["Session Login"], headers=self._headers, data=data
         )
         if conn.status_code == requests.codes.ok:
             self._cookies["QualysSession"] = conn.cookies["QualysSession"]
@@ -135,7 +129,7 @@ class Connection:
             ctx.options |= 0x4
             s.mount("https://", CustomHttpAdapter(ctx))
             conn = s.post(
-                API_GATEWAY_ROOT + URLS["CertView Authentication"],
+                API_GATEWAY_ROOT + qutils.URLS["CertView Authentication"],
                 headers=headers,
                 data=data,
             )
@@ -201,7 +195,7 @@ class Connection:
         Perform an API request to logout of the session to avoid API limits.
         """
         requests.post(
-            API_ROOT + URLS["Session Logout"],
+            API_ROOT + qutils.URLS["Session Logout"],
             headers=self._headers,
             cookies=self._cookies,
         )
