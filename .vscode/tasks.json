@@ -6,7 +6,7 @@
         {
             "label": "Upgrade dev packages",
             "type": "shell",
-            "command": "pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt",
+            "command": "${workspaceFolder}/.venv/bin/pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt",
             "problemMatcher": []
         }
     ]

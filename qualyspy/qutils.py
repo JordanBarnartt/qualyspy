@@ -18,13 +18,10 @@ config = configparser.ConfigParser()
 config.read(_CONFIG_FILE)
 
 URLS = json.load(importlib.resources.files("qualyspy").joinpath("urls.json").open())
-_DB_HOST = config["POSTGRESQL"]["host"]
-_DB_NAME = config["POSTGRESQL"]["db_name"]
-_DB_USER = config["POSTGRESQL"]["user"]
-_DB_PASSWORD = config["POSTGRESQL"]["password"]
-CONNECT_STRING = (
-    f"host={_DB_HOST} dbname={_DB_NAME} user={_DB_USER} password={_DB_PASSWORD}"
-)
+DB_HOST = config["POSTGRESQL"]["host"]
+DB_NAME = config["POSTGRESQL"]["db_name"]
+DB_USER = config["POSTGRESQL"]["user"]
+DB_PASSWORD = config["POSTGRESQL"]["password"]
 
 
 def ips_to_qualys_format(
@@ -167,7 +164,7 @@ def remove_nones_from_dict(d: MutableMapping[str, Optional[str]]) -> dict[str, s
 def _apply_funcmap(
     tag: str, funcmap: MutableMapping[str, Callable[[str], Any]], element_text: str
 ) -> Any:
-    if tag in funcmap and funcmap[tag] is not None:
+    if tag in funcmap:
         return funcmap[tag](element_text)
     else:
         return element_text

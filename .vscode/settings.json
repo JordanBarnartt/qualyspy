@@ -10,7 +10,8 @@
     ],
     "python.linting.enabled": true,
     "python.linting.ignorePatterns": [
-        "debug/*py"
+        "debug/*.py"
     ],
-    "python.formatting.provider": "black"
+    "python.formatting.provider": "black",
+    "python.analysis.typeCheckingMode": "strict"
 }

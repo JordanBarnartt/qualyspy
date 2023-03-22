@@ -1,4 +1,6 @@
 lxml
 requests
 python-dateutil
-psycogp2
+pydantic
+SQLAlchemy
+psycopg2
