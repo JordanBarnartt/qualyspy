@@ -1,6 +1,7 @@
 import datetime
 import importlib.resources
 import ipaddress
+from typing import Any
 
 import pydantic as pd
 import sqlalchemy as sa
@@ -136,9 +137,7 @@ certificate_issuer_association_table = sa.Table(
     sa.Column(
         "certificate_id", sa.Integer, sa.ForeignKey("certificate.id"), primary_key=True
     ),
-    sa.Column(
-        "issuer_id", sa.Integer, sa.ForeignKey("issuer.certhash"), primary_key=True
-    ),
+    sa.Column("issuer_id", sa.Text, sa.ForeignKey("issuer.certhash"), primary_key=True),
 )
 
 certificate_rootissuer_association_table = sa.Table(
@@ -147,9 +146,7 @@ certificate_rootissuer_association_table = sa.Table(
     sa.Column(
         "certificate_id", sa.Integer, sa.ForeignKey("certificate.id"), primary_key=True
     ),
-    sa.Column(
-        "issuer_id", sa.Integer, sa.ForeignKey("issuer.certhash"), primary_key=True
-    ),
+    sa.Column("issuer_id", sa.Text, sa.ForeignKey("issuer.certhash"), primary_key=True),
 )
 
 
@@ -302,7 +299,7 @@ certificate_key_usage_association_table = sa.Table(
     sa.Column(
         "certificate_id", sa.Integer, sa.ForeignKey("certificate.id"), primary_key=True
     ),
-    sa.Column("usage", sa.Integer, sa.ForeignKey("key_usage.usage"), primary_key=True),
+    sa.Column("usage", sa.Text, sa.ForeignKey("key_usage.usage"), primary_key=True),
 )
 
 certificate_enhanced_key_usage_association_table = sa.Table(
@@ -311,7 +308,7 @@ certificate_enhanced_key_usage_association_table = sa.Table(
     sa.Column(
         "certificate_id", sa.Integer, sa.ForeignKey("certificate.id"), primary_key=True
     ),
-    sa.Column("usage", sa.Integer, sa.ForeignKey("key_usage.usage"), primary_key=True),
+    sa.Column("usage", sa.Text, sa.ForeignKey("key_usage.usage"), primary_key=True),
 )
 
 
@@ -432,12 +429,15 @@ class List_CertView_Certificates_v2_Input(pd.BaseModel):
 
 ####################################################################################################
 
-
 def list_certificates_v2(
     conn: qualysapi.Connection,
-    input: List_CertView_Certificates_v2_Input,
+    api_input: List_CertView_Certificates_v2_Input = List_CertView_Certificates_v2_Input(
+        filter=None, page_size=None, exclude_fields=None
+    ),
+    db: bool = False,
+    db_query: sa.Select[Any] | None = None,
 ) -> list[Certificate]:
-    input_data = input.dict(by_alias=True, exclude_none=True)
+    input_data = api_input.dict(by_alias=True, exclude_none=True)
     input_data["includes"] = [
         "ASSET_INTERFACES",
         "SSL_PROTOCOLS",
@@ -445,13 +445,25 @@ def list_certificates_v2(
         "EXTENSIVE_CERTIFICATE_INFO",
     ]
 
-    certificates: list[Certificate] = []
+    if db:
+        e_url = f"postgresql://{qutils.DB_USER}"
+        ":{qutils.DB_PASSWORD}@{qutils.DB_HOST}/{qutils.DB_NAME}"
+        engine = sa.create_engine(e_url, echo=True)
+    else:
+        certificates: list[Certificate] = []
+
     raw = conn.post(qutils.URLS["List CertView Certificates"], input_data)
 
     while len(raw) > 0:
         for cert in raw:
             c = Certificate.parse_obj(cert)
             certificates.append(c)
+        if db:
+            with orm.Session(engine) as session:
+                session.add_all(certificates)
+                session.commit()
+
+                certificates = []
 
         input_data["pageNumber"] += 1
         raw = conn.post(
@@ -462,7 +474,7 @@ def list_certificates_v2(
     return certificates
 
 
-def init_certificate_db() -> None:
+def init_db() -> None:
     e_url = f"postgresql://{qutils.DB_USER}:{qutils.DB_PASSWORD}@{qutils.DB_HOST}/{qutils.DB_NAME}"
     engine = sa.create_engine(e_url, echo=True)
 

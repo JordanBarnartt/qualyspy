@@ -30,3 +30,6 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://github.com/JordanBarnartt/qualyspy"
 "Bug Tracker" = "https://github.com/JordanBarnartt/qualyspy/issues"
+
+[tool.pyright]
+reportUnboundVariable = false
