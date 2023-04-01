@@ -1,6 +1,8 @@
 import configparser
 import datetime
+import importlib
 import importlib.resources
+import inspect
 import ipaddress
 import json
 import math
@@ -22,6 +24,8 @@ DB_HOST = config["POSTGRESQL"]["host"]
 DB_NAME = config["POSTGRESQL"]["db_name"]
 DB_USER = config["POSTGRESQL"]["user"]
 DB_PASSWORD = config["POSTGRESQL"]["password"]
+
+E_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
 
 
 def ips_to_qualys_format(
@@ -445,3 +449,53 @@ def to_lower_camel(string: str) -> str:
         pascal_string = to_camel(string)
         return pascal_string[0].lower() + pascal_string[1:]
     return string.lower()
+
+
+_D = TypeVar("_D")
+re_classname = re.compile(r"(qualyspy[\w._]*)")
+re_sa_class = re.compile(r"sqlalchemy.orm")
+
+
+def _get_cls_inst_from_annot(mapped_cls: str) -> Any:
+    m = re_classname.search(mapped_cls)
+    if m is not None:
+        child_cls_strs = m.group(1).split(".")
+        child_cls_package = ".".join(child_cls_strs[:-1])
+        mod = importlib.import_module(child_cls_package)
+        child_cls = getattr(mod, child_cls_strs[-1])
+        return child_cls
+    else:
+        if re_sa_class.search(mapped_cls):
+            return None
+        else:
+            raise ValueError("Annotation is not a Mapped class.")
+
+
+def to_orm_object(
+    obj: dict[str, Any],
+    out_cls: type[_D],
+) -> _D:
+    annots = inspect.get_annotations(out_cls)
+    for k, v in obj.items():
+        if isinstance(v, dict):
+            mapped_cls = str(annots[k])
+            child_cls = _get_cls_inst_from_annot(mapped_cls)
+            if child_cls is None:
+                continue
+            obj[k] = to_orm_object(v, child_cls)
+        elif isinstance(v, list) and len(v) > 0:
+            mapped_cls = str(annots[k])
+            child_cls = _get_cls_inst_from_annot(mapped_cls)
+            if child_cls is None:
+                continue
+            if isinstance(v[0], dict):
+                for i in range(len(v)):
+                    v[i] = to_orm_object(v[i], child_cls)
+            else:
+                child_annots = inspect.get_annotations(child_cls)
+                param = next(iter(child_annots))
+                for i in range(len(v)):
+                    bind = {param: v[i]}
+                    obj[k][i] = child_cls(**bind)
+
+    return out_cls(**obj)

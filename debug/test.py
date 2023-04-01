@@ -19,6 +19,8 @@ if __name__ == "__main__":
     #input = cert.List_CertView_Certificates_v2_Input(filter=filter)
     #cert = cert.list_certificates_v2(conn, input)
 
-    cert.init_certificate_db()
+    cert.init_db()
+    input = cert.List_CertView_Certificates_v2_Input(pageSize=200)
+    cert.list_certificates_v2(conn, input, load_db = True)
 
     print("test")
