@@ -3,15 +3,15 @@ import importlib.resources
 import ipaddress
 from typing import Any
 
-import pydantic as pd
-import sqlalchemy as sa
-import sqlalchemy.orm as orm
-import sqlalchemy.dialects.postgresql as sa_pg
 import psycopg2.extensions
+import pydantic as pd
 import pydantic.networks
+import pydantic.utils
+import sqlalchemy as sa
+import sqlalchemy.dialects.postgresql as sa_pg
+import sqlalchemy.orm as orm
 
-from .. import qualysapi
-from .. import qutils
+from .. import qualysapi, qutils
 
 SQL = importlib.resources.files("qualyspy").joinpath("certview").joinpath("sql")
 
@@ -88,6 +88,8 @@ class Subject_Alternative_Names(pd.BaseModel):
 
     class Config:
         alias_generator = qutils.to_lower_camel
+        orm_mode = True
+        allow_population_by_field_name = True
 
 
 ####################################################################################################
@@ -123,6 +125,8 @@ class Subject(pd.BaseModel):
 
     class Config:
         alias_generator = qutils.to_lower_camel
+        orm_mode = True
+        allow_population_by_field_name = True
 
 
 ####################################################################################################
@@ -147,25 +151,11 @@ class Issuer_ORM(Base):
     )
 
 
-class RootIssuer_OU_ORM(Base):
-    __tablename__ = "rootissuer_organization_unit"
-
-    id: orm.Mapped[str] = orm.mapped_column(primary_key=True)
-    name: orm.Mapped[str | None]
-
-    issuer_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("rootissuer.certhash"))
-    issuer: orm.Mapped["RootIssuer_ORM"] = orm.relationship(
-        back_populates="organization_unit", uselist=False
-    )
-
-
 class RootIssuer_ORM(Base):
     __tablename__ = "rootissuer"
 
     organization: orm.Mapped[str]
-    organization_unit: orm.Mapped[list[RootIssuer_OU_ORM]] = orm.relationship(
-        back_populates="issuer"
-    )
+    organization_unit: orm.Mapped[list[str]] = orm.mapped_column(sa.ARRAY(sa.String))
     name: orm.Mapped[str]
     country: orm.Mapped[str]
     state: orm.Mapped[str]
@@ -175,6 +165,16 @@ class RootIssuer_ORM(Base):
     rootissuer_of: orm.Mapped[list["Certificate_ORM"]] = orm.relationship(
         back_populates="rootissuer"
     )
+
+
+# class Issuer_Getter(pydantic.utils.GetterDict):
+#     def get(self, key: str, default: Any = qutils.Getter_Not_Set) -> Any:
+#         if key is "organizationUnit":
+#             try:
+#                 ous = self._obj.attrib.get(key, default)
+#                 result: list[str] = []
+#                 for ou in ous:
+#                     result.append(ou.name)
 
 
 class Issuer(pd.BaseModel):
@@ -188,6 +188,8 @@ class Issuer(pd.BaseModel):
 
     class Config:
         alias_generator = qutils.to_lower_camel
+        orm_mode = True
+        allow_population_by_field_name = True
 
 
 ####################################################################################################
@@ -196,10 +198,13 @@ class Issuer(pd.BaseModel):
 asset_host_instance_association_table = sa.Table(
     "asset_host_instance",
     Base.metadata,
+    sa.Column("asset_id", sa.INTEGER, sa.ForeignKey("asset.id"), primary_key=True),
     sa.Column(
-        "asset_id", sa.INTEGER, sa.ForeignKey("asset.id"), primary_key=True
+        "host_instance_id",
+        sa.INTEGER,
+        sa.ForeignKey("host_instance.id"),
+        primary_key=True,
     ),
-    sa.Column("host_instance_id", sa.INTEGER, sa.ForeignKey("host_instance.id"), primary_key=True),
 )
 
 
@@ -226,6 +231,10 @@ class Host_Instance(pd.BaseModel):
     service: str | None
     grade: str
 
+    class Config:
+        orm_mode = True
+        allow_population_by_field_name = True
+
 
 ####################################################################################################
 # Asset_Interface
@@ -248,6 +257,10 @@ class Asset_Interface_ORM(Base):
 class Asset_Interface(pd.BaseModel):
     hostname: str | None
     address: pd.IPvAnyAddress
+
+    class Config:
+        orm_mode = True
+        allow_population_by_field_name = True
 
 
 ####################################################################################################
@@ -288,6 +301,8 @@ class Asset(pd.BaseModel):
 
     class Config:
         alias_generator = qutils.to_lower_camel
+        orm_mode = True
+        allow_population_by_field_name = True
 
 
 ####################################################################################################
@@ -335,7 +350,7 @@ class Certificate_ORM(Base):
     signature_algorithm: orm.Mapped[str]
     extended_validation: orm.Mapped[bool]
     created_date: orm.Mapped[datetime.datetime]
-    dn: orm.Mapped[str]
+    dn: orm.Mapped[str | None]
     subject: orm.Mapped[Subject_ORM] = orm.relationship(
         back_populates="certificate", uselist=False
     )
@@ -385,7 +400,7 @@ class Certificate(pd.BaseModel):
     signature_algorithm: str
     extended_validation: bool
     created_date: datetime.datetime
-    dn: str
+    dn: str | None
     subject: Subject
     update_date: datetime.datetime
     last_found: int
@@ -406,6 +421,8 @@ class Certificate(pd.BaseModel):
 
     class Config:
         alias_generator = qutils.to_lower_camel
+        orm_mode = True
+        allow_population_by_field_name = True
 
 
 ####################################################################################################
@@ -425,11 +442,11 @@ class Filter(pd.BaseModel):
     operation: str = "AND"
 
 
-class List_CertView_Certificates_v2_Input(pd.BaseModel):
-    filter: Filter | None
+class List_CertView_Certificates_V2_Input(pd.BaseModel):
+    filter: Filter | None = None
     page_number: int = 0
-    page_size: int | None
-    exclude_fields: str | None
+    page_size: int | None = None
+    exclude_fields: str | None = None
 
     class Config:
         alias_generator = qutils.to_lower_camel
@@ -438,42 +455,70 @@ class List_CertView_Certificates_v2_Input(pd.BaseModel):
 ####################################################################################################
 
 
-def list_certificates_v2(
-    conn: qualysapi.Connection,
-    api_input: List_CertView_Certificates_v2_Input = List_CertView_Certificates_v2_Input(
-        filter=None, page_size=None, exclude_fields=None
-    ),
-    load_db: bool = False,
-) -> list[Certificate] | None:
-    input_data = api_input.dict(by_alias=True, exclude_none=True)
-    input_data["includes"] = [
-        "ASSET_INTERFACES",
-        "SSL_PROTOCOLS",
-        "CIPHER_SUITES",
-        "EXTENSIVE_CERTIFICATE_INFO",
-    ]
+class List_Certificates_V2:
+    def __init__(self, conn: qualysapi.Connection) -> None:
+        self.conn = conn
 
-    if load_db:
-        e_url = qutils.E_URL
-        engine = sa.create_engine(e_url, echo=True)
-    else:
+    def __call_once(
+        self, params: List_CertView_Certificates_V2_Input
+    ) -> list[Certificate] | None:
+        input_data = params.dict(by_alias=True, exclude_none=True)
+        input_data["includes"] = [
+            "ASSET_INTERFACES",
+            "SSL_PROTOCOLS",
+            "CIPHER_SUITES",
+            "EXTENSIVE_CERTIFICATE_INFO",
+        ]
+
+        raw = self.conn.post(qutils.URLS["List CertView Certificates"], input_data)
+
+        if len(raw) > 0:
+            certificates: list[Certificate] = []
+            for cert in raw:
+                c = Certificate.parse_obj(cert)
+
+                # subject.name somtimes includes null characters "\x00", even though the GUI doesn't
+                # show these.  I've opened a ticket with Qualys about it.  In the meanwhile, this
+                # will replace them with something PostgreSQL is happy with.
+                # Also other fields, apparently...
+                c.subject.name = c.subject.name.replace("\x00", "\uFFFD")
+                c.subject.locality = c.subject.locality.replace("\x00", "\uFFFD")
+                c.subject.state = c.subject.state.replace("\x00", "\uFFFD")
+
+                certificates.append(c)
+            return certificates
+        else:
+            return None
+
+    def call(
+        self,
+        params: List_CertView_Certificates_V2_Input = List_CertView_Certificates_V2_Input(),
+    ) -> list[Certificate]:
         certificates: list[Certificate] = []
 
-    raw = conn.post(qutils.URLS["List CertView Certificates"], input_data)
+        while (new_certs := self.__call_once(params)) is not None:
+            certificates.extend(new_certs)
 
-    while len(raw) > 0:
-        for cert in raw:
-            c = Certificate.parse_obj(cert)
+            params.page_number += 1
 
-            # subject.name somtimes includes null characters "\x00", even though the GUI doesn't
-            # show these.  I've opened a ticket with Qualys about it.  In the meanwhile, this
-            # will replace them with something PostgreSQL is happy with.
-            # Also other fields, apparently...
-            c.subject.name = c.subject.name.replace("\x00", "\uFFFD")
-            c.subject.locality = c.subject.locality.replace("\x00", "\uFFFD")
-            c.subject.state = c.subject.state.replace("\x00", "\uFFFD")
+        return certificates
 
-            if load_db:
+    def init_db(self, *, echo: bool = False) -> None:
+        engine = sa.create_engine(qutils.E_URL, echo=echo)
+
+        with engine.connect() as conn:
+            conn.execute(sa.schema.CreateSchema("certificate", if_not_exists=True))
+            conn.commit()
+
+        Base.metadata.create_all(engine)
+
+    def load(self, *, echo: bool = False) -> None:
+        params = List_CertView_Certificates_V2_Input(page_size=200)
+
+        engine = sa.create_engine(qutils.E_URL, echo=echo)
+
+        while (new_certs := self.__call_once(params)) is not None:
+            for c in new_certs:
                 with orm.Session(engine) as session:
                     obj = qutils.to_orm_object(
                         c.dict(exclude_none=True), Certificate_ORM
@@ -481,26 +526,26 @@ def list_certificates_v2(
                     obj = session.merge(obj)
                     session.add(obj)
                     session.commit()
-            else:
+
+            params.page_number += 1
+
+    def query(self, stmt: Any, *, echo: bool = False) -> list[Certificate]:
+        engine = sa.create_engine(qutils.E_URL, echo=echo)
+
+        certificates: list[Certificate] = []
+        with orm.Session(engine) as session:
+            results = session.scalars(stmt)
+            for result in results.all():
+                c = Certificate.from_orm(result)
                 certificates.append(c)
 
-        input_data["pageNumber"] += 1
-        raw = conn.post(
-            qutils.URLS["List CertView Certificates"],
-            input_data,
-        )
-
-    if not load_db:
         return certificates
-    else:
-        return None
 
+    def reset(self, *, echo: bool = False) -> None:
+        engine = sa.create_engine(qutils.E_URL, echo=echo)
 
-def init_db() -> None:
-    engine = sa.create_engine(qutils.E_URL, echo=True)
-
-    with engine.connect() as conn:
-        conn.execute(sa.schema.CreateSchema("certificate", if_not_exists=True))
-        conn.commit()
-
-    Base.metadata.create_all(engine)
+        stmt = sa.text("DROP SCHEMA IF EXISTS certificate CASCADE")
+        with orm.Session(engine) as session:
+            session.execute(stmt)
+            session.commit()
+        self.init_db(echo=echo)

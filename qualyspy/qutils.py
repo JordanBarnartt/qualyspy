@@ -499,3 +499,7 @@ def to_orm_object(
                     obj[k][i] = child_cls(**bind)
 
     return out_cls(**obj)
+
+
+class Getter_Not_Set:
+    pass
