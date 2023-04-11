@@ -11,9 +11,11 @@ import re
 import zoneinfo
 from collections.abc import MutableMapping, MutableSequence
 from typing import Any, Callable, Optional, TypeVar, Union
+import copy
 
 import lxml.etree
 import lxml.objectify
+import sqlalchemy.orm as orm
 
 _CONFIG_FILE = os.path.expanduser("~/qualysapi.conf")
 config = configparser.ConfigParser()
@@ -451,6 +453,10 @@ def to_lower_camel(string: str) -> str:
     return string.lower()
 
 
+class Base(orm.DeclarativeBase):
+    pass
+
+
 _D = TypeVar("_D")
 re_classname = re.compile(r"(qualyspy[\w._]*)")
 re_sa_class = re.compile(r"sqlalchemy.orm")
@@ -475,31 +481,27 @@ def to_orm_object(
     obj: dict[str, Any],
     out_cls: type[_D],
 ) -> _D:
+    obj_copy = copy.deepcopy(obj)
     annots = inspect.get_annotations(out_cls)
-    for k, v in obj.items():
+    for k, v in obj_copy.items():
         if isinstance(v, dict):
             mapped_cls = str(annots[k])
             child_cls = _get_cls_inst_from_annot(mapped_cls)
             if child_cls is None:
                 continue
-            obj[k] = to_orm_object(v, child_cls)
+            obj_copy[k] = to_orm_object(v, child_cls)
         elif isinstance(v, list) and len(v) > 0:
-            mapped_cls = str(annots[k])
-            child_cls = _get_cls_inst_from_annot(mapped_cls)
-            if child_cls is None:
-                continue
-            if isinstance(v[0], dict):
-                for i in range(len(v)):
-                    v[i] = to_orm_object(v[i], child_cls)
-            else:
-                child_annots = inspect.get_annotations(child_cls)
-                param = next(iter(child_annots))
-                for i in range(len(v)):
-                    bind = {param: v[i]}
-                    obj[k][i] = child_cls(**bind)
+            if not all(isinstance(item, Base) for item in v):
+                mapped_cls = str(annots[k])
+                child_cls = _get_cls_inst_from_annot(mapped_cls)
+                if child_cls is None:
+                    continue
+                if isinstance(v[0], dict):
+                    v = [to_orm_object(item, child_cls) for item in v]
+                else:
+                    child_annots = inspect.get_annotations(child_cls)
+                    param = next(iter(child_annots))
+                    v = [child_cls(**{param: item}) for item in v]
+            obj_copy[k] = v
 
-    return out_cls(**obj)
-
-
-class Getter_Not_Set:
-    pass
+    return out_cls(**obj_copy)

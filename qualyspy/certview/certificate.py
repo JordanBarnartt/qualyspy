@@ -109,7 +109,9 @@ class Subject_ORM(Base):
 
     organization_unit: orm.Mapped[list[str]] = orm.mapped_column(sa.ARRAY(sa.String))
 
-    certificate_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("certificate.id"))
+    certificate_id: orm.Mapped[int] = orm.mapped_column(
+        sa.ForeignKey("certificate.id"), primary_key=True
+    )
     certificate: orm.Mapped["Certificate_ORM"] = orm.relationship(
         back_populates="subject", uselist=False
     )
@@ -165,16 +167,6 @@ class RootIssuer_ORM(Base):
     rootissuer_of: orm.Mapped[list["Certificate_ORM"]] = orm.relationship(
         back_populates="rootissuer"
     )
-
-
-# class Issuer_Getter(pydantic.utils.GetterDict):
-#     def get(self, key: str, default: Any = qutils.Getter_Not_Set) -> Any:
-#         if key is "organizationUnit":
-#             try:
-#                 ous = self._obj.attrib.get(key, default)
-#                 result: list[str] = []
-#                 for ou in ous:
-#                     result.append(ou.name)
 
 
 class Issuer(pd.BaseModel):
@@ -352,7 +344,7 @@ class Certificate_ORM(Base):
     created_date: orm.Mapped[datetime.datetime]
     dn: orm.Mapped[str | None]
     subject: orm.Mapped[Subject_ORM] = orm.relationship(
-        back_populates="certificate", uselist=False
+        back_populates="certificate", uselist=False, cascade="all, delete-orphan"
     )
     update_date: orm.Mapped[datetime.datetime]
     last_found: orm.Mapped[int] = orm.mapped_column(sa.BigInteger)
@@ -386,6 +378,17 @@ class Certificate_ORM(Base):
     subject_alternative_names: orm.Mapped[
         Subject_Alternative_Names_ORM | None
     ] = orm.relationship(back_populates="certificate", uselist=False)
+
+
+class Certiticate_Getter(pydantic.utils.GetterDict):
+    def get(self, key: str, default: Any = None) -> Any:
+        if key == "key_usage":
+            return [ku.usage for ku in self._obj.key_usage]
+        elif key == "enhanced_key_usage":
+            if self._obj.enhanced_key_usage is None:
+                return None
+            return [ku.usage for ku in self._obj.enhanced_key_usage]
+        return super().get(key, default)
 
 
 class Certificate(pd.BaseModel):
@@ -423,6 +426,7 @@ class Certificate(pd.BaseModel):
         alias_generator = qutils.to_lower_camel
         orm_mode = True
         allow_population_by_field_name = True
+        getter_dict = Certiticate_Getter
 
 
 ####################################################################################################
@@ -450,6 +454,7 @@ class List_CertView_Certificates_V2_Input(pd.BaseModel):
 
     class Config:
         alias_generator = qutils.to_lower_camel
+        allow_population_by_field_name = True
 
 
 ####################################################################################################

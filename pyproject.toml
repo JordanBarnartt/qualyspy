@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "QualysPy"
-version = "0.2.1"
+version = "0.2.2"
 authors = [
   { name="Jordan Barnartt", email="jbarnart@uwaterloo.ca" },
 ]
@@ -40,3 +40,5 @@ reportUnknownArgumentType = false
 reportPrivateUsage = false
 reportUnknownVariableType = false
 reportUnknownMemberType = false
+reportGeneralTypeIssues = false
+reportUntypedBaseClass = false
