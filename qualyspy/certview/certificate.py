@@ -41,7 +41,7 @@ psycopg2.extensions.register_adapter(
 
 class Subject_Alternative_Names(pd.BaseModel):
     dns_names = list[str]
-    ip_address = list[str]
+    ip_address = list[ipaddress.IPv4Address | ipaddress.IPv6Address]
 
     class Config:
         alias_generator = qutils.to_lower_camel
@@ -53,13 +53,14 @@ class Subject_Alternative_Names_ORM(Base):
     __tablename__ = "subject_alternative_name"
     pd_class = Subject_Alternative_Names
 
-    id: orm.Mapped[int] = orm.mapped_column(primary_key=True)
     dns_names: orm.Mapped[list[str] | None] = orm.mapped_column(sa.ARRAY(sa.String))
     ips: orm.Mapped[
         list[ipaddress.IPv4Address | ipaddress.IPv6Address] | None
     ] = orm.mapped_column(sa.ARRAY(sa_pg.INET))
 
-    certificate_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("certificate.id"))
+    certificate_id: orm.Mapped[int] = orm.mapped_column(
+        sa.ForeignKey("certificate.id"), primary_key=True
+    )
     certificate: orm.Mapped["Certificate_ORM"] = orm.relationship(
         back_populates="subject_alternative_names", uselist=False
     )
