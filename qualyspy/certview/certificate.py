@@ -265,7 +265,7 @@ class Asset_ORM(Base):
     name: orm.Mapped[str]
     operating_system: orm.Mapped[str | None]
     host_instances: orm.Mapped[list[Host_Instance_ORM]] = orm.relationship(
-        secondary=asset_host_instance_association_table
+        secondary=asset_host_instance_association_table, back_populates="asset"
     )
     asset_interfaces: orm.Mapped[list[Asset_Interface_ORM] | None] = orm.relationship(
         back_populates="asset"
