@@ -1,7 +1,7 @@
 import datetime
 import importlib.resources
 import ipaddress
-from typing import Any
+from typing import Any, TypeVar
 
 import psycopg2.extensions
 import pydantic as pd
@@ -39,49 +39,6 @@ psycopg2.extensions.register_adapter(
 # Subject_Alternative_Name
 
 
-class Subject_Alternative_Name_DNS_ORM(Base):
-    __tablename__ = "subject_alternative_name_dns"
-
-    name: orm.Mapped[str] = orm.mapped_column(primary_key=True)
-    sans_id: orm.Mapped[int] = orm.mapped_column(
-        sa.ForeignKey("subject_alternative_name.id")
-    )
-    sans: orm.Mapped["Subject_Alternative_Names_ORM"] = orm.relationship(
-        back_populates="dns_names", uselist=False
-    )
-
-
-class Subject_Alternative_Name_IP_ORM(Base):
-    __tablename__ = "subject_alternative_name_ip"
-
-    ip: orm.Mapped[ipaddress.IPv4Address | ipaddress.IPv6Address] = orm.mapped_column(
-        "ip", sa_pg.INET, primary_key=True
-    )
-    sans_id: orm.Mapped[int] = orm.mapped_column(
-        sa.ForeignKey("subject_alternative_name.id")
-    )
-    sans: orm.Mapped["Subject_Alternative_Names_ORM"] = orm.relationship(
-        back_populates="ips", uselist=False
-    )
-
-
-class Subject_Alternative_Names_ORM(Base):
-    __tablename__ = "subject_alternative_name"
-
-    id: orm.Mapped[int] = orm.mapped_column(primary_key=True)
-    dns_names: orm.Mapped[list[Subject_Alternative_Name_DNS_ORM]] = orm.relationship(
-        back_populates="sans"
-    )
-    ips: orm.Mapped[list[Subject_Alternative_Name_IP_ORM]] = orm.relationship(
-        back_populates="sans"
-    )
-
-    certificate_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("certificate.id"))
-    certificate: orm.Mapped["Certificate_ORM"] = orm.relationship(
-        back_populates="subject_alternative_names", uselist=False
-    )
-
-
 class Subject_Alternative_Names(pd.BaseModel):
     dns_names = list[str]
     ip_address = list[str]
@@ -92,14 +49,45 @@ class Subject_Alternative_Names(pd.BaseModel):
         allow_population_by_field_name = True
 
 
+class Subject_Alternative_Names_ORM(Base):
+    __tablename__ = "subject_alternative_name"
+    pd_class = Subject_Alternative_Names
+
+    id: orm.Mapped[int] = orm.mapped_column(primary_key=True)
+    dns_names: orm.Mapped[list[str] | None] = orm.mapped_column(sa.ARRAY(sa.String))
+    ips: orm.Mapped[
+        list[ipaddress.IPv4Address | ipaddress.IPv6Address] | None
+    ] = orm.mapped_column(sa.ARRAY(sa_pg.INET))
+
+    certificate_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("certificate.id"))
+    certificate: orm.Mapped["Certificate_ORM"] = orm.relationship(
+        back_populates="subject_alternative_names", uselist=False
+    )
+
+
 ####################################################################################################
 
 ####################################################################################################
 # Subject
 
 
+class Subject(pd.BaseModel):
+    organization: str
+    locality: str
+    name: str
+    state: str
+    country: str
+    organization_unit: list[str] | None
+
+    class Config:
+        alias_generator = qutils.to_lower_camel
+        orm_mode = True
+        allow_population_by_field_name = True
+
+
 class Subject_ORM(Base):
     __tablename__ = "subject"
+    pd_class = Subject
 
     organization: orm.Mapped[str]
     locality: orm.Mapped[str]
@@ -117,56 +105,10 @@ class Subject_ORM(Base):
     )
 
 
-class Subject(pd.BaseModel):
-    organization: str
-    locality: str
-    name: str
-    state: str
-    country: str
-    organization_unit: list[str] | None
-
-    class Config:
-        alias_generator = qutils.to_lower_camel
-        orm_mode = True
-        allow_population_by_field_name = True
-
-
 ####################################################################################################
 
 ####################################################################################################
 # Issuer
-
-
-class Issuer_ORM(Base):
-    __tablename__ = "issuer"
-
-    organization: orm.Mapped[str]
-    organization_unit: orm.Mapped[list[str]] = orm.mapped_column(sa.ARRAY(sa.String))
-    name: orm.Mapped[str]
-    country: orm.Mapped[str]
-    state: orm.Mapped[str]
-    certhash: orm.Mapped[str] = orm.mapped_column(primary_key=True)
-    locality: orm.Mapped[str]
-
-    issuer_of: orm.Mapped[list["Certificate_ORM"]] = orm.relationship(
-        back_populates="issuer"
-    )
-
-
-class RootIssuer_ORM(Base):
-    __tablename__ = "rootissuer"
-
-    organization: orm.Mapped[str]
-    organization_unit: orm.Mapped[list[str]] = orm.mapped_column(sa.ARRAY(sa.String))
-    name: orm.Mapped[str]
-    country: orm.Mapped[str]
-    state: orm.Mapped[str]
-    certhash: orm.Mapped[str] = orm.mapped_column(primary_key=True)
-    locality: orm.Mapped[str]
-
-    rootissuer_of: orm.Mapped[list["Certificate_ORM"]] = orm.relationship(
-        back_populates="rootissuer"
-    )
 
 
 class Issuer(pd.BaseModel):
@@ -184,8 +126,56 @@ class Issuer(pd.BaseModel):
         allow_population_by_field_name = True
 
 
+class Issuer_ORM(Base):
+    __tablename__ = "issuer"
+    pd_class = Issuer
+
+    organization: orm.Mapped[str]
+    organization_unit: orm.Mapped[list[str]] = orm.mapped_column(sa.ARRAY(sa.String))
+    name: orm.Mapped[str]
+    country: orm.Mapped[str]
+    state: orm.Mapped[str]
+    certhash: orm.Mapped[str] = orm.mapped_column(primary_key=True)
+    locality: orm.Mapped[str]
+
+    issuer_of: orm.Mapped[list["Certificate_ORM"]] = orm.relationship(
+        back_populates="issuer"
+    )
+
+
+class RootIssuer_ORM(Base):
+    __tablename__ = "rootissuer"
+    pd_class = Issuer
+
+    organization: orm.Mapped[str]
+    organization_unit: orm.Mapped[list[str]] = orm.mapped_column(sa.ARRAY(sa.String))
+    name: orm.Mapped[str]
+    country: orm.Mapped[str]
+    state: orm.Mapped[str]
+    certhash: orm.Mapped[str] = orm.mapped_column(primary_key=True)
+    locality: orm.Mapped[str]
+
+    rootissuer_of: orm.Mapped[list["Certificate_ORM"]] = orm.relationship(
+        back_populates="rootissuer"
+    )
+
+
 ####################################################################################################
 # Host_Instance
+
+
+class Host_Instance(pd.BaseModel):
+    id: int
+    port: int
+    fqdn: str
+    protocol: str
+    service: str | None
+    grade: str
+
+    class Config:
+        orm_mode = True
+        allow_population_by_field_name = True
+
 
 asset_host_instance_association_table = sa.Table(
     "asset_host_instance",
@@ -202,6 +192,7 @@ asset_host_instance_association_table = sa.Table(
 
 class Host_Instance_ORM(Base):
     __tablename__ = "host_instance"
+    pd_class = Host_Instance
 
     id: orm.Mapped[int] = orm.mapped_column(primary_key=True)
     port: orm.Mapped[int]
@@ -215,25 +206,22 @@ class Host_Instance_ORM(Base):
     )
 
 
-class Host_Instance(pd.BaseModel):
-    id: int
-    port: int
-    fqdn: str
-    protocol: str
-    service: str | None
-    grade: str
+####################################################################################################
+# Asset_Interface
+
+
+class Asset_Interface(pd.BaseModel):
+    hostname: str | None
+    address: pd.IPvAnyAddress
 
     class Config:
         orm_mode = True
         allow_population_by_field_name = True
 
 
-####################################################################################################
-# Asset_Interface
-
-
 class Asset_Interface_ORM(Base):
     __tablename__ = "asset_interface"
+    pd_class = Asset_Interface
 
     hostname: orm.Mapped[str | None]
     address: orm.Mapped[
@@ -246,23 +234,30 @@ class Asset_Interface_ORM(Base):
     )
 
 
-class Asset_Interface(pd.BaseModel):
-    hostname: str | None
-    address: pd.IPvAnyAddress
-
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
-
-
 ####################################################################################################
 
 ####################################################################################################
 # Asset
 
 
+class Asset(pd.BaseModel):
+    id: int
+    uuid: str
+    netbios_name: str
+    name: str
+    operating_system: str | None
+    host_instances: list[Host_Instance]
+    asset_interfaces: list[Asset_Interface] | None
+
+    class Config:
+        alias_generator = qutils.to_lower_camel
+        orm_mode = True
+        allow_population_by_field_name = True
+
+
 class Asset_ORM(Base):
     __tablename__ = "asset"
+    pd_class = Asset
 
     id: orm.Mapped[int] = orm.mapped_column(primary_key=True)
     uuid: orm.Mapped[str]
@@ -282,113 +277,8 @@ class Asset_ORM(Base):
     )
 
 
-class Asset(pd.BaseModel):
-    id: int
-    uuid: str
-    netbios_name: str
-    name: str
-    operating_system: str | None
-    host_instances: list[Host_Instance]
-    asset_interfaces: list[Asset_Interface] | None
-
-    class Config:
-        alias_generator = qutils.to_lower_camel
-        orm_mode = True
-        allow_population_by_field_name = True
-
-
 ####################################################################################################
 # Certificate
-
-certificate_key_usage_association_table = sa.Table(
-    "certificate_key_usage",
-    Base.metadata,
-    sa.Column(
-        "certificate_id", sa.Integer, sa.ForeignKey("certificate.id"), primary_key=True
-    ),
-    sa.Column("usage", sa.Text, sa.ForeignKey("key_usage.usage"), primary_key=True),
-)
-
-certificate_enhanced_key_usage_association_table = sa.Table(
-    "certificate_enhanced_key_usage",
-    Base.metadata,
-    sa.Column(
-        "certificate_id", sa.Integer, sa.ForeignKey("certificate.id"), primary_key=True
-    ),
-    sa.Column("usage", sa.Text, sa.ForeignKey("key_usage.usage"), primary_key=True),
-)
-
-
-class Key_Usage_ORM(Base):
-    __tablename__ = "key_usage"
-
-    usage: orm.Mapped[str] = orm.mapped_column(primary_key=True)
-    certificates: orm.Mapped[list["Certificate_ORM"]] = orm.relationship(
-        secondary=certificate_key_usage_association_table
-    )
-
-
-class Certificate_ORM(Base):
-    __tablename__ = "certificate"
-
-    id: orm.Mapped[int] = orm.mapped_column(primary_key=True)
-    certhash: orm.Mapped[str]
-    key_size: orm.Mapped[int]
-    serial_number: orm.Mapped[str]
-    valid_to_date: orm.Mapped[datetime.datetime]
-    valid_to: orm.Mapped[int] = orm.mapped_column(sa.BigInteger)
-    valid_from_date: orm.Mapped[datetime.datetime]
-    valid_from: orm.Mapped[int] = orm.mapped_column(sa.BigInteger)
-    signature_algorithm: orm.Mapped[str]
-    extended_validation: orm.Mapped[bool]
-    created_date: orm.Mapped[datetime.datetime]
-    dn: orm.Mapped[str | None]
-    subject: orm.Mapped[Subject_ORM] = orm.relationship(
-        back_populates="certificate", uselist=False, cascade="all, delete-orphan"
-    )
-    update_date: orm.Mapped[datetime.datetime]
-    last_found: orm.Mapped[int] = orm.mapped_column(sa.BigInteger)
-    imported: orm.Mapped[bool]
-    self_signed: orm.Mapped[bool]
-    issuer_certhash: orm.Mapped[str | None] = orm.mapped_column(
-        sa.ForeignKey("issuer.certhash")
-    )
-    issuer: orm.Mapped[Issuer_ORM | None] = orm.relationship(
-        back_populates="issuer_of", uselist=False
-    )
-    rootissuer_certhash: orm.Mapped[str | None] = orm.mapped_column(
-        sa.ForeignKey("rootissuer.certhash")
-    )
-    rootissuer: orm.Mapped[RootIssuer_ORM | None] = orm.relationship(
-        back_populates="rootissuer_of", uselist=False
-    )
-    issuer_category: orm.Mapped[str]
-    instance_count: orm.Mapped[int]
-    asset_count: orm.Mapped[int]
-    assets: orm.Mapped[list[Asset_ORM]] = orm.relationship(back_populates="certificate")
-    key_usage: orm.Mapped[list[Key_Usage_ORM]] = orm.relationship(
-        secondary=certificate_key_usage_association_table
-    )
-    raw_data: orm.Mapped[str]
-    enhanced_key_usage: orm.Mapped[list[Key_Usage_ORM] | None] = orm.relationship(
-        secondary=certificate_enhanced_key_usage_association_table
-    )
-    subject_key_identifier: orm.Mapped[str | None]
-    auth_key_identifier: orm.Mapped[str | None]
-    subject_alternative_names: orm.Mapped[
-        Subject_Alternative_Names_ORM | None
-    ] = orm.relationship(back_populates="certificate", uselist=False)
-
-
-class Certiticate_Getter(pydantic.utils.GetterDict):
-    def get(self, key: str, default: Any = None) -> Any:
-        if key == "key_usage":
-            return [ku.usage for ku in self._obj.key_usage]
-        elif key == "enhanced_key_usage":
-            if self._obj.enhanced_key_usage is None:
-                return None
-            return [ku.usage for ku in self._obj.enhanced_key_usage]
-        return super().get(key, default)
 
 
 class Certificate(pd.BaseModel):
@@ -426,7 +316,57 @@ class Certificate(pd.BaseModel):
         alias_generator = qutils.to_lower_camel
         orm_mode = True
         allow_population_by_field_name = True
-        getter_dict = Certiticate_Getter
+
+
+class Certificate_ORM(Base):
+    __tablename__ = "certificate"
+    pd_class = Certificate
+
+    id: orm.Mapped[int] = orm.mapped_column(primary_key=True)
+    certhash: orm.Mapped[str]
+    key_size: orm.Mapped[int]
+    serial_number: orm.Mapped[str]
+    valid_to_date: orm.Mapped[datetime.datetime]
+    valid_to: orm.Mapped[int] = orm.mapped_column(sa.BigInteger)
+    valid_from_date: orm.Mapped[datetime.datetime]
+    valid_from: orm.Mapped[int] = orm.mapped_column(sa.BigInteger)
+    signature_algorithm: orm.Mapped[str]
+    extended_validation: orm.Mapped[bool]
+    created_date: orm.Mapped[datetime.datetime]
+    dn: orm.Mapped[str | None]
+    subject: orm.Mapped[Subject_ORM] = orm.relationship(
+        back_populates="certificate", uselist=False, cascade="all, delete-orphan"
+    )
+    update_date: orm.Mapped[datetime.datetime]
+    last_found: orm.Mapped[int] = orm.mapped_column(sa.BigInteger)
+    imported: orm.Mapped[bool]
+    self_signed: orm.Mapped[bool]
+    issuer_certhash: orm.Mapped[str | None] = orm.mapped_column(
+        sa.ForeignKey("issuer.certhash")
+    )
+    issuer: orm.Mapped[Issuer_ORM | None] = orm.relationship(
+        back_populates="issuer_of", uselist=False
+    )
+    rootissuer_certhash: orm.Mapped[str | None] = orm.mapped_column(
+        sa.ForeignKey("rootissuer.certhash")
+    )
+    rootissuer: orm.Mapped[RootIssuer_ORM | None] = orm.relationship(
+        back_populates="rootissuer_of", uselist=False
+    )
+    issuer_category: orm.Mapped[str]
+    instance_count: orm.Mapped[int]
+    asset_count: orm.Mapped[int]
+    assets: orm.Mapped[list[Asset_ORM]] = orm.relationship(back_populates="certificate")
+    key_usage: orm.Mapped[list[str]] = orm.mapped_column(sa.ARRAY(sa.String))
+    raw_data: orm.Mapped[str]
+    enhanced_key_usage: orm.Mapped[list[str] | None] = orm.mapped_column(
+        sa.ARRAY(sa.String)
+    )
+    subject_key_identifier: orm.Mapped[str | None]
+    auth_key_identifier: orm.Mapped[str | None]
+    subject_alternative_names: orm.Mapped[
+        Subject_Alternative_Names_ORM | None
+    ] = orm.relationship(back_populates="certificate", uselist=False)
 
 
 ####################################################################################################
@@ -458,6 +398,8 @@ class List_CertView_Certificates_V2_Input(pd.BaseModel):
 
 
 ####################################################################################################
+
+_C = TypeVar("_C")
 
 
 class List_Certificates_V2:
@@ -534,17 +476,20 @@ class List_Certificates_V2:
 
             params.page_number += 1
 
-    def query(self, stmt: Any, *, echo: bool = False) -> list[Certificate]:
+    def query(self, stmt: Any, *, echo: bool = False) -> list[_C]:
         engine = sa.create_engine(qutils.E_URL, echo=echo)
 
-        certificates: list[Certificate] = []
+        output: list[_C] = []
         with orm.Session(engine) as session:
-            results = session.scalars(stmt)
+            results = session.execute(stmt)
             for result in results.all():
-                c = Certificate.from_orm(result)
-                certificates.append(c)
+                if issubclass(type(result), Base):
+                    i = type(result).pd_class.from_orm(result.scalars())  # type: ignore
+                else:
+                    i = result
+                output.append(i)
 
-        return certificates
+        return output
 
     def reset(self, *, echo: bool = False) -> None:
         engine = sa.create_engine(qutils.E_URL, echo=echo)

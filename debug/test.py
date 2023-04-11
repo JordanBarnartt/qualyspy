@@ -30,4 +30,14 @@ if __name__ == "__main__":
     stmt = sa.Select(cert.Certificate_ORM).where(cert.Certificate_ORM.self_signed == False)
     test = api.query(stmt, echo = True)
 
+    # stmt = sa.select(
+    # cert.Host_Instance_ORM.fqdn,
+    # cert.Host_Instance_ORM.protocol,
+    # cert.Host_Instance_ORM.port,
+    # )
+
+    # hosts = api.query(stmt, echo=True)
+    # for host in hosts:
+    #    print(host)
+
     print("test")
