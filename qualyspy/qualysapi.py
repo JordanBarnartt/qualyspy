@@ -207,7 +207,6 @@ class Connection:
         params: Optional[MutableMapping[str, Any]] = None,
         data: Optional[Union[MutableMapping[str, Any], str]] = None,
         /,
-        use_auth: bool = False,
         add_headers: MutableMapping[str, str] = {},
     ) -> str:
         """Helper method for "request" methods.  Performs the API request and returns the text as
@@ -223,7 +222,7 @@ class Connection:
             headers["Authorization"] = "Bearer " + self._bearer_token
 
         auth = None
-        if use_auth:
+        if "/qps/" in path:
             auth = (CREDENTIALS["username"], CREDENTIALS["password"])
 
         match method:
@@ -277,7 +276,6 @@ class Connection:
         /,
         params: Optional[MutableMapping[str, Any]] = None,
         data: Optional[Union[MutableMapping[str, Any], str]] = None,
-        use_auth: bool = False,
         add_headers: MutableMapping[str, str] = {},
     ) -> Any:
         """Performs an API request to the connection for a given API path and returns the result.
@@ -304,18 +302,16 @@ class Connection:
                 add_headers.update(self._in_out_headers[api])
 
         response = self._perform_request(
-            method, path, params, data, use_auth=use_auth, add_headers=add_headers
+            method, path, params, data, add_headers=add_headers
         )
 
         match add_headers["Content-Type"]:
             case "application/xml":
                 xml = lxml.objectify.fromstring(re.split("\n", response, 1)[1])
-                if "/qps/rest/2.0/" in path:
-                    response_code = str(xml.responseCode)
-                    if response_code != "SUCCESS":
-                        raise Qualys_API_Error(xml.responseErrorDetails.errorMessage)
                 return xml
             case "application/json":
+                if "qps" in path:
+                    return json.loads(response)["ServiceResponse"]
                 return json.loads(response)
             case _:
                 return response
@@ -355,7 +351,6 @@ class Connection:
         path: str,
         data: Optional[Union[MutableMapping[str, Any], str]] = None,
         *,
-        use_auth: bool = False,
         add_headers: MutableMapping[str, str] = {},
     ) -> Any:
         """Performs an POST request to the connection for a given API path and returns the result.
@@ -370,9 +365,6 @@ class Connection:
                 The path of the API request. ex. /api/2.0/fo/scan/?action=list
             data:
                 A dictionary of information to be sent in the body of a POST request.
-            use_auth:
-                Use auth for authentication, rather than cookies. Which to use depends on the API
-                being called.
             add_headers:
                 Include additional headers in the request. These headers will not persist to the
                 next request.
@@ -385,7 +377,6 @@ class Connection:
             "post",
             path,
             data=json.dumps(data),
-            use_auth=use_auth,
             add_headers=add_headers,
         )
 

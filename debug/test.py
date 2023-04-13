@@ -13,22 +13,32 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
 from qualyspy.qualysapi import Connection
-import qualyspy.certview.certificate as cert
+import qualyspy.asset_mgmt_tagging_new.tag as tag
 
 if __name__ == "__main__":
-    conn = Connection(apis=["CertView"])
-    api = cert.List_Certificates_V2(conn)
+    conn = Connection(apis=["qps"])
 
-    # fvo = cert.Field_Value_Operator(field="certificate.id", operator="EQUALS", value="625316")
-    # filter = cert.Filter(filters=[fvo])
-    # input = cert.List_CertView_Certificates_V2_Input(filter=filter)
-    # test = api.call(input)
+    t = tag.Tag(
+        name="QualysPy Test",
+        color="#FFFFFF",
+        description="Test tag created by QualysPy",
+        children=tag.Tag_Simple_Q_List(
+            set={
+                "TagSimple": [
+                    tag.Tag_Simple(name="QualysPy Test Child"),
+                    tag.Tag_Simple(name="QualysPy Test Child 2"),
+                ]
+            }
+        ),
+    )
 
-    # api.reset(echo = True)
-    # test = api.load(echo=True)
-
-    stmt = sa.select(cert.Certificate_ORM).where(cert.Certificate_ORM.id == "625316")
-
-    hosts = api.query(stmt, echo=True)
+    api = tag.Create_Tag(conn, t).call()
+    input = tag.Tag(
+        name="QualysPy Test Updated",
+        children=tag.Tag_Simple_Q_List(
+            remove={"TagSimple": [tag.Tag_Simple(name="QualysPy Test Child 2")]}
+        ),
+    )
+    api2 = tag.Update_Tag(conn, api.data[0]).call(input)
 
     print("test")

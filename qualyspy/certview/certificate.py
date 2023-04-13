@@ -1,5 +1,4 @@
 import datetime
-import importlib.resources
 import ipaddress
 from typing import Any, TypeVar
 
@@ -12,8 +11,6 @@ import sqlalchemy.dialects.postgresql as sa_pg
 import sqlalchemy.orm as orm
 
 from .. import qualysapi, qutils
-
-SQL = importlib.resources.files("qualyspy").joinpath("certview").joinpath("sql")
 
 
 class Base(orm.DeclarativeBase):
