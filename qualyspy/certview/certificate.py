@@ -484,8 +484,10 @@ class List_Certificates_V2:
         with orm.Session(engine) as session:
             results = session.execute(stmt)
             for result in results.all():
-                if issubclass(type(result), Base):
-                    i = type(result).pd_class.from_orm(result.scalars())  # type: ignore
+                r = result.tuple()[0]
+                r_type = type(r)
+                if issubclass(r_type, Base):
+                    i = r_type.pd_class.from_orm(r)  # type: ignore
                 else:
                     i = result
                 output.append(i)
