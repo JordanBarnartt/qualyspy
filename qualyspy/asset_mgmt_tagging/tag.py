@@ -123,12 +123,11 @@ class ApiResponseError(Exception):
 
 
 class Create_Tag:
-    def __init__(self, conn: qualysapi.Connection, tag: Tag) -> None:
+    def __init__(self, conn: qualysapi.Connection) -> None:
         self.conn = conn
-        self.tag = tag
 
-    def __call__(self) -> Response:
-        data = {"ServiceRequest": {"data": {"Tag": self.tag.dict(exclude_unset=True)}}}
+    def __call__(self, tag: Tag) -> Response:
+        data = {"ServiceRequest": {"data": {"Tag": tag.dict(exclude_unset=True)}}}
         r = self.conn.post(qutils.URLS["Create Tag"], data=data)
         response = parse_response(r)
         return response
@@ -152,7 +151,9 @@ class Search_Tags:
         self.conn = conn
 
     def __call__(
-        self, filter: api_input.Filter, pagination_settings: api_input.Pagination_Settings | None = None
+        self,
+        filter: api_input.Filter,
+        pagination_settings: api_input.Pagination_Settings | None = None,
     ) -> Response:
         data = {
             "ServiceRequest": {
@@ -202,7 +203,9 @@ class Get_Tag_Info:
     def __call__(self) -> Response:
         if self.tag.id is None:
             raise ValueError("Tag ID is required.")
-        fvo = api_input.Field_Operator_Value(field="id", operator="EQUALS", value=self.tag.id)
+        fvo = api_input.Field_Operator_Value(
+            field="id", operator="EQUALS", value=self.tag.id
+        )
         filter = api_input.Filter(criteria=[fvo])
         response = Search_Tags(self.conn)(filter)
         return response

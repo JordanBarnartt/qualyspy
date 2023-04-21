@@ -97,7 +97,7 @@ class Update_Asset:
     def __call__(self, update: Asset) -> Response:
         data = {"ServiceRequest": {"data": {"Asset": update.dict(exclude_none=True)}}}
         r = self.conn.post(
-            qutils.URLS["Upydate Asset"] + f"/{self.asset.id}", data=data
+            qutils.URLS["Update Asset"] + f"/{self.asset.id}", data=data
         )
         response = parse_response(r)
         return response
