@@ -133,14 +133,14 @@ class Create_Tag:
         return response
 
 
-class Upydate_Tag:
+class Update_Tag:
     def __init__(self, conn: qualysapi.Connection, tag: Tag) -> None:
         self.conn = conn
         self.tag = tag
 
     def __call__(self, input: Tag) -> Response:
         data = {"ServiceRequest": {"data": {"Tag": input.dict(exclude_unset=True)}}}
-        r = self.conn.post(qutils.URLS["Upydate Tag"] + f"/{self.tag.id}", data=data)
+        r = self.conn.post(qutils.URLS["Update Tag"] + f"/{self.tag.id}", data=data)
         response = parse_response(r)
 
         return response
