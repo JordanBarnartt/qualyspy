@@ -246,7 +246,7 @@ class Asset(pyd.BaseModel):
     operating_system: str | None
     host_instances: list[Host_Instance]
     asset_interfaces: list[Asset_Interface] | None
-    primary_ip: pyd.IPvAnyAddress
+    primary_ip: pyd.IPvAnyAddress | None
 
     class Config:
         alias_generator = qutils.to_lower_camel
@@ -275,7 +275,7 @@ class Asset_ORM(Base):
         back_populates="assets", uselist=False
     )
     primary_ip: orm.Mapped[
-        ipaddress.IPv4Address | ipaddress.IPv6Address
+        ipaddress.IPv4Address | ipaddress.IPv6Address | None
     ] = orm.mapped_column("primary_ip", sa_pg.INET)
 
 
@@ -379,14 +379,14 @@ class Certificate_ORM(Base):
 # Function input
 
 
-class Field_Value_Operator(pyd.BaseModel):
+class Field_Operator_Value(pyd.BaseModel):
     field: str
-    value: str
     operator: str
+    value: str
 
 
 class Filter(pyd.BaseModel):
-    filters: list[Field_Value_Operator]
+    filters: list[Field_Operator_Value]
     operation: str = "AND"
 
 
@@ -433,17 +433,16 @@ class List_Certificates_V2:
                 # will replace them with something PostgreSQL is happy with.
                 # Also other fields, apparently...
                 #
-                # Qualys claim to have fixed this, so commenting it out for now.
-                # c.subject.name = c.subject.name.replace("\x00", "\uFFFD")
-                # c.subject.locality = c.subject.locality.replace("\x00", "\uFFFD")
-                # c.subject.state = c.subject.state.replace("\x00", "\uFFFD")
+                c.subject.name = c.subject.name.replace("\x00", "\uFFFD")
+                c.subject.locality = c.subject.locality.replace("\x00", "\uFFFD")
+                c.subject.state = c.subject.state.replace("\x00", "\uFFFD")
 
                 certificates.append(c)
             return certificates
         else:
             return None
 
-    def call(
+    def __call__(
         self,
         params: List_CertView_Certificates_V2_Input = List_CertView_Certificates_V2_Input(),
     ) -> list[Certificate]:

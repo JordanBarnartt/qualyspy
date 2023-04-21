@@ -20,3 +20,4 @@ conn = Connection(apis=["CertView"])
 api = cert.List_Certificates_V2(conn)
 
 api.reset(echo=True)
+api.load(echo=True)
