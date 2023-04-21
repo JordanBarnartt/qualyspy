@@ -3,7 +3,7 @@ import ipaddress
 from typing import Any, TypeVar
 
 import psycopg2.extensions
-import pydantic as pd
+import pydantic as pyd
 import pydantic.networks
 import pydantic.utils
 import sqlalchemy as sa
@@ -20,7 +20,7 @@ class Base(orm.DeclarativeBase):
 Base.metadata.schema = "certificate"
 
 
-def adapt_pydantic_ip_address(ip: pd.IPvAnyAddress) -> Any:
+def adapt_pydantic_ip_address(ip: pyd.IPvAnyAddress) -> Any:
     return psycopg2.extensions.AsIs(repr(ip.exploded))
 
 
@@ -36,7 +36,7 @@ psycopg2.extensions.register_adapter(
 # Subject_Alternative_Name
 
 
-class Subject_Alternative_Names(pd.BaseModel):
+class Subject_Alternative_Names(pyd.BaseModel):
     dns_names = list[str]
     ip_address = list[ipaddress.IPv4Address | ipaddress.IPv6Address]
 
@@ -69,7 +69,7 @@ class Subject_Alternative_Names_ORM(Base):
 # Subject
 
 
-class Subject(pd.BaseModel):
+class Subject(pyd.BaseModel):
     organization: str
     locality: str
     name: str
@@ -109,7 +109,7 @@ class Subject_ORM(Base):
 # Issuer
 
 
-class Issuer(pd.BaseModel):
+class Issuer(pyd.BaseModel):
     organization: str
     organization_unit: list[str]
     name: str
@@ -162,7 +162,7 @@ class RootIssuer_ORM(Base):
 # Host_Instance
 
 
-class Host_Instance(pd.BaseModel):
+class Host_Instance(pyd.BaseModel):
     id: int
     port: int
     fqdn: str
@@ -208,9 +208,9 @@ class Host_Instance_ORM(Base):
 # Asset_Interface
 
 
-class Asset_Interface(pd.BaseModel):
+class Asset_Interface(pyd.BaseModel):
     hostname: str | None
-    address: pd.IPvAnyAddress
+    address: pyd.IPvAnyAddress
 
     class Config:
         orm_mode = True
@@ -238,7 +238,7 @@ class Asset_Interface_ORM(Base):
 # Asset
 
 
-class Asset(pd.BaseModel):
+class Asset(pyd.BaseModel):
     id: int
     uuid: str
     netbios_name: str
@@ -246,6 +246,7 @@ class Asset(pd.BaseModel):
     operating_system: str | None
     host_instances: list[Host_Instance]
     asset_interfaces: list[Asset_Interface] | None
+    primary_ip: pyd.IPvAnyAddress
 
     class Config:
         alias_generator = qutils.to_lower_camel
@@ -273,13 +274,16 @@ class Asset_ORM(Base):
     certificate: orm.Mapped["Certificate_ORM"] = orm.relationship(
         back_populates="assets", uselist=False
     )
+    primary_ip: orm.Mapped[
+        ipaddress.IPv4Address | ipaddress.IPv6Address
+    ] = orm.mapped_column("address", sa_pg.INET, primary_key=True)
 
 
 ####################################################################################################
 # Certificate
 
 
-class Certificate(pd.BaseModel):
+class Certificate(pyd.BaseModel):
     id: int
     certhash: str
     key_size: int
@@ -302,6 +306,7 @@ class Certificate(pd.BaseModel):
     issuer_category: str
     instance_count: int
     asset_count: int
+    sources: list[str]
     assets: list[Asset]
     key_usage: list[str]
     raw_data: str
@@ -354,6 +359,7 @@ class Certificate_ORM(Base):
     issuer_category: orm.Mapped[str]
     instance_count: orm.Mapped[int]
     asset_count: orm.Mapped[int]
+    sources: orm.Mapped[list[str]] = orm.mapped_column(sa.ARRAY(sa.String))
     assets: orm.Mapped[list[Asset_ORM]] = orm.relationship(back_populates="certificate")
     key_usage: orm.Mapped[list[str]] = orm.mapped_column(sa.ARRAY(sa.String))
     raw_data: orm.Mapped[str]
@@ -373,18 +379,18 @@ class Certificate_ORM(Base):
 # Function input
 
 
-class Field_Value_Operator(pd.BaseModel):
+class Field_Value_Operator(pyd.BaseModel):
     field: str
     value: str
     operator: str
 
 
-class Filter(pd.BaseModel):
+class Filter(pyd.BaseModel):
     filters: list[Field_Value_Operator]
     operation: str = "AND"
 
 
-class List_CertView_Certificates_V2_Input(pd.BaseModel):
+class List_CertView_Certificates_V2_Input(pyd.BaseModel):
     filter: Filter | None = None
     page_number: int = 0
     page_size: int | None = None
@@ -426,9 +432,11 @@ class List_Certificates_V2:
                 # show these.  I've opened a ticket with Qualys about it.  In the meanwhile, this
                 # will replace them with something PostgreSQL is happy with.
                 # Also other fields, apparently...
-                c.subject.name = c.subject.name.replace("\x00", "\uFFFD")
-                c.subject.locality = c.subject.locality.replace("\x00", "\uFFFD")
-                c.subject.state = c.subject.state.replace("\x00", "\uFFFD")
+                #
+                # Qualys claim to have fixed this, so commenting it out for now.
+                # c.subject.name = c.subject.name.replace("\x00", "\uFFFD")
+                # c.subject.locality = c.subject.locality.replace("\x00", "\uFFFD")
+                # c.subject.state = c.subject.state.replace("\x00", "\uFFFD")
 
                 certificates.append(c)
             return certificates

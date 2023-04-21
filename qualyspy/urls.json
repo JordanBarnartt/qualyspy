@@ -17,8 +17,13 @@
     "Create Tag": "/qps/rest/2.0/create/am/tag",
     "Update Tag": "/qps/rest/2.0/update/am/tag",
     "Search Tags": "/qps/rest/2.0/search/am/tag",
-    "Search Assets": "/qps/rest/2.0/search/am/asset",
+    "Count Tags": "/qps/rest/2.0/count/am/tag",
+    "Delete Tag": "/qps/rest/2.0/delete/am/tag",
+    "Get Asset Info": "/qps/rest/2.0/get/am/asset/",
     "Update Asset": "/qps/rest/2.0/update/am/asset",
+    "Search Assets": "/qps/rest/2.0/search/am/asset",
+    "Count Assets": "/qps/rest/2.0/count/am/asset",
+    "Delete Asset": "/qps/rest/2.0/delete/am/asset",
     "CertView Authentication": "/auth",
     "List CertView Certificates": "/certview/v2/certificates"
 }

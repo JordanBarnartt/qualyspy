@@ -1,127 +1,170 @@
-import dataclasses
 import datetime
-from collections.abc import MutableSequence
-from typing import Any, Optional, Union
+import enum
+from typing import Any
 
-import qualyspy.qualysapi as qualysapi
-import qualyspy.qutils as qutils
-from qualyspy.asset_mgmt_tagging.filter import Filter
-from qualyspy.asset_mgmt_tagging.tags import Tag_Simple, _Tag_Simple_Q_List
+import pydantic as pyd
 
-
-@dataclasses.dataclass
-class Asset:
-    """An object representing an asset in the Qualys AssetView API."""
-
-    id: int
-    """The ID number of the asset."""
-
-    name: str
-    """The name of the asset."""
-
-    created: datetime.datetime
-    """The date and time at which the asset was created."""
-
-    modified: datetime.datetime
-    """The date and time at which the asset entry was last modified."""
-
-    type: str
-    """The type of the asset.  One of unknonw, host, scanner, webapp, malware_domain."""
-
-    tags: Optional[MutableSequence[Tag_Simple]] = None
-    """Tags associated with the asset."""
-
-    source_info: Optional[str] = None
-    """The source of the asset."""
-
-    criticality_score: Optional[int] = None
-    """The criticality score of the asset."""
-
-    def __setattr__(self, __name: str, __value: Any) -> None:
-        if __name == "tags" and isinstance(__value, _Tag_Simple_Q_List):
-            return super().__setattr__(__name, __value.list)
-        else:
-            return super().__setattr__(__name, __value)
-
-    def update(
-        self,
-        conn: qualysapi.Connection,
-        name: Optional[str] = None,
-        tags_to_add: Optional[MutableSequence[Tag_Simple]] = None,
-        tags_to_remove: Optional[MutableSequence[Tag_Simple]] = None,
-    ) -> None:
-        url = qutils.URLS["Update Asset"] + "/" + str(self.id)
-        data: dict[str, Any] = {"ServiceRequest": {"data": {"Asset": {}}}}
-        data_inner = data["ServiceRequest"]["data"]["Asset"]
-
-        if name is not None:
-            data_inner["name"] = name
-
-        if tags_to_add or tags_to_remove:
-            data_inner["tags"] = {}
-        if tags_to_add:
-            data_inner["tags"]["add"] = {"TagSimple": []}
-            data_inner["tags"]["add"]["TagSimple"] += [
-                {"id": tag.id} for tag in tags_to_add
-            ]
-        if tags_to_remove:
-            data_inner["tags"]["remove"] = {"TagSimple": []}
-            data_inner["tags"]["remove"]["TagSimple"] += [
-                {"id": tag.id} for tag in tags_to_remove
-            ]
-
-        conn.post(url, data, use_auth=True)
+from .. import qualysapi, qutils
+from . import api_input, tag
 
 
-def search_assets(
-    conn: qualysapi.Connection,
-    filters: Union[Filter, MutableSequence[Filter]],
-) -> list[Asset]:
-    """Returns a list of Assets that match the provided criteria.
+class Asset_Type(enum.Enum):
+    UKNOWN = "UNKNOWN"
+    HOST = "HOST"
+    SCANNER = "SCANNER"
+    WEBAPP = "WEBAPP"
+    MALWARE_DOMAIN = "MALWARE_DOMAIN"
 
-    Args:
-        conn:
-            A connection to the Qualys API.
-        filters:
-            An Asset_Filter or list of Asset_Filters used to filter the results of the search.
-    """
 
-    data: dict[str, Any] = {"ServiceRequest": {"filters": {"Criteria": []}}}
-    if not isinstance(filters, MutableSequence):
-        filters = [filters]
-    for filter in filters:
-        criteria = {
-            "field": filter.field,
-            "operator": filter.operator,
-            "value": filter.value,
-        }
-    data["ServiceRequest"]["filters"]["Criteria"].append(criteria)
+####################################################################################################
+# Asset
 
-    raw = conn.post(qutils.URLS["Search Assets"], data, use_auth=True)
 
-    asset_list: list[Asset] = []
-    if str(raw.count) == "0":
-        return asset_list
-    for asset in raw.data.Asset:
-        a = qutils.elements_to_class(
-            asset,
-            Asset,
-            classmap={
-                "Asset": Asset,
-                "tags": _Tag_Simple_Q_List,
-                "Tag_Simple": Tag_Simple,
-            },
-            listmap={
-                "list": "Tag_Simple",
-            },
-            funcmap={
-                "id": int,
-                "created": qutils.datetime_from_qualys_format,
-                "modified": qutils.datetime_from_qualys_format,
-                "criticality_score": int,
-            },
-            name_converter=qutils.convert_camel_to_snake,
+class Asset(pyd.BaseModel):
+    id: int | None
+    name: str | None
+    created: datetime.datetime | None
+    modified: datetime.datetime | None
+    type: Asset_Type | None
+    tags: tag.Tag_Simple_Q_List | None
+    criticality_score: int | None
+
+    class Config:
+        orm_mode = True
+        alias_generator = qutils.to_lower_camel
+        allow_population_by_field_name = True
+
+
+####################################################################################################
+# Response
+
+
+class Response(pyd.BaseModel):
+    response_code: str
+    count: int | None
+    data: list[Asset] | None
+    response_error_details: dict[str, str] | None
+
+    class Config:
+        alias_generator = qutils.to_lower_camel
+        allow_population_by_field_name = True
+
+
+def parse_response(response_obj: Any) -> Response:
+    try:
+        if response_obj["data"] is not None:
+            response_obj["data"] = [t["Asset"] for t in response_obj["data"]]
+    except KeyError:
+        # No results returned.
+        pass
+    response = Response.parse_obj(response_obj)
+    if response.response_code != "SUCCESS":
+        raise ApiResponseError(response)
+    parsed = Response.parse_obj(response)
+    return parsed
+
+
+####################################################################################################
+# Exceptions
+
+
+class ApiResponseError(Exception):
+    def __init__(self, response: Response):
+        self.response = response
+        super().__init__(f"API response error: {response}")
+
+
+####################################################################################################
+# API Calls
+
+
+class Get_Asset_Info:
+    def __init__(self, conn: qualysapi.Connection, asset: Asset):
+        self.conn = conn
+        self.asset = asset
+
+    def __call__(self) -> Response:
+        r = self.conn.get(qutils.URLS["Get Asset Info"] + f"/{self.asset.id}")
+        response = parse_response(r)
+        return response
+
+
+class Update_Asset:
+    def __init__(self, conn: qualysapi.Connection, asset: Asset):
+        self.conn = conn
+        self.asset = asset
+
+    def __call__(self, update: Asset) -> Response:
+        data = {"ServiceRequest": {"data": {"Asset": update.dict(exclude_none=True)}}}
+        r = self.conn.post(
+            qutils.URLS["Upydate Asset"] + f"/{self.asset.id}", data=data
         )
-        asset_list.append(a)
+        response = parse_response(r)
+        return response
 
-    return asset_list
+
+class Search_Assets:
+    def __init__(self, conn: qualysapi.Connection):
+        self.conn = conn
+
+    def __call__(
+        self,
+        filter: api_input.Filter,
+        pagination_settings: api_input.Pagination_Settings | None = None,
+    ) -> Response:
+        data = {
+            "ServiceRequest": {
+                "filters": filter.dict(exclude_unset=True, by_alias=True)
+            },
+        }
+        if pagination_settings is not None:
+            data["ServiceRequest"]["preferences"] = pagination_settings.dict(
+                exclude_unset=True
+            )
+        r = self.conn.post(qutils.URLS["Search Assets"], data=data)
+        response = parse_response(r)
+        return response
+
+
+class Count_Assets:
+    def __init__(self, conn: qualysapi.Connection):
+        self.conn = conn
+
+    def __call__(
+        self,
+        filter: api_input.Filter,
+    ) -> Response:
+        data = {
+            "ServiceRequest": {
+                "filters": filter.dict(exclude_unset=True, by_alias=True)
+            },
+        }
+        r = self.conn.post(qutils.URLS["Count Assets"], data=data)
+        response = parse_response(r)
+        return response
+
+
+class Delete_Asset:
+    def __init__(self, conn: qualysapi.Connection, asset: Asset | None = None):
+        self.conn = conn
+        self.asset = asset
+
+    def __call__(self, filter: api_input.Filter | None = None) -> Response:
+        if self.asset is not None:
+            if filter is not None:
+                raise ValueError("Cannot specify both asset and filter.")
+            # Single asset specified for deletion.
+            r = self.conn.post(qutils.URLS["Delete Asset"] + f"/{self.asset.id}")
+        elif filter is not None:
+            # Multiple assets specified for deletion.
+            data = {
+                "ServiceRequest": {
+                    "filters": filter.dict(exclude_unset=True, by_alias=True)
+                },
+            }
+            r = self.conn.post(qutils.URLS["Delete Assets"], data=data)
+        else:
+            raise ValueError("Must specify either asset or filter.")
+
+        response = parse_response(r)
+        return response
