@@ -276,7 +276,7 @@ class Asset_ORM(Base):
     )
     primary_ip: orm.Mapped[
         ipaddress.IPv4Address | ipaddress.IPv6Address
-    ] = orm.mapped_column("address", sa_pg.INET, primary_key=True)
+    ] = orm.mapped_column("primary_ip", sa_pg.INET)
 
 
 ####################################################################################################
