@@ -46,7 +46,7 @@ class Tag_Simple_Q_List(pyd.BaseModel):
     set: dict[str, list[Tag_Simple]] | None
     add: dict[str, list[Tag_Simple]] | None
     remove: dict[str, list[Tag_Simple]] | None
-    upydate: dict[str, list[Tag_Simple]] | None
+    update: dict[str, list[Tag_Simple]] | None
 
     class Config:
         orm_mode = True
@@ -139,6 +139,15 @@ class Update_Tag:
         self.tag = tag
 
     def __call__(self, input: Tag) -> Response:
+        tag_list_types = ["list", "set", "add", "remove", "update"]
+        for tag_list_type in tag_list_types:
+            if getattr(input, tag_list_type) is not None:
+                for tag in getattr(input, tag_list_type):
+                    if tag.id is None:
+                        raise ValueError(
+                            f"Tag ID must be specified for {tag_list_type} tag list."
+                        )
+
         data = {"ServiceRequest": {"data": {"Tag": input.dict(exclude_unset=True)}}}
         r = self.conn.post(qutils.URLS["Update Tag"] + f"/{self.tag.id}", data=data)
         response = parse_response(r)
