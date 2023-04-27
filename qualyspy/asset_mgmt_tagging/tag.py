@@ -139,11 +139,11 @@ class Update_Tag:
         self.tag = tag
 
     def __call__(self, input: Tag) -> Response:
-        tag_list_types = ["list", "set", "add", "remove", "update"]
+        tag_list_types = ["list_", "set", "add", "remove", "update"]
         for tag_list_type in tag_list_types:
-            if getattr(input, tag_list_type) is not None:
-                for tag in getattr(input, tag_list_type):
-                    if tag.id is None:
+            if getattr(input.children, tag_list_type) is not None:
+                for tag in getattr(input.children, tag_list_type):
+                    if getattr(tag, "id", None) is None:
                         raise ValueError(
                             f"Tag ID must be specified for {tag_list_type} tag list."
                         )
