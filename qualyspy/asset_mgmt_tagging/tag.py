@@ -142,10 +142,10 @@ class Update_Tag:
         tag_list_types = ["list_", "set", "add", "remove", "update"]
         for tag_list_type in tag_list_types:
             if getattr(input.children, tag_list_type) is not None:
-                for tag in getattr(input.children, tag_list_type):
+                for tag in getattr(input.children, tag_list_type)["TagSimple"]:
                     if getattr(tag, "id", None) is None:
                         raise ValueError(
-                            f"Tag ID must be specified for {tag_list_type} tag list."
+                            f"Tag ID must be specified for each tag in {tag_list_type} tag list."
                         )
 
         data = {"ServiceRequest": {"data": {"Tag": input.dict(exclude_unset=True)}}}
