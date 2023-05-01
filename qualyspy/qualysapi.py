@@ -20,6 +20,7 @@ import ssl
 import urllib3
 
 from . import qutils
+from .exceptions import Qualys_API_Error
 
 JSON_IN_JSON_OUT_HEADERS = {
     "Accept": "application/json",
@@ -62,10 +63,6 @@ CREDENTIALS = {
     "username": qutils.config["AUTHENTICATION"]["username"],
     "password": qutils.config["AUTHENTICATION"]["password"],
 }
-
-
-class Qualys_API_Error(Exception):
-    """Exception raised when the Qualys API returns a non-200 response, or some other error."""
 
 
 class Connection:
