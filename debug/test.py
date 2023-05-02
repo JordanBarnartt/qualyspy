@@ -19,5 +19,10 @@ from qualyspy.qualysapi import Connection
 conn = Connection(apis=["CertView"])
 api = cert.List_Certificates_V2(conn)
 
-api.reset(echo=True)
-api.load(echo=True)
+# api.reset(echo=True)
+# api.load(echo=True)
+
+fov = cert.Field_Operator_Value(field="certificate.id", operator="EQUALS", value=692403)
+filter = cert.Filter(filters=[fov])
+params = cert.List_CertView_Certificates_V2_Input(filter=filter)
+api(params=params)
