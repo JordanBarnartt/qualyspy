@@ -8,6 +8,12 @@
             "type": "shell",
             "command": "${workspaceFolder}/.venv/bin/pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt",
             "problemMatcher": []
+        },
+        {
+            "label": "Create package",
+            "type": "shell",
+            "command": "${workspaceFolder}/debug/build.sh",
+            "problemMatcher": []
         }
     ]
 }

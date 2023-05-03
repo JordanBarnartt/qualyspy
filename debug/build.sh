@@ -1,6 +1,9 @@
-rm dist/*
-python -m build
+PYTHON="./.venv/bin/python3"
+
+rm -rf dist/
+$PYTHON -m build
+
 if [ "$1" == "--upload" ]
 then
-    python3 -m twine upload --repository pypi dist/*
+    $PYTHON -m twine upload --repository pypi dist/*
 fi
