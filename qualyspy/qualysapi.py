@@ -102,8 +102,12 @@ class Connection:
         )
         if conn.status_code == requests.codes.ok:
             self._cookies["QualysSession"] = conn.cookies["QualysSession"]
-            with open("debug/cookies.txt", "a") as f:
-                f.write(str(conn.cookies["QualysSession"]) + "\n")
+            try:
+                # Write the cookie to a file in order to quickly clear them when debugging.
+                with open("debug/cookies.txt", "a") as f:
+                    f.write(str(conn.cookies["QualysSession"]) + "\n")
+            except FileNotFoundError:
+                pass
         else:
             print(conn.headers)
             conn.raise_for_status()
