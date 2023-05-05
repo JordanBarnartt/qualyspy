@@ -8,6 +8,7 @@ from typing import Optional, TextIO, Union
 
 import qualyspy.qualysapi as qualysapi
 import qualyspy.qutils as qutils
+from qualyspy.exceptions import Qualys_API_Error
 
 
 @dataclasses.dataclass
@@ -804,7 +805,7 @@ def host_list_detection(
         else:
             raw = conn.get(qutils.URLS["Host List Detection"], params=params_filtered)
         if raw.tag == "SIMPLE_RETURN":
-            raise qualysapi.Qualys_API_Error(
+            raise Qualys_API_Error(
                 f"Error {str(raw.RESPONSE.CODE)}: {str(raw.RESPONSE.TEXT)}"
             )
         host_list: list[Host] = []

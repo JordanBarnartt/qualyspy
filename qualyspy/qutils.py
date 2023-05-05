@@ -336,7 +336,7 @@ def to_comma_separated(input: Any) -> Optional[str]:
     for item in input:
         output += str(item) + ","
 
-    output.rstrip(",")  # Remove final comma
+    output = output.rstrip(",")  # Remove final comma
     return output
 
 
