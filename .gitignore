@@ -2,6 +2,7 @@
 debug/cookies.txt
 debug/qualysapi.conf
 debug/db/*
+tests/test_data.py
 
 # qualysapi config file
 qualysapi.conf

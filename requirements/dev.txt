@@ -9,3 +9,4 @@ types-requests
 sphinx-rtd-theme
 build
 twine
+xsdata-pydantic[cli]

@@ -1,0 +1,2 @@
+class QualysAPIError(Exception):
+    pass
