@@ -26,3 +26,7 @@ class VmdrAPI(QualysAPIBase):
             response, HostListVmDetectionOutput
         )
         return parsed
+
+
+class VmdrORM:
+    pass
