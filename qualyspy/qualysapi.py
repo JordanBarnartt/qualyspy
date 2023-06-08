@@ -32,31 +32,6 @@ JSON_IN_XML_OUT_HEADERS = {
 }
 
 
-class CustomHttpAdapter(requests.adapters.HTTPAdapter):
-    """Transport adapter" that allows us to use custom ssl_context.
-
-    Workaround because Qualys API Gateway URL does not support Secure Renegotation, which is
-    enforced in OpenSSL 3.X.  Reference:
-    https://stackoverflow.com/questions/71603314/ssl-error-unsafe-legacy-renegotiation-disabled
-    """
-
-    def __init__(
-        self, ssl_context: Optional[ssl.SSLContext] = None, **kwargs: Any
-    ) -> None:
-        self.ssl_context = ssl_context
-        super().__init__(**kwargs)
-
-    def init_poolmanager(
-        self, connections: Any, maxsize: Any, block: bool = False, **kwargs: Any
-    ) -> None:
-        self.poolmanager = urllib3.poolmanager.PoolManager(
-            num_pools=connections,
-            maxsize=maxsize,
-            block=block,
-            ssl_context=self.ssl_context,
-        )
-
-
 API_ROOT = qutils.config["AUTHENTICATION"]["api_root"]
 API_GATEWAY_ROOT = qutils.config["AUTHENTICATION"]["api_gateway_root"]
 CREDENTIALS = {
@@ -124,16 +99,11 @@ class Connection:
             "permissions": "true",
         }
         headers = {"ContentType": "application/x-www-form-urlencoded"}
-
-        with requests.Session() as s:
-            ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
-            ctx.options |= 0x4
-            s.mount("https://", CustomHttpAdapter(ctx))
-            conn = s.post(
-                API_GATEWAY_ROOT + qutils.URLS["CertView Authentication"],
-                headers=headers,
-                data=data,
-            )
+        conn = requests.post(
+            API_GATEWAY_ROOT + qutils.URLS["CertView Authentication"],
+            headers=headers,
+            data=data,
+        )
         self._bearer_token = conn.text
 
     def register_in_out_headers(
@@ -236,26 +206,13 @@ class Connection:
                     auth=auth,
                 )
             case "post":
-                if "/certview/" in path:
-                    with requests.Session() as s:
-                        ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
-                        ctx.options |= 0x4
-                        s.mount("https://", CustomHttpAdapter(ctx))
-                        response = s.post(
-                            root + path,
-                            headers=headers,
-                            cookies=self._cookies,
-                            data=data,
-                            auth=auth,
-                        )
-                else:
-                    response = requests.post(
-                        root + path,
-                        headers=headers,
-                        cookies=self._cookies,
-                        data=data,
-                        auth=auth,
-                    )
+                response = requests.post(
+                    root + path,
+                    headers=headers,
+                    cookies=self._cookies,
+                    data=data,
+                    auth=auth,
+                )
             case _:
                 raise ValueError(f"{method} is not a supported")
 
