@@ -2,11 +2,13 @@
 # type: ignore
 # pylama: ignore=E402
 
-import unittest
+import inspect
 import ipaddress
 import os
-import inspect
 import sys
+import unittest
+
+import sqlalchemy.orm as orm
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -23,7 +25,16 @@ class TestVMDR(unittest.TestCase):
         api = vmdr.VmdrAPI()
         host = api.host_list_detection(ids=test_data.test_host_list_detection_id)
         ip = host.response.host_list.host[0].ip
-        self.assertEqual(ip, ipaddress.ip_address(test_data.test_host_list_detection_ip_address))
+        self.assertEqual(
+            ip, ipaddress.ip_address(test_data.test_host_list_detection_ip_address)
+        )
+
+    def test_vmdr_orm_init(self):
+        vmdr_orm = vmdr.VmdrORM(echo=True)
+        vmdr_orm.init_db()
+        with orm.Session(vmdr_orm.engine) as session:
+            host_list = session.query(vmdr.HostList).all()
+            self.assertEqual(len(host_list), 0)
 
 
 if __name__ == "__main__":

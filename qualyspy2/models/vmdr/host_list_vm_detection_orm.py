@@ -12,6 +12,38 @@ class Base(orm.DeclarativeBase):
 Base.metadata.schema = "host_list_vm_detection"
 
 
+class _IPv4AddressType(sa.types.TypeDecorator[sa.types.String]):
+    impl = sa.types.String
+
+    def process_bind_param(self, value, dialect):  # type: ignore
+        if value is not None:
+            return str(value)
+        else:
+            return None
+
+    def process_result_value(self, value, dialect):  # type: ignore
+        if value is not None:
+            return ipaddress.IPv4Address(value)
+        else:
+            return None
+
+
+class _IPv6AddressType(sa.types.TypeDecorator[sa.types.String]):
+    impl = sa.types.String
+
+    def process_bind_param(self, value, dialect):  # type: ignore
+        if value is not None:
+            return str(value)
+        else:
+            return None
+
+    def process_result_value(self, value, dialect):  # type: ignore
+        if value is not None:
+            return ipaddress.IPv6Address(value)
+        else:
+            return None
+
+
 class Attribute(Base):
     __tablename__ = "attribute"
 
@@ -48,6 +80,7 @@ class CloudTag(Base):
 class DnsData(Base):
     __tablename__ = "dns_data"
 
+    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
     hostname: orm.Mapped[str | None]
     domain: orm.Mapped[str | None]
     fqdn: orm.Mapped[str]
@@ -93,15 +126,17 @@ class Tag(Base):
 class Azure(Base):
     __tablename__ = "azure"
 
+    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
     attribute: orm.Mapped[list[Attribute]] = orm.relationship(back_populates="azure")
 
-    metadata_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("metadata.id"))
+    metadata_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("metadata_.id"))
     metadata_: orm.Mapped["Metadata"] = orm.relationship(back_populates="azure")
 
 
 class CloudProviderTags(Base):
     __tablename__ = "cloud_provider_tags"
 
+    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
     cloud_tag: orm.Mapped[list[CloudTag]] = orm.relationship(
         back_populates="cloud_provider_tags"
     )
@@ -113,24 +148,27 @@ class CloudProviderTags(Base):
 class Ec2(Base):
     __tablename__ = "ec2"
 
+    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
     attribute: orm.Mapped[list[Attribute]] = orm.relationship(back_populates="ec2")
 
-    metadata_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("metadata.id"))
+    metadata_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("metadata_.id"))
     metadata_: orm.Mapped["Metadata"] = orm.relationship(back_populates="ec2")
 
 
 class Google(Base):
     __tablename__ = "google"
 
+    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
     attribute: orm.Mapped[list[Attribute]] = orm.relationship(back_populates="google")
 
-    metadata_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("metadata.id"))
+    metadata_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("metadata_.id"))
     metadata_: orm.Mapped["Metadata"] = orm.relationship(back_populates="google")
 
 
 class QdsFactors(Base):
     __tablename__ = "qds_factors"
 
+    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
     qds_factor: orm.Mapped[list[QdsFactor]] = orm.relationship(
         back_populates="qds_factors"
     )
@@ -142,6 +180,7 @@ class QdsFactors(Base):
 class Tags(Base):
     __tablename__ = "tags"
 
+    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
     tag: orm.Mapped[list[Tag]] = orm.relationship(back_populates="tags")
 
     host_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("host.id"))
@@ -151,6 +190,7 @@ class Tags(Base):
 class Detection(Base):
     __tablename__ = "detection"
 
+    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
     qid: orm.Mapped[int]
     type: orm.Mapped[str | None]
     severity: orm.Mapped[int | None]
@@ -186,22 +226,27 @@ class Detection(Base):
     detection_list_id: orm.Mapped[int] = orm.mapped_column(
         sa.ForeignKey("detection_list.id")
     )
+    detection_list: orm.Mapped["DetectionList"] = orm.relationship(
+        back_populates="detection"
+    )
 
 
 class Metadata(Base):
-    __tablename__ = "metadata"
+    __tablename__ = "metadata_"
 
+    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
     ec2: orm.Mapped[list[Ec2]] = orm.relationship(back_populates="metadata_")
     google: orm.Mapped[list[Google]] = orm.relationship(back_populates="metadata_")
     azure: orm.Mapped[list[Azure]] = orm.relationship(back_populates="metadata_")
 
     host_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("host.id"))
-    host: orm.Mapped["Host"] = orm.relationship(back_populates="metadata")
+    host: orm.Mapped["Host"] = orm.relationship(back_populates="metadata_")
 
 
 class DetectionList(Base):
     __tablename__ = "detection_list"
 
+    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
     detection: orm.Mapped[list[Detection]] = orm.relationship(
         back_populates="detection_list"
     )
@@ -215,8 +260,8 @@ class Host(Base):
 
     id: orm.Mapped[int] = orm.mapped_column(primary_key=True)
     asset_id: orm.Mapped[int | None]
-    ip: orm.Mapped[ipaddress.IPv4Address | None]
-    ipv6: orm.Mapped[ipaddress.IPv6Address | None]
+    ip: orm.Mapped[ipaddress.IPv4Address | None] = orm.mapped_column("ip", _IPv4AddressType)
+    ipv6: orm.Mapped[ipaddress.IPv6Address | None] = orm.mapped_column("ipv6", _IPv6AddressType)
     tracking_method: orm.Mapped[str | None]
     network_id: orm.Mapped[int | None]
     os: orm.Mapped[str | None]
@@ -251,4 +296,5 @@ class Host(Base):
 class HostList(Base):
     __tablename__ = "host_list"
 
+    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
     host: orm.Mapped[list[Host]] = orm.relationship(back_populates="host_list")

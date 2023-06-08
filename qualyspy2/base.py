@@ -1,14 +1,16 @@
 import configparser
+import datetime
 import os
-from typing import Callable, Any
-from multiprocessing import Process
+from abc import ABC, abstractmethod
+from typing import Any, Callable, TypeVar
 
 import requests
 import sqlalchemy as sa
 import sqlalchemy.orm as orm
 
-from . import exceptions
-from . import URLS
+from . import URLS, exceptions
+
+_C = TypeVar("_C")
 
 
 class QualysAPIBase:
@@ -22,11 +24,15 @@ class QualysAPIBase:
         # Read config file
         self.config = configparser.ConfigParser()
         self.config.read(config_file)
-        self.api_root = self.config["AUTHENTICATION"]["api_root"]
-        self.username = self.config["AUTHENTICATION"]["username"]
-        self.password = self.config["AUTHENTICATION"]["password"]
+        try:
+            self.api_root = self.config["AUTHENTICATION"]["api_root"]
+            self.username = self.config["AUTHENTICATION"]["username"]
+            self.password = self.config["AUTHENTICATION"]["password"]
+        except KeyError as e:
+            raise exceptions.ConfigError(f"Config file missing key: {e}")
 
         self.x_requested_with = x_requested_with
+        self.orm_base = orm.DeclarativeBase()
 
         self.ratelimit_limit: int | None = None
         self.ratelimit_window_sec: int | None = None
@@ -34,7 +40,7 @@ class QualysAPIBase:
         self.ratelimit_towait_sec: int | None = None
         self.concurrency_limit_limit: int | None = None
         self.concurrency_limit_running: int | None = None
-        self.get(URLS.about) # Set ratelimit and concurrency limit
+        self.get(URLS.about)  # Set ratelimit and concurrency limit
 
     def get(self, url: str, params: dict[str, str] | None = None) -> str:
         response = requests.get(
@@ -47,13 +53,17 @@ class QualysAPIBase:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             raise exceptions.QualysAPIError(response.text) from e
-        
+
         self.ratelimit_limit = int(response.headers["X-RateLimit-Limit"])
         self.ratelimit_window_sec = int(response.headers["X-RateLimit-Window-Sec"])
         self.ratelimit_remaining = int(response.headers["X-RateLimit-Remaining"])
         self.ratelimit_towait_sec = int(response.headers["X-RateLimit-ToWait-Sec"])
-        self.concurrency_limit_limit = int(response.headers["X-Concurrency-Limit-Limit"])
-        self.concurrency_limit_running = int(response.headers["X-Concurrency-Limit-Running"])
+        self.concurrency_limit_limit = int(
+            response.headers["X-Concurrency-Limit-Limit"]
+        )
+        self.concurrency_limit_running = int(
+            response.headers["X-Concurrency-Limit-Running"]
+        )
 
         return response.text
 
@@ -71,32 +81,72 @@ class QualysAPIBase:
         return response.text
 
 
-class QualysORMBase:
+class QualysORMMixin(ABC):
     def __init__(self, api: QualysAPIBase, *, echo: bool = False) -> None:
         self.api = api
-        self.echo = echo
-        self.db_host = api.config["DATABASE"]["host"]
-        self.db_name = api.config["DATABASE"]["name"]
-        self.db_username = api.config["DATABASE"]["username"]
-        self.db_password = api.config["DATABASE"]["password"]
+        self.orm_base = api.orm_base
+        try:
+            self.db_host = api.config["POSTGRESQL"]["host"]
+            self.db_name = api.config["POSTGRESQL"]["db_name"]
+            self.db_username = api.config["POSTGRESQL"]["username"]
+            self.db_password = api.config["POSTGRESQL"]["password"]
+        except KeyError as e:
+            raise exceptions.ConfigError(f"Config file missing key: {e}")
         self.e_url = f"postgresql://{self.db_name}:{self.db_password}@{self.db_host}/{self.db_name}"
         self.engine = sa.create_engine(self.e_url, echo=echo)
 
-    def _init_db(
+        self.echo = echo
+
+    def init_db(
         self,
-        api_func: Callable[..., Any],
-        orm_base: orm.DeclarativeBase,
     ) -> None:
         with self.engine.connect() as conn:
             conn.execute(
-                sa.schema.CreateSchema(orm_base.metadata.schema, if_not_exists=True)
+                sa.schema.CreateSchema(
+                    self.orm_base.metadata.schema, if_not_exists=True
+                )
             )
             conn.commit()
 
-        orm_base.metadata.create_all(self.engine)
+        self.orm_base.metadata.create_all(self.engine)
 
-    def _load(self, batch_size) -> None:
-        
+    @abstractmethod
+    def _load_new(
+        self, load_func: Callable[..., Any], **kwargs: dict[str, Any]
+    ) -> None:
+        ...
+
+    def load(self, load_func: Callable[..., Any], **kwargs: dict[str, Any]) -> None:
+        now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        schema = self.orm_base.metadata.schema
+        with orm.Session(self.engine) as session:
+            alter_schema = sa.DDL(f"ALTER SCHEMA {schema} RENAME TO {schema}_{now}")
+            session.execute(alter_schema)
+        try:
+            self._load_new(load_func, **kwargs)
+        except Exception as e:
+            with orm.Session(self.engine) as session:
+                sa.schema.DropSchema(schema, cascade=True)
+                revert_schema = sa.DDL(
+                    f"ALTER SCHEMA {schema}_{now} RENAME TO {schema}"
+                )
+                session.execute(revert_schema)
+            raise e
+
+    def _query(self, stmt: Any, *, echo: bool = False) -> list[_C]:
+        output: list[_C] = []
+        with orm.Session(self.engine) as session:
+            results = session.execute(stmt)
+            for result in results.all():
+                r = result.tuple()[0]
+                r_type = type(r)
+                if issubclass(r_type, orm.DeclarativeBase):
+                    i = r_type.pd_class.from_orm(r)  # type: ignore
+                else:
+                    i = result
+                output.append(i)
+
+        return output
 
     def __setattr__(self, __name: str, __value: Any) -> None:
         super().__setattr__(__name, __value)

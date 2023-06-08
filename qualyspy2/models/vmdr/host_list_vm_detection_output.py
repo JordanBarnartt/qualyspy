@@ -37,6 +37,16 @@ class TimeDeltaConverter(Converter):
         return str(value.total_seconds())
 
 
+class StrConverter(Converter):
+    def deserialize(self, value: str, **kwargs: dict[Any, Any]) -> str:
+        if value == "metadata":
+            return "metadata_"
+        return value
+
+    def serialize(self, value: str, **kwargs: dict[Any, Any]) -> str:
+        return str(value)
+
+
 converter.register_converter(ipaddress.IPv4Address, IPv4AddressConverter())
 converter.register_converter(ipaddress.IPv6Address, IPv6AddressConverter())
 converter.register_converter(dt.timedelta, TimeDeltaConverter())
@@ -865,7 +875,7 @@ class Host:
             "type": "Element",
         },
     )
-    metadata: Optional[Metadata] = field(
+    metadata_: Optional[Metadata] = field(
         default=None,
         metadata={
             "name": "METADATA",
