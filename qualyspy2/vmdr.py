@@ -1,14 +1,14 @@
 import os
 from typing import Any, Callable
 
+
 import sqlalchemy.orm as orm
 from xsdata.formats.dataclass.parsers import XmlParser
 
 from . import URLS, qutils
 from .base import QualysAPIBase, QualysORMMixin
 from .models.vmdr.host_list_vm_detection_orm import Base, HostList
-from .models.vmdr.host_list_vm_detection_output import \
-    HostListVmDetectionOutput
+from .models.vmdr.host_list_vm_detection_output import HostListVmDetectionOutput
 
 
 class VmdrAPI(QualysAPIBase):
@@ -21,15 +21,15 @@ class VmdrAPI(QualysAPIBase):
     ) -> None:
         super().__init__(config_file, x_requested_with)
         self.xmlparser = XmlParser()
-        self.orm_base = Base  # type: ignore
 
     def host_list_detection(
-        self, *, ids: int | list[int] | None
+        self, *, ids: int | list[int] | None = None
     ) -> HostListVmDetectionOutput:
         params = {
             k: str(v) for k, v in locals().items() if (k != "self" and v is not None)
         }
         params["action"] = "list"
+        params["truncation_limit"] = "1"
 
         response = self.get(URLS.host_list_detection, params=params)
         parsed: HostListVmDetectionOutput = self.xmlparser.from_string(
@@ -38,16 +38,18 @@ class VmdrAPI(QualysAPIBase):
         return parsed
 
 
-class VmdrORM(VmdrAPI, QualysORMMixin):
+class HostListDetectionORM(VmdrAPI, QualysORMMixin):
     def __init__(self, echo: bool = False) -> None:
         VmdrAPI.__init__(self)
+        self.orm_base = Base  # type: ignore
         QualysORMMixin.__init__(self, self, echo=echo)
 
-    def _load_new(
-        self, load_func: Callable[..., Any], **kwargs: dict[str, Any]
-    ) -> None:
-        to_load = load_func(**kwargs)
-        to_load = [qutils._to_orm_object(obj, HostList) for obj in to_load]
+    def _load(self, load_func: Callable[..., Any], **kwargs: dict[str, Any]) -> None:
+        to_load = [load_func(**kwargs).response.host_list]
+        to_load = [qutils.to_orm_object(obj, HostList) for obj in to_load]
         with orm.Session(self.engine) as session:
             session.add_all(to_load)
             session.commit()
+
+    def load(self) -> None:
+        self._load(self.host_list_detection)

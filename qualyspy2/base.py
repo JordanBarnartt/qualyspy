@@ -110,20 +110,14 @@ class QualysORMMixin(ABC):
 
         self.orm_base.metadata.create_all(self.engine)
 
-    @abstractmethod
-    def _load_new(
-        self, load_func: Callable[..., Any], **kwargs: dict[str, Any]
-    ) -> None:
-        ...
-
-    def load(self, load_func: Callable[..., Any], **kwargs: dict[str, Any]) -> None:
+    def safe_load(self, load_func: Callable[..., Any], **kwargs: dict[str, Any]) -> None:
         now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         schema = self.orm_base.metadata.schema
         with orm.Session(self.engine) as session:
             alter_schema = sa.DDL(f"ALTER SCHEMA {schema} RENAME TO {schema}_{now}")
             session.execute(alter_schema)
         try:
-            self._load_new(load_func, **kwargs)
+            load_func(**kwargs)
         except Exception as e:
             with orm.Session(self.engine) as session:
                 sa.schema.DropSchema(schema, cascade=True)
@@ -132,6 +126,10 @@ class QualysORMMixin(ABC):
                 )
                 session.execute(revert_schema)
             raise e
+
+    @abstractmethod
+    def load(self) -> None:
+        ...
 
     def _query(self, stmt: Any, *, echo: bool = False) -> list[_C]:
         output: list[_C] = []

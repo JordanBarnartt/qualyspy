@@ -11,7 +11,7 @@ _re_classname = re.compile(r"(qualyspy[\w._]*)")
 _re_sa_class = re.compile(r"sqlalchemy.orm")
 
 
-def _get_cls_inst_from_annot(mapped_cls: str) -> Any:
+def get_cls_inst_from_annot(mapped_cls: str) -> Any:
     m = _re_classname.search(mapped_cls)
     if m is not None:
         child_cls_strs = m.group(1).split(".")
@@ -26,7 +26,7 @@ def _get_cls_inst_from_annot(mapped_cls: str) -> Any:
             raise ValueError("Annotation is not a Mapped class.")
 
 
-def _to_orm_object(
+def to_orm_object(
     obj: dict[str, Any],
     out_cls: type[_D],
 ) -> _D:
@@ -35,22 +35,27 @@ def _to_orm_object(
     for k, v in obj_copy.items():
         if isinstance(v, dict):
             mapped_cls = str(annots[k])
-            child_cls = _get_cls_inst_from_annot(mapped_cls)
+            child_cls = get_cls_inst_from_annot(mapped_cls)
             if child_cls is None:
                 continue
-            obj_copy[k] = _to_orm_object(v, child_cls)
+            obj_copy[k] = to_orm_object(v, child_cls)
         elif isinstance(v, list) and len(v) > 0:
             if not all(isinstance(item, orm.DeclarativeBase) for item in v):
                 mapped_cls = str(annots[k])
-                child_cls = _get_cls_inst_from_annot(mapped_cls)
+                child_cls = get_cls_inst_from_annot(mapped_cls)
                 if child_cls is None:
                     continue
                 if isinstance(v[0], dict):
-                    v = [_to_orm_object(item, child_cls) for item in v]
+                    v = [to_orm_object(item, child_cls) for item in v]
                 else:
                     child_annots = inspect.get_annotations(child_cls)
                     param = next(iter(child_annots))
                     v = [child_cls(**{param: item}) for item in v]
             obj_copy[k] = v
 
-    return out_cls(**obj_copy)
+    out_cls_mapper = orm.class_mapper(out_cls)
+    mapped_dict = {
+        k: v for k, v in obj_copy.items() if k in out_cls_mapper.attrs.keys()
+    }
+    ret = out_cls(**mapped_dict)
+    return ret
