@@ -50,8 +50,7 @@ class TestVMDR(unittest.TestCase):
         vmdr_orm.load()
         with orm.Session(vmdr_orm.engine) as session:
             host_list = session.query(vmdr.HostList).all()
-            test = len(host_list) == 100
-            self.assertTrue(test)
+            self.assertEqual(len(host_list[0].host), 100)
 
 
 if __name__ == "__main__":
