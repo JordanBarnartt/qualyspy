@@ -203,13 +203,13 @@ class Detection(Base):
     status: orm.Mapped[str | None]
     first_found_datetime: orm.Mapped[dt.datetime | None]
     last_found_datetime: orm.Mapped[dt.datetime | None]
-    qds: orm.Mapped[Qds | None] = orm.relationship(back_populates="detection")
+    qds: orm.Mapped[Qds | None] = orm.relationship(back_populates="detection", uselist=False)
     qds_factors: orm.Mapped[QdsFactors | None] = orm.relationship(
-        back_populates="detection"
+        back_populates="detection", uselist=False
     )
     times_found: orm.Mapped[int | None]
     last_test_datetime: orm.Mapped[dt.datetime | None]
-    last_update_dateteime: orm.Mapped[dt.datetime | None]
+    last_update_datetime: orm.Mapped[dt.datetime | None]
     last_fixed_datetime: orm.Mapped[dt.datetime | None]
     first_reopened_datetime: orm.Mapped[dt.datetime | None]
     last_reopened_datetime: orm.Mapped[dt.datetime | None]
@@ -267,7 +267,7 @@ class Host(Base):
     os: orm.Mapped[str | None]
     os_cpe: orm.Mapped[str | None]
     dns: orm.Mapped[str | None]
-    dns_data: orm.Mapped[DnsData | None] = orm.relationship(back_populates="host")
+    dns_data: orm.Mapped[DnsData | None] = orm.relationship(back_populates="host", uselist=False)
     cloud_provider: orm.Mapped[str | None]
     cloud_service: orm.Mapped[str | None]
     cloud_resource_id: orm.Mapped[str | None]
@@ -280,13 +280,13 @@ class Host(Base):
     last_vm_auth_scanned_date: orm.Mapped[dt.datetime | None]
     last_vm_auth_scanned_duration: orm.Mapped[dt.timedelta | None]
     last_pc_scanned_date: orm.Mapped[dt.datetime | None]
-    tags: orm.Mapped[Tags | None] = orm.relationship(back_populates="host")
-    metadata_: orm.Mapped[Metadata | None] = orm.relationship(back_populates="host")
+    tags: orm.Mapped[Tags | None] = orm.relationship(back_populates="host", uselist=False)
+    metadata_: orm.Mapped[Metadata | None] = orm.relationship(back_populates="host", uselist=False)
     cloud_provider_tags: orm.Mapped[CloudProviderTags | None] = orm.relationship(
-        back_populates="host"
+        back_populates="host", uselist=False
     )
     detection_list: orm.Mapped[DetectionList | None] = orm.relationship(
-        back_populates="host"
+        back_populates="host", uselist=False
     )
 
     host_list_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("host_list.id"))

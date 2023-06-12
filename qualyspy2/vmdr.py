@@ -48,6 +48,8 @@ class HostListDetectionORM(VmdrAPI, QualysORMMixin):
         to_load = [load_func(**kwargs).response.host_list]
         to_load = [qutils.to_orm_object(obj, HostList) for obj in to_load]
         with orm.Session(self.engine) as session:
+            for obj in to_load:
+                session.merge(obj)
             session.add_all(to_load)
             session.commit()
 

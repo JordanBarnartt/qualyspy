@@ -3,8 +3,7 @@ import inspect
 import re
 import copy
 from typing import Any, TypeVar
-
-import sqlalchemy.orm as orm
+import dataclasses
 
 _D = TypeVar("_D")
 _re_classname = re.compile(r"(qualyspy[\w._]*)")
@@ -26,7 +25,7 @@ def get_cls_inst_from_annot(mapped_cls: str) -> Any:
             raise ValueError("Annotation is not a Mapped class.")
 
 
-def to_orm_object(
+def _to_orm_object(
     obj: dict[str, Any],
     out_cls: type[_D],
 ) -> _D:
@@ -38,24 +37,27 @@ def to_orm_object(
             child_cls = get_cls_inst_from_annot(mapped_cls)
             if child_cls is None:
                 continue
-            obj_copy[k] = to_orm_object(v, child_cls)
+            obj_copy[k] = _to_orm_object(v, child_cls)
         elif isinstance(v, list) and len(v) > 0:
-            if not all(isinstance(item, orm.DeclarativeBase) for item in v):
-                mapped_cls = str(annots[k])
-                child_cls = get_cls_inst_from_annot(mapped_cls)
-                if child_cls is None:
-                    continue
-                if isinstance(v[0], dict):
-                    v = [to_orm_object(item, child_cls) for item in v]
-                else:
-                    child_annots = inspect.get_annotations(child_cls)
-                    param = next(iter(child_annots))
-                    v = [child_cls(**{param: item}) for item in v]
+            mapped_cls = str(annots[k])
+            child_cls = get_cls_inst_from_annot(mapped_cls)
+            if child_cls is None:
+                continue
+            if isinstance(v[0], dict):
+                v = [_to_orm_object(item, child_cls) for item in v]
+            else:
+                child_annots = inspect.get_annotations(child_cls)
+                param = next(iter(child_annots))
+                v = [child_cls(**{param: item}) for item in v]
             obj_copy[k] = v
 
-    out_cls_mapper = orm.class_mapper(out_cls)
-    mapped_dict = {
-        k: v for k, v in obj_copy.items() if k in out_cls_mapper.attrs.keys()
-    }
-    ret = out_cls(**mapped_dict)
-    return ret
+    return out_cls(**obj_copy)
+
+
+def to_orm_object(
+    obj: dict[str, Any],
+    out_cls: type[_D],
+) -> _D:
+    obj_dict = dataclasses.asdict(obj)  # type: ignore
+    ret = _to_orm_object(obj_dict, out_cls)
+    return _to_orm_object(obj_dict, out_cls)
