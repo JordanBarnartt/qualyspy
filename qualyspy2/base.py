@@ -8,7 +8,7 @@ import requests
 import sqlalchemy as sa
 import sqlalchemy.orm as orm
 
-from . import URLS, exceptions
+from . import URLS, exceptions, qutils
 
 _C = TypeVar("_C")
 
@@ -110,38 +110,45 @@ class QualysORMMixin(ABC):
 
         self.orm_base.metadata.create_all(self.engine)
 
-    def safe_load(self, load_func: Callable[..., Any], **kwargs: dict[str, Any]) -> None:
+    def safe_load(
+        self,
+        loader: Callable[..., Any],
+        load_func: Any,
+        **kwargs: dict[str, Any],
+    ) -> None:
+        self.init_db()
         now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         schema = self.orm_base.metadata.schema
         with orm.Session(self.engine) as session:
             alter_schema = sa.DDL(f"ALTER SCHEMA {schema} RENAME TO {schema}_{now}")
             session.execute(alter_schema)
+            session.commit()
         try:
-            load_func(**kwargs)
+            self.init_db()
+            loader(load_func, **kwargs)
         except Exception as e:
+            with self.engine.connect() as conn:
+                conn.execute(sa.schema.DropSchema(schema, cascade=True))
+                conn.commit()
             with orm.Session(self.engine) as session:
-                sa.schema.DropSchema(schema, cascade=True)
                 revert_schema = sa.DDL(
                     f"ALTER SCHEMA {schema}_{now} RENAME TO {schema}"
                 )
                 session.execute(revert_schema)
+                session.commit()
             raise e
 
     @abstractmethod
     def load(self) -> None:
         ...
 
-    def _query(self, stmt: Any, *, echo: bool = False) -> list[_C]:
+    def query(self, stmt: Any, *, echo: bool = False) -> list[_C]:
         output: list[_C] = []
         with orm.Session(self.engine) as session:
             results = session.execute(stmt)
             for result in results.all():
                 r = result.tuple()[0]
-                r_type = type(r)
-                if issubclass(r_type, orm.DeclarativeBase):
-                    i = r_type.pd_class.from_orm(r)  # type: ignore
-                else:
-                    i = result
+                i = qutils.from_orm_object(r)
                 output.append(i)
 
         return output

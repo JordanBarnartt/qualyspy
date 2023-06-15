@@ -289,12 +289,12 @@ class Host(Base):
         back_populates="host", uselist=False
     )
 
-    host_list_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("host_list.id"))
-    host_list: orm.Mapped["HostList"] = orm.relationship(back_populates="host")
+    # host_list_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("host_list.id"))
+    # host_list: orm.Mapped["HostList"] = orm.relationship(back_populates="host")
 
 
-class HostList(Base):
-    __tablename__ = "host_list"
+# class HostList(Base):
+#     __tablename__ = "host_list"
 
-    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
-    host: orm.Mapped[list[Host]] = orm.relationship(back_populates="host_list")
+#     id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
+#     host: orm.Mapped[list[Host]] = orm.relationship(back_populates="host_list")

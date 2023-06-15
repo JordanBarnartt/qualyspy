@@ -9,6 +9,10 @@ from xsdata.formats.converter import Converter, converter
 dt_format = "%Y-%m-%dT%H:%M:%SZ"
 
 
+class Config:
+    orm_mode = True
+
+
 class IPv4AddressConverter(Converter):
     def deserialize(
         self, value: str, **kwargs: dict[Any, Any]
@@ -52,7 +56,7 @@ converter.register_converter(ipaddress.IPv6Address, IPv6AddressConverter())
 converter.register_converter(dt.timedelta, TimeDeltaConverter())
 
 
-@dataclass
+@dataclass(config=Config)
 class Attribute:
     class Meta:
         name = "ATTRIBUTE"
@@ -106,7 +110,7 @@ class Attribute:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class CloudTag:
     class Meta:
         name = "CLOUD_TAG"
@@ -138,7 +142,7 @@ class CloudTag:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class DnsData:
     class Meta:
         name = "DNS_DATA"
@@ -166,7 +170,7 @@ class DnsData:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class Param:
     class Meta:
         name = "PARAM"
@@ -189,7 +193,7 @@ class Param:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class Qds:
     class Meta:
         name = "QDS"
@@ -209,7 +213,7 @@ class Qds:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class QdsFactor:
     class Meta:
         name = "QDS_FACTOR"
@@ -229,7 +233,7 @@ class QdsFactor:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class Tag:
     class Meta:
         name = "TAG"
@@ -265,7 +269,7 @@ class Tag:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class Warning:
     class Meta:
         name = "WARNING"
@@ -294,7 +298,7 @@ class Warning:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class Azure:
     class Meta:
         name = "AZURE"
@@ -308,7 +312,7 @@ class Azure:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class CloudProviderTags:
     class Meta:
         name = "CLOUD_PROVIDER_TAGS"
@@ -323,7 +327,7 @@ class CloudProviderTags:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class Ec2:
     class Meta:
         name = "EC2"
@@ -337,7 +341,7 @@ class Ec2:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class Google:
     class Meta:
         name = "GOOGLE"
@@ -351,7 +355,7 @@ class Google:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class ParamList:
     class Meta:
         name = "PARAM_LIST"
@@ -366,7 +370,7 @@ class ParamList:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class QdsFactors:
     class Meta:
         name = "QDS_FACTORS"
@@ -380,7 +384,7 @@ class QdsFactors:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class Tags:
     class Meta:
         name = "TAGS"
@@ -395,7 +399,7 @@ class Tags:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class Detection:
     class Meta:
         name = "DETECTION"
@@ -615,7 +619,7 @@ class Detection:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class Metadata:
     class Meta:
         name = "METADATA"
@@ -643,7 +647,7 @@ class Metadata:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class Request:
     class Meta:
         name = "REQUEST"
@@ -689,7 +693,7 @@ class Request:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class DetectionList:
     class Meta:
         name = "DETECTION_LIST"
@@ -704,7 +708,7 @@ class DetectionList:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class Host:
     class Meta:
         name = "HOST"
@@ -899,7 +903,7 @@ class Host:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class HostList:
     class Meta:
         name = "HOST_LIST"
@@ -913,8 +917,12 @@ class HostList:
         },
     )
 
+    def __add__(self, other: "HostList") -> "HostList":
+        self.host.extend(other.host)
+        return self
 
-@dataclass
+
+@dataclass(config=Config)
 class Response:
     class Meta:
         name = "RESPONSE"
@@ -944,7 +952,7 @@ class Response:
     )
 
 
-@dataclass
+@dataclass(config=Config)
 class HostListVmDetectionOutput:
     class Meta:
         name = "HOST_LIST_VM_DETECTION_OUTPUT"
