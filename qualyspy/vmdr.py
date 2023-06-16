@@ -1,13 +1,15 @@
-"""Qualys VMDR API Module
+"""
+Qualys VMDR API Module
 
 Typical usage example:
 vmdr_orm = vmdr.HostListDetectionORM()
 vmdr_orm.load()
-with orm.Session(vmdr_orm.engine) as session:
-    host_list = session.query(HostORM).all()
-    stmt = session.query(HostORM)
-    hosts = vmdr_orm.query(stmt)[0]
-    host = hosts.host[0]
+session = orm.Session(vmdr_orm.engine):
+host_list = session.query(HostORM).all()
+stmt = session.query(HostORM)
+hosts = vmdr_orm.query(stmt)[0]
+host = hosts.host[0]
+session.close()
 """
 
 import os

@@ -1,17 +1,17 @@
-import os
-import sys
-sys.path.insert(0, os.path.abspath('../../'))
-
 # Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import os
+import sys
+sys.path.insert(0, os.path.abspath('..'))
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'QualysPy'
-copyright = '2022, Jordan Barnartt'
+copyright = '2023, Jordan Barnartt'
 author = 'Jordan Barnartt'
 
 # -- General configuration ---------------------------------------------------
@@ -20,7 +20,7 @@ author = 'Jordan Barnartt'
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.coverage', 'sphinx.ext.napoleon']
 
 templates_path = ['_templates']
-exclude_patterns = []
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 
 
@@ -28,4 +28,4 @@ exclude_patterns = []
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'sphinx_rtd_theme'
-#html_static_path = ['_static']
+html_static_path = ['_static']
