@@ -1,3 +1,5 @@
+"""ORM data model for host_list_vm_detection"""
+
 import datetime as dt
 import ipaddress
 
@@ -13,6 +15,8 @@ Base.metadata.schema = "host_list_vm_detection"
 
 
 class _IPv4AddressType(sa.types.TypeDecorator[sa.types.String]):
+    """SQLAlchemy type for IPv4Address"""
+
     impl = sa.types.String
 
     def process_bind_param(self, value, dialect):  # type: ignore
@@ -29,6 +33,8 @@ class _IPv4AddressType(sa.types.TypeDecorator[sa.types.String]):
 
 
 class _IPv6AddressType(sa.types.TypeDecorator[sa.types.String]):
+    """SQLAlchemy type for IPv6Address"""
+
     impl = sa.types.String
 
     def process_bind_param(self, value, dialect):  # type: ignore

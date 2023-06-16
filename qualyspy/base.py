@@ -1,3 +1,12 @@
+"""Base classes for intereacting with the Qualys API and the database where information is being
+stored.  Primarily used internally by the QualysPy library, but can be used to call APIs which the
+library does not yet support.
+
+Typical usage example:
+api = QualysAPIBase()
+api.get("/msp/about.php")
+"""
+
 import configparser
 import datetime
 import os
@@ -14,6 +23,28 @@ _C = TypeVar("_C")
 
 
 class QualysAPIBase:
+    """Base class for interacting with the Qualys API.  This class is not intended to be used
+    directly, but rather to be subclassed by other classes which implement specific Qualys API
+    calls.
+
+    Attributes:
+        config_file (str): Path to the config file.  See config-example.ini for an example.
+        api_root (str): Root URL of the Qualys API.
+        username (str): Username to use when authenticating to the Qualys API.
+        password (str): Password to use when authenticating to the Qualys API.
+        x_requested_with (str): Value to send in the X-Requested-With header.
+        ratelimit_limit (int): Maximum number of requests allowed in the current window. Updated
+            after every API call.
+        ratelimit_window_sec (int): Length of the current window in seconds. Updated after every
+            API call.
+        ratelimit_remaining (int): Number of requests remaining in the current window. Updated
+            after every API call.
+        ratelimit_towait_sec (int): Number of seconds to wait before making another API call.
+            Updated after every API call.
+        concurrency_limit_limit (int): Maximum number of concurrent requests allowed. Updated
+            after every API call.
+    """
+
     def __init__(
         self,
         config_file: str = str(
@@ -21,6 +52,17 @@ class QualysAPIBase:
         ),
         x_requested_with: str = "QualysPy Python Library",
     ) -> None:
+        """Initializes an instance of the QualysAPIBase class.
+
+        Args:
+            config_file (str, optional): Path to the config file.  Defaults to
+                ~/etc/qualyspy/config.ini.
+            x_requested_with (str, optional): Value to send in the X-Requested-With header.
+
+        Raises:
+            exceptions.ConfigError: Raised if the config file is missing a required key.
+        """
+
         # Read config file
         self.config = configparser.ConfigParser()
         self.config.read(config_file)
@@ -43,6 +85,19 @@ class QualysAPIBase:
         self.get(URLS.about)  # Set ratelimit and concurrency limit
 
     def get(self, url: str, params: dict[str, str] | None = None) -> str:
+        """Send a GET request to the Qualys API.
+
+        Args:
+            url (str): URL to send the request to.
+            params (dict[str, str], optional): Parameters to send with the request.  Defaults to
+                None, which means the API call will use the default parameters.
+
+        Returns:
+            The text of the response.
+
+        Raises:
+            exceptions.QualysAPIError: Raised if the Qualys API returns a non-200 response.
+        """
         response = requests.get(
             self.api_root + url,
             params=params,
@@ -68,6 +123,19 @@ class QualysAPIBase:
         return response.text
 
     def post(self, url: str, data: dict[str, str] | None = None) -> str:
+        """Send a POST request to the Qualys API.
+
+        Args:
+            url (str): URL to send the request to.
+            data (dict[str, str], optional): Data to send with the request.  Defaults to None,
+                which means the API call will use the default parameters.
+
+        Returns:
+            The text of the response.
+
+        Raises:
+            exceptions.QualysAPIError: Raised if the Qualys API returns a non-200 response.
+        """
         response = requests.post(
             self.api_root + url,
             data=data,
@@ -82,7 +150,32 @@ class QualysAPIBase:
 
 
 class QualysORMMixin(ABC):
+    """Mixin class for Qualys API classes that use SQLAlchemy ORM.
+
+    Attributes:
+        api (QualysAPIBase): Instance of the QualysAPIBase class.
+        orm_base (sqlalchemy.ext.declarative.api.DeclarativeMeta): Base class for all ORM classes.
+        db_host (str): Hostname of the PostgreSQL database.
+        db_name (str): Name of the PostgreSQL database.
+        db_username (str): Username to use to connect to the PostgreSQL database.
+        db_password (str): Password to use to connect to the PostgreSQL database.
+        e_url (str): SQLAlchemy engine URL.
+        engine (sqlalchemy.engine.base.Engine): SQLAlchemy engine.
+        echo (bool): Whether or not to echo SQL statements to stdout. Defaults to False.  If changed
+            after the engine is created, the engine will automatically update with the new value.
+    """
+
     def __init__(self, api: QualysAPIBase, *, echo: bool = False) -> None:
+        """Initializes an instance of the QualysORMMixin class.
+
+        Args:
+            api (QualysAPIBase): Instance of the QualysAPIBase class.
+            echo (bool, optional): Whether or not to echo SQL statements to stdout.  Defaults to
+                False.
+
+        Raises:
+            exceptions.ConfigError: Raised if the config file is missing a required key.
+        """
         self.api = api
         self.orm_base = api.orm_base
         try:
@@ -100,6 +193,7 @@ class QualysORMMixin(ABC):
     def init_db(
         self,
     ) -> None:
+        """Initialize the database.  Creates the schema and tables if they don't already exist."""
         with self.engine.connect() as conn:
             conn.execute(
                 sa.schema.CreateSchema(
@@ -116,6 +210,14 @@ class QualysORMMixin(ABC):
         load_func: Any,
         **kwargs: dict[str, Any],
     ) -> None:
+        """Safely load data into the database.  If an exception is raised, the database is
+        reverted to its previous state.
+
+        Args:
+            loader (Callable[..., Any]): Function which loads data into the database.
+            load_func (Any): Function which returns the data to load into the database.
+            **kwargs (dict[str, Any]): Keyword arguments to pass to the loader function.
+        """
         self.init_db()
         now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         schema = self.orm_base.metadata.schema
@@ -140,9 +242,20 @@ class QualysORMMixin(ABC):
 
     @abstractmethod
     def load(self) -> None:
+        """Load data into the database."""
         ...
 
     def query(self, stmt: Any, *, echo: bool = False) -> list[_C]:
+        """Execute a query against the database.
+
+        Args:
+            stmt (Any): SQLAlchemy statement to execute.
+            echo (bool, optional): Whether or not to echo SQL statements to stdout.  Defaults to
+                False.
+
+        Returns:
+            list[_C]: List of objects returned by the query.
+        """
         output: list[_C] = []
         with orm.Session(self.engine) as session:
             results = session.execute(stmt)
@@ -154,6 +267,13 @@ class QualysORMMixin(ABC):
         return output
 
     def __setattr__(self, __name: str, __value: Any) -> None:
+        """Set an attribute of the QualysORMMixin class.  If the attribute is "echo", the engine
+        attribute is updated with the new value.
+
+        Args:
+            __name (str): Name of the attribute to set.
+            __value (Any): Value to set the attribute to.
+        """
         super().__setattr__(__name, __value)
         if __name == "echo":
             self.engine = sa.create_engine(self.e_url, echo=__value)

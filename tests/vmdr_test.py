@@ -15,10 +15,10 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
 
-from qualyspy2 import qutils, vmdr
-from qualyspy2.models.vmdr.host_list_vm_detection_orm import \
+from qualyspy import qutils, vmdr
+from qualyspy.models.vmdr.host_list_vm_detection_orm import \
     Host as HostORM
-from qualyspy2.models.vmdr.host_list_vm_detection_output import \
+from qualyspy.models.vmdr.host_list_vm_detection_output import \
     Host as HostOutput
 from tests import test_data
 

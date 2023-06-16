@@ -1,2 +1,13 @@
-class Qualys_API_Error(Exception):
-    """Exception raised when the Qualys API returns a non-200 response, or some other error."""
+"""Exceptions for QualysPy."""
+
+
+class QualysAPIError(Exception):
+    """Indicates an error with the Qualys API."""
+
+    pass
+
+
+class ConfigError(Exception):
+    """Indicates an error with the configuration file."""
+
+    pass

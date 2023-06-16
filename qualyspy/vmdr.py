@@ -1,3 +1,15 @@
+"""Qualys VMDR API Module
+
+Typical usage example:
+vmdr_orm = vmdr.HostListDetectionORM()
+vmdr_orm.load()
+with orm.Session(vmdr_orm.engine) as session:
+    host_list = session.query(HostORM).all()
+    stmt = session.query(HostORM)
+    hosts = vmdr_orm.query(stmt)[0]
+    host = hosts.host[0]
+"""
+
 import os
 import re
 from typing import Any
@@ -12,6 +24,8 @@ from .models.vmdr import host_list_vm_detection_output
 
 
 class VmdrAPI(QualysAPIBase):
+    """Qualys VMDR API Class.  Contains methods for interacting with the VMDR API."""
+
     def __init__(
         self,
         config_file: str = str(
@@ -19,6 +33,13 @@ class VmdrAPI(QualysAPIBase):
         ),
         x_requested_with: str = "QualysPy Python Library",
     ) -> None:
+        """Initialize the VMDR API Class.
+
+        Args:
+            config_file (str, optional): Path to config file. Defaults to ~/etc/qualysby/config.ini.
+            x_requested_with (str, optional): Value for X-Requested-With header. Defaults to
+                "QualysPy Python Library".
+        """
         super().__init__(config_file, x_requested_with)
         self.xmlparser = XmlParser()
 
@@ -29,6 +50,21 @@ class VmdrAPI(QualysAPIBase):
         truncation_limit: int | None = None,
         id_min: int | None = None,
     ) -> tuple[host_list_vm_detection_output.HostList, bool, int]:
+        """Get a list of hosts with associated vulnerability detections from the VMDR API.  A value
+        of None for the parameters will use their default values in the API.
+
+        Args:
+            ids (int | list[int] | None, optional): Host IDs to query. Defaults to None.
+            truncation_limit (int | None, optional): Maximum number of hosts to return. Defaults to
+                None.
+            id_min (int | None, optional): Minimum host list ID to return. Defaults to None.
+
+        Returns:
+            tuple[host_list_vm_detection_output.HostList, bool, int]: A tuple containing the
+                host_list_vm_detection_output.HostList object, a boolean indicating whether the
+                results were truncated, and the next id_min to use for the next call.
+        """
+
         params = {
             k: str(v) for k, v in locals().items() if (k != "self" and v is not None)
         }
@@ -65,13 +101,35 @@ class VmdrAPI(QualysAPIBase):
 
 
 class HostListDetectionORM(VmdrAPI, QualysORMMixin):
+    """Qualys VMDR Host List Detection ORM Class.  Contains methods for loading host list
+    detections into an ORM database.
+    """
+
     def __init__(self, echo: bool = False) -> None:
+        """Initialize the Host List Detection ORM Class.
+
+        Args:
+            echo (bool, optional): Whether to echo SQL statements. Defaults to False.
+        """
         VmdrAPI.__init__(self)
         self.orm_base = host_list_vm_detection_orm.Base  # type: ignore
         QualysORMMixin.__init__(self, self, echo=echo)
 
     def _load(self, load_func: Any, **kwargs: Any) -> None:
+        """Load host list detections into the ORM database.
+
+        Args:
+            load_func (Any): Function to call to get host list detections.
+            **kwargs (Any): Keyword arguments to pass to load_func.
+        """
+
         def load_set(to_load: list[host_list_vm_detection_orm.Host]) -> None:
+            """Load a single set of host list detections into the ORM database.
+
+            Args:
+                to_load (list[host_list_vm_detection_orm.Host]): List of host list detections to
+                    load.
+            """
             with orm.Session(self.engine) as session:
                 session.add_all(to_load)
                 for obj in to_load:
@@ -91,4 +149,10 @@ class HostListDetectionORM(VmdrAPI, QualysORMMixin):
             load_set(to_load)
 
     def load(self, **kwargs: Any) -> None:
+        """Load host list detections into the ORM database.
+
+        Args:
+            **kwargs (Any): Keyword arguments to pass to VmdrAPI.host_list_detection().
+        """
+
         self.safe_load(self._load, self.host_list_detection, **kwargs)

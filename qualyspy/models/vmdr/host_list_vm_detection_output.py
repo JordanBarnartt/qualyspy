@@ -1,3 +1,8 @@
+"""Data model for the Qualys VM Detection Output API.
+
+The dataclasses in this module are generated from the Qualys XSD schema using xsdata.
+"""
+
 import datetime as dt
 import ipaddress
 from dataclasses import field
@@ -9,11 +14,9 @@ from xsdata.formats.converter import Converter, converter
 dt_format = "%Y-%m-%dT%H:%M:%SZ"
 
 
-class Config:
-    orm_mode = True
+class _IPv4AddressConverter(Converter):
+    """Converter for IPv4Address."""
 
-
-class IPv4AddressConverter(Converter):
     def deserialize(
         self, value: str, **kwargs: dict[Any, Any]
     ) -> ipaddress.IPv4Address:
@@ -23,7 +26,9 @@ class IPv4AddressConverter(Converter):
         return str(value)
 
 
-class IPv6AddressConverter(Converter):
+class _IPv6AddressConverter(Converter):
+    """Converter for IPv6Address."""
+
     def deserialize(
         self, value: str, **kwargs: dict[Any, Any]
     ) -> ipaddress.IPv6Address:
@@ -33,7 +38,9 @@ class IPv6AddressConverter(Converter):
         return str(value)
 
 
-class TimeDeltaConverter(Converter):
+class _TimeDeltaConverter(Converter):
+    """Converter for timedelta."""
+
     def deserialize(self, value: str, **kwargs: dict[Any, Any]) -> dt.timedelta:
         return dt.timedelta(seconds=int(value))
 
@@ -41,7 +48,9 @@ class TimeDeltaConverter(Converter):
         return str(value.total_seconds())
 
 
-class StrConverter(Converter):
+class _StrConverter(Converter):
+    """Converter for str, as metadata is a reserved keyword in SQLAlchemy."""
+
     def deserialize(self, value: str, **kwargs: dict[Any, Any]) -> str:
         if value == "metadata":
             return "metadata_"
@@ -51,12 +60,13 @@ class StrConverter(Converter):
         return str(value)
 
 
-converter.register_converter(ipaddress.IPv4Address, IPv4AddressConverter())
-converter.register_converter(ipaddress.IPv6Address, IPv6AddressConverter())
-converter.register_converter(dt.timedelta, TimeDeltaConverter())
+converter.register_converter(ipaddress.IPv4Address, _IPv4AddressConverter())
+converter.register_converter(ipaddress.IPv6Address, _IPv6AddressConverter())
+converter.register_converter(dt.timedelta, _TimeDeltaConverter())
+converter.register_converter(str, _StrConverter())
 
 
-@dataclass(config=Config)
+@dataclass
 class Attribute:
     class Meta:
         name = "ATTRIBUTE"
@@ -110,7 +120,7 @@ class Attribute:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class CloudTag:
     class Meta:
         name = "CLOUD_TAG"
@@ -142,7 +152,7 @@ class CloudTag:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class DnsData:
     class Meta:
         name = "DNS_DATA"
@@ -170,7 +180,7 @@ class DnsData:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class Param:
     class Meta:
         name = "PARAM"
@@ -193,7 +203,7 @@ class Param:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class Qds:
     class Meta:
         name = "QDS"
@@ -213,7 +223,7 @@ class Qds:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class QdsFactor:
     class Meta:
         name = "QDS_FACTOR"
@@ -233,7 +243,7 @@ class QdsFactor:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class Tag:
     class Meta:
         name = "TAG"
@@ -269,7 +279,7 @@ class Tag:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class Warning:
     class Meta:
         name = "WARNING"
@@ -298,7 +308,7 @@ class Warning:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class Azure:
     class Meta:
         name = "AZURE"
@@ -312,7 +322,7 @@ class Azure:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class CloudProviderTags:
     class Meta:
         name = "CLOUD_PROVIDER_TAGS"
@@ -327,7 +337,7 @@ class CloudProviderTags:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class Ec2:
     class Meta:
         name = "EC2"
@@ -341,7 +351,7 @@ class Ec2:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class Google:
     class Meta:
         name = "GOOGLE"
@@ -355,7 +365,7 @@ class Google:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class ParamList:
     class Meta:
         name = "PARAM_LIST"
@@ -370,7 +380,7 @@ class ParamList:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class QdsFactors:
     class Meta:
         name = "QDS_FACTORS"
@@ -384,7 +394,7 @@ class QdsFactors:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class Tags:
     class Meta:
         name = "TAGS"
@@ -399,7 +409,7 @@ class Tags:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class Detection:
     class Meta:
         name = "DETECTION"
@@ -619,7 +629,7 @@ class Detection:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class Metadata:
     class Meta:
         name = "METADATA"
@@ -647,7 +657,7 @@ class Metadata:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class Request:
     class Meta:
         name = "REQUEST"
@@ -693,7 +703,7 @@ class Request:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class DetectionList:
     class Meta:
         name = "DETECTION_LIST"
@@ -708,7 +718,7 @@ class DetectionList:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class Host:
     class Meta:
         name = "HOST"
@@ -903,7 +913,7 @@ class Host:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class HostList:
     class Meta:
         name = "HOST_LIST"
@@ -922,7 +932,7 @@ class HostList:
         return self
 
 
-@dataclass(config=Config)
+@dataclass
 class Response:
     class Meta:
         name = "RESPONSE"
@@ -952,7 +962,7 @@ class Response:
     )
 
 
-@dataclass(config=Config)
+@dataclass
 class HostListVmDetectionOutput:
     class Meta:
         name = "HOST_LIST_VM_DETECTION_OUTPUT"
