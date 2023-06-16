@@ -12,14 +12,6 @@ Subpackages
 Submodules
 ----------
 
-qualyspy.URLS module
---------------------
-
-.. automodule:: qualyspy.URLS
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 qualyspy.base module
 --------------------
 
@@ -32,14 +24,6 @@ qualyspy.exceptions module
 --------------------------
 
 .. automodule:: qualyspy.exceptions
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-qualyspy.qutils module
-----------------------
-
-.. automodule:: qualyspy.qutils
    :members:
    :undoc-members:
    :show-inheritance:
