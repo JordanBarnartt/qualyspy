@@ -96,7 +96,6 @@ class VmdrAPI(QualysAPIBase):
                     "Unable to parse URL in warning message. No id_min found.\n"
                     f"{parsed.response.warning}"
                 )
-            print(parsed.response.warning)
             truncated = True
             next_id_min = int(next_id_match.group(1))
         return ret, truncated, next_id_min
