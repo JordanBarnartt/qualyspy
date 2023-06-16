@@ -1,6 +1,6 @@
 """Data model for the Qualys VM Detection Output API.
 
-The dataclasses in this module are generated from the Qualys XSD schema using xsdata.
+The dataclasses in this module are generated from the Qualys DTD schema using xsdata.
 """
 
 import datetime as dt
@@ -11,41 +11,9 @@ from typing import Any, List, Optional
 from pydantic.dataclasses import dataclass
 from xsdata.formats.converter import Converter, converter
 
-dt_format = "%Y-%m-%dT%H:%M:%SZ"
+from . import converters
 
-
-class _IPv4AddressConverter(Converter):
-    """Converter for IPv4Address."""
-
-    def deserialize(
-        self, value: str, **kwargs: dict[Any, Any]
-    ) -> ipaddress.IPv4Address:
-        return ipaddress.IPv4Address(value)
-
-    def serialize(self, value: ipaddress.IPv4Address, **kwargs: dict[Any, Any]) -> str:
-        return str(value)
-
-
-class _IPv6AddressConverter(Converter):
-    """Converter for IPv6Address."""
-
-    def deserialize(
-        self, value: str, **kwargs: dict[Any, Any]
-    ) -> ipaddress.IPv6Address:
-        return ipaddress.IPv6Address(value)
-
-    def serialize(self, value: ipaddress.IPv6Address, **kwargs: dict[Any, Any]) -> str:
-        return str(value)
-
-
-class _TimeDeltaConverter(Converter):
-    """Converter for timedelta."""
-
-    def deserialize(self, value: str, **kwargs: dict[Any, Any]) -> dt.timedelta:
-        return dt.timedelta(seconds=int(value))
-
-    def serialize(self, value: dt.timedelta, **kwargs: dict[Any, Any]) -> str:
-        return str(value.total_seconds())
+DT_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 
 class _StrConverter(Converter):
@@ -60,9 +28,9 @@ class _StrConverter(Converter):
         return str(value)
 
 
-converter.register_converter(ipaddress.IPv4Address, _IPv4AddressConverter())
-converter.register_converter(ipaddress.IPv6Address, _IPv6AddressConverter())
-converter.register_converter(dt.timedelta, _TimeDeltaConverter())
+converter.register_converter(ipaddress.IPv4Address, converters.IPv4AddressConverter())
+converter.register_converter(ipaddress.IPv6Address, converters.IPv6AddressConverter())
+converter.register_converter(dt.timedelta, converters.TimeDeltaConverter())
 converter.register_converter(str, _StrConverter())
 
 
@@ -100,7 +68,7 @@ class Attribute:
         metadata={
             "name": "LAST_SUCCESS_DATE",
             "type": "Element",
-            "format": dt_format,
+            "format": DT_FORMAT,
         },
     )
     last_error_date: Optional[dt.datetime] = field(
@@ -108,7 +76,7 @@ class Attribute:
         metadata={
             "name": "LAST_ERROR_DATE",
             "type": "Element",
-            "format": dt_format,
+            "format": DT_FORMAT,
         },
     )
     last_error: Optional[str] = field(
@@ -147,7 +115,7 @@ class CloudTag:
             "name": "LAST_SUCCESS_DATE",
             "type": "Element",
             "required": True,
-            "format": dt_format,
+            "format": DT_FORMAT,
         },
     )
 
@@ -491,7 +459,7 @@ class Detection:
         metadata={
             "name": "FIRST_FOUND_DATETIME",
             "type": "Element",
-            "format": dt_format,
+            "format": DT_FORMAT,
         },
     )
     last_found_datetime: Optional[dt.datetime] = field(
@@ -499,7 +467,7 @@ class Detection:
         metadata={
             "name": "LAST_FOUND_DATETIME",
             "type": "Element",
-            "format": dt_format,
+            "format": DT_FORMAT,
         },
     )
     qds: Optional[Qds] = field(
@@ -528,7 +496,7 @@ class Detection:
         metadata={
             "name": "LAST_TEST_DATETIME",
             "type": "Element",
-            "format": dt_format,
+            "format": DT_FORMAT,
         },
     )
     last_update_datetime: Optional[dt.datetime] = field(
@@ -536,7 +504,7 @@ class Detection:
         metadata={
             "name": "LAST_UPDATE_DATETIME",
             "type": "Element",
-            "format": dt_format,
+            "format": DT_FORMAT,
         },
     )
     last_fixed_datetime: Optional[dt.datetime] = field(
@@ -544,7 +512,7 @@ class Detection:
         metadata={
             "name": "LAST_FIXED_DATETIME",
             "type": "Element",
-            "format": dt_format,
+            "format": DT_FORMAT,
         },
     )
     first_reopened_datetime: Optional[dt.datetime] = field(
@@ -552,7 +520,7 @@ class Detection:
         metadata={
             "name": "FIRST_REOPENED_DATETIME",
             "type": "Element",
-            "format": dt_format,
+            "format": DT_FORMAT,
         },
     )
     last_reopened_datetime: Optional[dt.datetime] = field(
@@ -560,7 +528,7 @@ class Detection:
         metadata={
             "name": "LAST_REOPENED_DATETIME",
             "type": "Element",
-            "format": dt_format,
+            "format": DT_FORMAT,
         },
     )
     times_reopened: Optional[int] = field(
@@ -617,7 +585,7 @@ class Detection:
         metadata={
             "name": "LAST_PROCESSED_DATETIME",
             "type": "Element",
-            "format": dt_format,
+            "format": DT_FORMAT,
         },
     )
     asset_cve: Optional[str] = field(
@@ -668,7 +636,7 @@ class Request:
             "name": "DATETIME",
             "type": "Element",
             "required": True,
-            "format": dt_format,
+            "format": DT_FORMAT,
         },
     )
     user_login: Optional[str] = field(
@@ -841,7 +809,7 @@ class Host:
         metadata={
             "name": "LAST_SCAN_DATETIME",
             "type": "Element",
-            "format": dt_format,
+            "format": DT_FORMAT,
         },
     )
     last_vm_scanned_date: Optional[dt.datetime] = field(
@@ -849,7 +817,7 @@ class Host:
         metadata={
             "name": "LAST_VM_SCANNED_DATE",
             "type": "Element",
-            "format": dt_format,
+            "format": DT_FORMAT,
         },
     )
     last_vm_scanned_duration: Optional[dt.timedelta] = field(
@@ -864,7 +832,7 @@ class Host:
         metadata={
             "name": "LAST_VM_AUTH_SCANNED_DATE",
             "type": "Element",
-            "format": dt_format,
+            "format": DT_FORMAT,
         },
     )
     last_vm_auth_scanned_duration: Optional[dt.timedelta] = field(
@@ -879,7 +847,7 @@ class Host:
         metadata={
             "name": "LAST_PC_SCANNED_DATE",
             "type": "Element",
-            "format": dt_format,
+            "format": DT_FORMAT,
         },
     )
     tags: Optional[Tags] = field(
@@ -943,7 +911,7 @@ class Response:
             "name": "DATETIME",
             "type": "Element",
             "required": True,
-            "format": dt_format,
+            "format": DT_FORMAT,
         },
     )
     host_list: Optional[HostList] = field(

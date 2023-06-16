@@ -6,48 +6,14 @@ import ipaddress
 import sqlalchemy as sa
 import sqlalchemy.orm as orm
 
+from . import sa_types
+
 
 class Base(orm.DeclarativeBase):
     pass
 
 
 Base.metadata.schema = "host_list_vm_detection"
-
-
-class _IPv4AddressType(sa.types.TypeDecorator[sa.types.String]):
-    """SQLAlchemy type for IPv4Address"""
-
-    impl = sa.types.String
-
-    def process_bind_param(self, value, dialect):  # type: ignore
-        if value is not None:
-            return str(value)
-        else:
-            return None
-
-    def process_result_value(self, value, dialect):  # type: ignore
-        if value is not None:
-            return ipaddress.IPv4Address(value)
-        else:
-            return None
-
-
-class _IPv6AddressType(sa.types.TypeDecorator[sa.types.String]):
-    """SQLAlchemy type for IPv6Address"""
-
-    impl = sa.types.String
-
-    def process_bind_param(self, value, dialect):  # type: ignore
-        if value is not None:
-            return str(value)
-        else:
-            return None
-
-    def process_result_value(self, value, dialect):  # type: ignore
-        if value is not None:
-            return ipaddress.IPv6Address(value)
-        else:
-            return None
 
 
 class Attribute(Base):
@@ -209,7 +175,9 @@ class Detection(Base):
     status: orm.Mapped[str | None]
     first_found_datetime: orm.Mapped[dt.datetime | None]
     last_found_datetime: orm.Mapped[dt.datetime | None]
-    qds: orm.Mapped[Qds | None] = orm.relationship(back_populates="detection", uselist=False)
+    qds: orm.Mapped[Qds | None] = orm.relationship(
+        back_populates="detection", uselist=False
+    )
     qds_factors: orm.Mapped[QdsFactors | None] = orm.relationship(
         back_populates="detection", uselist=False
     )
@@ -266,14 +234,20 @@ class Host(Base):
 
     id: orm.Mapped[int] = orm.mapped_column(primary_key=True)
     asset_id: orm.Mapped[int | None]
-    ip: orm.Mapped[ipaddress.IPv4Address | None] = orm.mapped_column("ip", _IPv4AddressType)
-    ipv6: orm.Mapped[ipaddress.IPv6Address | None] = orm.mapped_column("ipv6", _IPv6AddressType)
+    ip: orm.Mapped[ipaddress.IPv4Address | None] = orm.mapped_column(
+        "ip", sa_types.IPv4AddressType
+    )
+    ipv6: orm.Mapped[ipaddress.IPv6Address | None] = orm.mapped_column(
+        "ipv6", sa_types.IPv6AddressType
+    )
     tracking_method: orm.Mapped[str | None]
     network_id: orm.Mapped[int | None]
     os: orm.Mapped[str | None]
     os_cpe: orm.Mapped[str | None]
     dns: orm.Mapped[str | None]
-    dns_data: orm.Mapped[DnsData | None] = orm.relationship(back_populates="host", uselist=False)
+    dns_data: orm.Mapped[DnsData | None] = orm.relationship(
+        back_populates="host", uselist=False
+    )
     cloud_provider: orm.Mapped[str | None]
     cloud_service: orm.Mapped[str | None]
     cloud_resource_id: orm.Mapped[str | None]
@@ -286,8 +260,12 @@ class Host(Base):
     last_vm_auth_scanned_date: orm.Mapped[dt.datetime | None]
     last_vm_auth_scanned_duration: orm.Mapped[dt.timedelta | None]
     last_pc_scanned_date: orm.Mapped[dt.datetime | None]
-    tags: orm.Mapped[Tags | None] = orm.relationship(back_populates="host", uselist=False)
-    metadata_: orm.Mapped[Metadata | None] = orm.relationship(back_populates="host", uselist=False)
+    tags: orm.Mapped[Tags | None] = orm.relationship(
+        back_populates="host", uselist=False
+    )
+    metadata_: orm.Mapped[Metadata | None] = orm.relationship(
+        back_populates="host", uselist=False
+    )
     cloud_provider_tags: orm.Mapped[CloudProviderTags | None] = orm.relationship(
         back_populates="host", uselist=False
     )
