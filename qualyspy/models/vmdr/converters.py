@@ -38,3 +38,15 @@ class TimeDeltaConverter(Converter):
 
     def serialize(self, value: dt.timedelta, **kwargs: dict[Any, Any]) -> str:
         return str(value.total_seconds())
+
+
+class StrConverter(Converter):
+    """Converter for str, as metadata is a reserved keyword in SQLAlchemy."""
+
+    def deserialize(self, value: str, **kwargs: dict[Any, Any]) -> str:
+        if value == "metadata":
+            return "metadata_"
+        return value
+
+    def serialize(self, value: str, **kwargs: dict[Any, Any]) -> str:
+        return str(value)

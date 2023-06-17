@@ -26,12 +26,12 @@ class Attribute(Base):
     last_error_date: orm.Mapped[dt.datetime | None]
     last_error: orm.Mapped[str | None]
 
-    azure_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("azure.id"))
-    azure: orm.Mapped["Azure"] = orm.relationship(back_populates="attribute")
-    google_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("google.id"))
-    google: orm.Mapped["Google"] = orm.relationship(back_populates="attribute")
-    ec2_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("ec2.id"))
-    ec2: orm.Mapped["Ec2"] = orm.relationship(back_populates="attribute")
+    azure_id: orm.Mapped[int | None] = orm.mapped_column(sa.ForeignKey("azure.id"))
+    azure: orm.Mapped["Azure" | None] = orm.relationship(back_populates="attribute")
+    google_id: orm.Mapped[int | None] = orm.mapped_column(sa.ForeignKey("google.id"))
+    google: orm.Mapped["Google" | None] = orm.relationship(back_populates="attribute")
+    ec2_id: orm.Mapped[int | None] = orm.mapped_column(sa.ForeignKey("ec2.id"))
+    ec2: orm.Mapped["Ec2" | None] = orm.relationship(back_populates="attribute")
 
 
 class CloudTag(Base):
@@ -272,13 +272,3 @@ class Host(Base):
     detection_list: orm.Mapped[DetectionList | None] = orm.relationship(
         back_populates="host", uselist=False
     )
-
-    # host_list_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("host_list.id"))
-    # host_list: orm.Mapped["HostList"] = orm.relationship(back_populates="host")
-
-
-# class HostList(Base):
-#     __tablename__ = "host_list"
-
-#     id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
-#     host: orm.Mapped[list[Host]] = orm.relationship(back_populates="host_list")

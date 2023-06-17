@@ -21,8 +21,8 @@ from xsdata.formats.dataclass.parsers import XmlParser
 
 from . import URLS, qutils
 from .base import QualysAPIBase, QualysORMMixin
-from .models.vmdr import host_list_vm_detection_orm
-from .models.vmdr import host_list_vm_detection_output
+from .models.vmdr import host_list_vm_detection_orm, host_list_vm_detection_output
+from .models.vmdr import host_list_output, host_list_orm
 
 
 class VmdrAPI(QualysAPIBase):
@@ -118,7 +118,7 @@ class VmdrAPI(QualysAPIBase):
         ids: int | list[int] | None = None,
         truncation_limit: int | None = None,
         id_min: int | None = None,
-    ) -> tuple[host_list_vm_detection_output.HostList, bool, int]:
+    ) -> tuple[host_list_output.HostList, bool, int]:
         """Get a list of hosts from the VMDR API.  A value of None for the parameters will use their
             default values in the API.
 
@@ -140,7 +140,7 @@ class VmdrAPI(QualysAPIBase):
 
 
 class HostListDetectionORM(VmdrAPI, QualysORMMixin):
-    """Qualys VMDR Host List Detection ORM Class.  Contains methods for loading host list
+    """Qualys VMDR Host List Detection ORM Class.  Contains methods for loading host
     detections into an ORM database.
     """
 
@@ -155,15 +155,15 @@ class HostListDetectionORM(VmdrAPI, QualysORMMixin):
         QualysORMMixin.__init__(self, self, echo=echo)
 
     def _load(self, load_func: Any, **kwargs: Any) -> None:
-        """Load host list detections into the ORM database.
+        """Load host detections into the ORM database.
 
         Args:
-            load_func (Any): Function to call to get host list detections.
+            load_func (Any): Function to call to get host detections.
             **kwargs (Any): Keyword arguments to pass to load_func.
         """
 
         def load_set(to_load: list[host_list_vm_detection_orm.Host]) -> None:
-            """Load a single set of host list detections into the ORM database.
+            """Load a single set of host detections into the ORM database.
 
             Args:
                 to_load (list[host_list_vm_detection_orm.Host]): List of host list detections to
@@ -188,10 +188,65 @@ class HostListDetectionORM(VmdrAPI, QualysORMMixin):
             load_set(to_load)
 
     def load(self, **kwargs: Any) -> None:
-        """Load host list detections into the ORM database.
+        """Load host detections into the ORM database.
 
         Args:
             **kwargs (Any): Keyword arguments to pass to VmdrAPI.host_list_detection().
         """
 
         self.safe_load(self._load, self.host_list_detection, **kwargs)
+
+
+class HostListORM(VmdrAPI, QualysORMMixin):
+    """Qualys VMDR Host List ORM Class.  Contains methods for loading hosts into an ORM database."""
+
+    def __init__(self, echo: bool = False) -> None:
+        """Initialize the Host List ORM Class.
+
+        Args:
+            echo (bool, optional): Whether to echo SQL statements. Defaults to False.
+        """
+        VmdrAPI.__init__(self)
+        self.orm_base = host_list_orm.Base  # type: ignore
+        QualysORMMixin.__init__(self, self, echo=echo)
+
+    def _load(self, load_func: Any, **kwargs: Any) -> None:
+        """Load hosts into the ORM database.
+
+        Args:
+            load_func (Any): Function to call to get hosts.
+            **kwargs (Any): Keyword arguments to pass to load_func.
+        """
+
+        def load_set(to_load: list[host_list_orm.Host]) -> None:
+            """Load a single set of hosts into the ORM database.
+
+            Args:
+                to_load (list[host_list_orm.Host]): List of hosts to load.
+            """
+            with orm.Session(self.engine) as session:
+                session.add_all(to_load)
+                for obj in to_load:
+                    session.merge(obj)
+                session.commit()
+
+        kwargs.setdefault("truncation_limit", 10000)
+        truncated = True
+        next_id_min = None
+        while truncated:
+            kwargs["id_min"] = next_id_min
+            to_load, truncated, next_id_min = load_func(**kwargs)
+            to_load = [
+                qutils.to_orm_object(obj, host_list_orm.Host)
+                for obj in to_load.host_list
+            ]
+            load_set(to_load)
+
+    def load(self, **kwargs: Any) -> None:
+        """Load hosts into the ORM database.
+
+        Args:
+            **kwargs (Any): Keyword arguments to pass to VmdrAPI.host_list().
+        """
+
+        self.safe_load(self._load, self.host_list, **kwargs)

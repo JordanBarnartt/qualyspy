@@ -11,6 +11,7 @@ from . import converters
 converter.register_converter(ipaddress.IPv4Address, converters.IPv4AddressConverter())
 converter.register_converter(ipaddress.IPv6Address, converters.IPv6AddressConverter())
 converter.register_converter(dt.timedelta, converters.TimeDeltaConverter())
+converter.register_converter(str, converters.StrConverter())
 
 DT_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
