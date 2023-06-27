@@ -21,6 +21,9 @@ from . import URLS, exceptions, qutils
 
 _C = TypeVar("_C")
 
+_USE_API_SERVER = ["msp", "api"]
+_USE_API_GATEWAY = ["rest"]
+
 
 class QualysAPIBase:
     """Base class for interacting with the Qualys API.  This class is not intended to be used
@@ -67,11 +70,14 @@ class QualysAPIBase:
         self.config = configparser.ConfigParser()
         self.config.read(config_file)
         try:
-            self.api_root = self.config["AUTHENTICATION"]["api_root"]
+            self.api_server = self.config["AUTHENTICATION"]["api_server"]
+            self.api_gateway = self.config["AUTHENTICATION"]["api_gateway"]
             self.username = self.config["AUTHENTICATION"]["username"]
             self.password = self.config["AUTHENTICATION"]["password"]
         except KeyError as e:
             raise exceptions.ConfigError(f"Config file missing key: {e}")
+
+        self.jwt: str | None = None
 
         self.x_requested_with = x_requested_with
         self.orm_base = orm.DeclarativeBase()
@@ -84,7 +90,84 @@ class QualysAPIBase:
         self.concurrency_limit_running: int | None = None
         self.get(URLS.about)  # Set ratelimit and concurrency limit
 
-    def get(self, url: str, params: dict[str, str] | None = None) -> str:
+    def _choose_url(self, url: str) -> str:
+        """Choose the correct URL to use based on the URL.
+
+        Args:
+            url (str): URL to of endpoint being access.
+
+        Returns:
+            str: URL to use.
+        """
+
+        api_root = url.split("/")[1]
+
+        if api_root in _USE_API_SERVER:
+            return self.api_server
+        elif api_root in _USE_API_GATEWAY:
+            return self.api_gateway
+        else:
+            raise ValueError("No valid API root or gateway found.")
+
+    def _get_jwt(self) -> None:
+        """Get a new JWT from the Qualys API."""
+        response = requests.post(
+            self.api_gateway + URLS.gateway_auth,
+            data={
+                "token": "true",
+                "username": self.username,
+                "password": self.password,
+            },
+            headers={
+                "X-Requested-With": self.x_requested_with,
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+        )
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise exceptions.QualysAPIError(response.text) from e
+        self.jwt = response.text
+
+    def _update_limits(self, response: requests.Response) -> None:
+        """Update the rate limit and concurrency limit information.
+
+        Args:
+            response (requests.Response): Response object from the Qualys API.
+        """
+
+        def _get_updated_limit(
+            headers: requests.structures.CaseInsensitiveDict[str], name: str
+        ) -> int | None:
+            """Get the updated limit or return None if the header is not present.
+
+            Args:
+                limit (str): Header to get the limit for.
+            """
+
+            try:
+                return int(headers[name])
+            except KeyError:
+                return None
+
+        self.ratelimit_limit = _get_updated_limit(response.headers, "X-RateLimit-Limit")
+        self.ratelimit_window_sec = _get_updated_limit(
+            response.headers, "X-RateLimit-Window"
+        )
+        self.ratelimit_towait_sec = _get_updated_limit(
+            response.headers, "X-RateLimit-ToWait"
+        )
+        self.ratelimit_remaining = _get_updated_limit(
+            response.headers, "X-RateLimit-Remaining"
+        )
+        self.concurrency_limit_limit = _get_updated_limit(
+            response.headers, "X-ConcurrencyLimit"
+        )
+        self.concurrency_limit_running = _get_updated_limit(
+            response.headers, "X-ConcurrencyRunning"
+        )
+
+    def get(self, url: str, params: dict[str, str] | None = None) -> requests.Response:
         """Send a GET request to the Qualys API.
 
         Args:
@@ -98,31 +181,42 @@ class QualysAPIBase:
         Raises:
             exceptions.QualysAPIError: Raised if the Qualys API returns a non-200 response.
         """
-        response = requests.get(
-            self.api_root + url,
-            params=params,
-            auth=(self.username, self.password),
-            headers={"X-Requested-With": self.x_requested_with},
-        )
-        try:
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            raise exceptions.QualysAPIError(response.text) from e
+        root = self._choose_url(url)
+        if root == self.api_server:
+            response = requests.get(
+                root + url,
+                params=params,
+                auth=(self.username, self.password),
+                headers={"X-Requested-With": self.x_requested_with},
+            )
+            try:
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as e:
+                raise exceptions.QualysAPIError(response.text) from e
 
-        self.ratelimit_limit = int(response.headers["X-RateLimit-Limit"])
-        self.ratelimit_window_sec = int(response.headers["X-RateLimit-Window-Sec"])
-        self.ratelimit_remaining = int(response.headers["X-RateLimit-Remaining"])
-        self.ratelimit_towait_sec = int(response.headers["X-RateLimit-ToWait-Sec"])
-        self.concurrency_limit_limit = int(
-            response.headers["X-Concurrency-Limit-Limit"]
-        )
-        self.concurrency_limit_running = int(
-            response.headers["X-Concurrency-Limit-Running"]
-        )
+            self._update_limits(response)
+            return response
+        elif root == self.api_gateway:
+            if self.jwt is None:
+                self._get_jwt()
+            response = requests.get(
+                root + url,
+                params=params,
+                headers={
+                    "X-Requested-With": self.x_requested_with,
+                    "Authorization": f"Bearer {self.jwt}",
+                },
+            )
+            try:
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as e:
+                raise exceptions.QualysAPIError(response.text) from e
+            self._update_limits(response)
+            return response
+        else:
+            raise ValueError("No valid API root or gateway found.")
 
-        return response.text
-
-    def post(self, url: str, data: dict[str, str] | None = None) -> str:
+    def post(self, url: str, data: dict[str, str] | None = None) -> requests.Response:
         """Send a POST request to the Qualys API.
 
         Args:
@@ -136,17 +230,39 @@ class QualysAPIBase:
         Raises:
             exceptions.QualysAPIError: Raised if the Qualys API returns a non-200 response.
         """
-        response = requests.post(
-            self.api_root + url,
-            data=data,
-            auth=(self.username, self.password),
-            headers={"X-Requested-With": self.x_requested_with},
-        )
-        try:
-            response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            raise exceptions.QualysAPIError(response.text) from e
-        return response.text
+        root = self._choose_url(url)
+        if root == self.api_server:
+            response = requests.post(
+                root + url,
+                data=data,
+                auth=(self.username, self.password),
+                headers={"X-Requested-With": self.x_requested_with},
+            )
+            try:
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as e:
+                raise exceptions.QualysAPIError(response.text) from e
+            return response
+        elif root == self.api_gateway:
+            if self.jwt is None:
+                self._get_jwt()
+            response = requests.post(
+                root + url,
+                data=data,
+                headers={
+                    "X-Requested-With": self.x_requested_with,
+                    "Authorization": f"Bearer {self.jwt}",
+                    "Content-Type": "application/json",
+                },
+            )
+            try:
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as e:
+                raise exceptions.QualysAPIError(response.text) from e
+            self._update_limits(response)
+            return response
+        else:
+            raise ValueError("No valid API root or gateway found.")
 
 
 class QualysORMMixin(ABC):

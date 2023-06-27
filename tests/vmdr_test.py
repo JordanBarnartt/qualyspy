@@ -15,16 +15,16 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
 
+import qualyspy.models.vmdr.host_list_orm as host_list_orm
+import qualyspy.models.vmdr.host_list_vm_detection_orm as host_list_vm_detection_orm
 from qualyspy import qutils, vmdr
-from qualyspy.models.vmdr.host_list_vm_detection_orm import Host as HostORM
-from qualyspy.models.vmdr.host_list_vm_detection_output import Host as HostOutput
 from tests import test_data
 
 
 class TestQutils(unittest.TestCase):
     def test_to_orm_object(self):
         data = test_data.example_hostlist
-        orm_object = qutils.to_orm_object(data.host[0], HostORM)
+        orm_object = qutils.to_orm_object(data.host[0], host_list_vm_detection_orm.Host)
         self.assertEqual(orm_object.ip, data.host[0].ip)
 
 
@@ -35,31 +35,35 @@ class TestVMDR(unittest.TestCase):
             ids=test_data.test_host_list_id
         )
         ip = hostlist_detection.host[0].ip
-        self.assertEqual(
-            ip, ipaddress.ip_address(test_data.test_host_list_ip_address)
-        )
+        self.assertEqual(ip, ipaddress.ip_address(test_data.test_host_list_ip_address))
 
     def test_vmdr_host_list_det_orm_load(self):
-        vmdr_orm = vmdr.HostListDetectionORM()
+        vmdr_orm = vmdr.HostListDetectionORM(echo=True)
         vmdr_orm.load()
         with orm.Session(vmdr_orm.engine) as session:
-            host_list = session.query(HostORM).where(HostORM.id == 11619472).all()
+            host_list = (
+                session.query(host_list_vm_detection_orm.Host)
+                .where(host_list_vm_detection_orm.Host.id == 11619472)
+                .all()
+            )
             self.assertEqual(host_list[0].ip, ipaddress.ip_address("172.16.76.84"))
-
-    def test_vmdr_host_list_det_orm_query(self):
-        vmdr_orm = vmdr.HostListDetectionORM(echo=False)
-        with orm.Session(vmdr_orm.engine) as session:
-            stmt = session.query(HostORM)
-            host_list = vmdr_orm.query(stmt)[0]
-            host = host_list.host[0]
-            self.assertIsInstance(host, HostOutput)
-            self.assertTrue(host.ip in ipaddress.ip_network("129.97.0.0/16"))
 
     def test_vmdr_host_list(self):
         api = vmdr.VmdrAPI()
         host_list, _, _ = api.host_list(ids=test_data.test_host_list_id)
         ip = host_list.host[0].ip
         self.assertEqual(ip, ipaddress.ip_address(test_data.test_host_list_ip_address))
+
+    def test_vmdr_host_list_orm_load(self):
+        vmdr_orm = vmdr.HostListORM(echo=True)
+        vmdr_orm.load()
+        with orm.Session(vmdr_orm.engine) as session:
+            host_list = (
+                session.query(host_list_orm.Host)
+                .where(host_list_orm.Host.id == 11619472)
+                .all()
+            )
+            self.assertEqual(host_list[0].ip, ipaddress.ip_address("172.16.76.84"))
 
 
 if __name__ == "__main__":

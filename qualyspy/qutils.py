@@ -147,3 +147,21 @@ def from_orm_object(obj: Any) -> Any:
 
     output_class = getattr(host_list_vm_detection_output, obj.__class__.__name__)
     return output_class(**_from_orm_object(obj))
+
+
+def snake_to_camel_case(snake_str: str) -> str:
+    components = snake_str.split("_")
+    # capitalize the first component and join the rest
+    return components[0] + "".join(x.title() for x in components[1:])
+
+
+def clean_dict(d: dict[str, Any]) -> dict[str, str]:
+    """Remove None values from a dictionary and convert values to strings.
+
+    Args:
+        d (dict[str, Any]): The dictionary to clean.
+
+    Returns:
+        dict[str, str]: The cleaned dictionary.
+    """
+    return {k: str(v) for k, v in d.items() if v is not None}

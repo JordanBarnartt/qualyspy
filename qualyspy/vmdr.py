@@ -45,44 +45,6 @@ class VmdrAPI(QualysAPIBase):
         super().__init__(config_file, x_requested_with)
         self.xmlparser = XmlParser()
 
-    def _get_result(self, **kwargs: Any) -> tuple[Any, bool, int]:
-        """Get a result from the VMDR API.
-
-        Args:
-            **kwargs (Any): Keyword arguments to pass to the API call.
-
-        Returns:
-            tuple[Any, bool, int]: A tuple containing the result, a boolean indicating whether the
-                results were truncated, and the next id_min to use for the next call.
-        """
-        truncated = False
-        next_id_min = 0
-
-        response = self.get(URLS.host_list_detection, params=kwargs)
-        parsed: host_list_vm_detection_output.HostListVmDetectionOutput = (
-            self.xmlparser.from_string(
-                response, host_list_vm_detection_output.HostListVmDetectionOutput
-            )
-        )
-        if parsed.response is None:
-            raise ValueError("API call returned no response.")
-        ret = parsed.response.host_list
-        if ret is None:
-            raise ValueError("API call returned no host_list.")
-        if (
-            parsed.response.warning is not None
-            and parsed.response.warning.url is not None
-        ):
-            next_id_match = re.search(r"id_min=(\d+)", parsed.response.warning.url)
-            if next_id_match is None:
-                raise ValueError(
-                    "Unable to parse URL in warning message. No id_min found.\n"
-                    f"{parsed.response.warning}"
-                )
-            truncated = True
-            next_id_min = int(next_id_match.group(1))
-        return ret, truncated, next_id_min
-
     def host_list_detection(
         self,
         *,
@@ -110,7 +72,34 @@ class VmdrAPI(QualysAPIBase):
         }
         params["action"] = "list"
 
-        return self._get_result(**params)
+        truncated = False
+        next_id_min = 0
+
+        response = self.get(URLS.host_list_detection, params=params).text
+        parsed: host_list_vm_detection_output.HostListVmDetectionOutput = (
+            self.xmlparser.from_string(
+                response, host_list_vm_detection_output.HostListVmDetectionOutput
+            )
+        )
+        if parsed.response is None:
+            raise ValueError("API call returned no response.")
+        ret = parsed.response.host_list
+        if ret is None:
+            raise ValueError("API call returned no host_list.")
+        if (
+            parsed.response.warning is not None
+            and parsed.response.warning.url is not None
+        ):
+            next_id_match = re.search(r"id_min=(\d+)", parsed.response.warning.url)
+            if next_id_match is None:
+                raise ValueError(
+                    "Unable to parse URL in warning message. No id_min found.\n"
+                    f"{parsed.response.warning}"
+                )
+            truncated = True
+            next_id_min = int(next_id_match.group(1))
+
+        return ret, truncated, next_id_min
 
     def host_list(
         self,
@@ -136,7 +125,32 @@ class VmdrAPI(QualysAPIBase):
         }
         params["action"] = "list"
 
-        return self._get_result(**params)
+        truncated = False
+        next_id_min = 0
+
+        response = self.get(URLS.host_list, params=params).text
+        parsed: host_list_output.HostListOutput = self.xmlparser.from_string(
+            response, host_list_output.HostListOutput
+        )
+        if parsed.response is None:
+            raise ValueError("API call returned no response.")
+        ret = parsed.response.host_list
+        if ret is None:
+            raise ValueError("API call returned no host_list.")
+        if (
+            parsed.response.warning is not None
+            and parsed.response.warning.url is not None
+        ):
+            next_id_match = re.search(r"id_min=(\d+)", parsed.response.warning.url)
+            if next_id_match is None:
+                raise ValueError(
+                    "Unable to parse URL in warning message. No id_min found.\n"
+                    f"{parsed.response.warning}"
+                )
+            truncated = True
+            next_id_min = int(next_id_match.group(1))
+
+        return ret, truncated, next_id_min
 
 
 class HostListDetectionORM(VmdrAPI, QualysORMMixin):
@@ -237,8 +251,7 @@ class HostListORM(VmdrAPI, QualysORMMixin):
             kwargs["id_min"] = next_id_min
             to_load, truncated, next_id_min = load_func(**kwargs)
             to_load = [
-                qutils.to_orm_object(obj, host_list_orm.Host)
-                for obj in to_load.host_list
+                qutils.to_orm_object(obj, host_list_orm.Host) for obj in to_load.host
             ]
             load_set(to_load)
 
