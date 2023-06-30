@@ -43,6 +43,14 @@ class IPv6AddressType(sa.types.TypeDecorator[sa.types.String]):
 
 class IPAddressGenericType(sa.types.TypeDecorator[sa.types.String]):
     impl = sa.types.String
+
+    # Clears the following warning:
+    # SAWarning: TypeDecorator IPAddressGenericType() will not produce a cache key because the
+    # ``cache_ok`` attribute is not set to True.  This can have significant performance
+    # implications including some performance degradations in comparison to prior SQLAlchemy
+    # versions.  Set this attribute to True if this type object's state is safe to use in a
+    # cache key, or False to disable this warning. (Background on this warning at:
+    # https://sqlalche.me/e/20/cprf)
     cache_ok = True
 
     def process_bind_param(self, value, dialect):  # type: ignore
