@@ -43,6 +43,7 @@ class IPv6AddressType(sa.types.TypeDecorator[sa.types.String]):
 
 class IPAddressGenericType(sa.types.TypeDecorator[sa.types.String]):
     impl = sa.types.String
+    cache_ok = True
 
     def process_bind_param(self, value, dialect):  # type: ignore
         if value is not None:
