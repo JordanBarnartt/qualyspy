@@ -136,9 +136,7 @@ class QualysAPIBase:
             response (requests.Response): Response object from the Qualys API.
         """
 
-        def _get_updated_limit(
-            headers: requests.structures.CaseInsensitiveDict[str], name: str
-        ) -> int | None:
+        def _get_updated_limit(headers: Any, name: str) -> int | None:
             """Get the updated limit or return None if the header is not present.
 
             Args:
@@ -216,7 +214,9 @@ class QualysAPIBase:
         else:
             raise ValueError("No valid API root or gateway found.")
 
-    def post(self, url: str, data: dict[str, str] | None = None) -> requests.Response:
+    def post(
+        self, url: str, params: dict[str, str] | None = None, data: dict[str, str] | None = None
+    ) -> requests.Response:
         """Send a POST request to the Qualys API.
 
         Args:
@@ -248,6 +248,7 @@ class QualysAPIBase:
                 self._get_jwt()
             response = requests.post(
                 root + url,
+                params=params,
                 data=data,
                 headers={
                     "X-Requested-With": self.x_requested_with,

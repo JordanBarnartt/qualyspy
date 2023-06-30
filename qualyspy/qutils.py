@@ -86,7 +86,10 @@ def to_orm_object(
 
         return out_cls(**obj_copy)
 
-    obj_dict = dataclasses.asdict(obj)
+    try:  # Type is Pydantic dataclass
+        obj_dict = dataclasses.asdict(obj)
+    except TypeError:  # Type is Pydantic model
+        obj_dict = obj.dict()
     return _to_orm_object(obj_dict, out_cls)
 
 

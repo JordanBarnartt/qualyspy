@@ -75,8 +75,8 @@ class OpenPortItem(Model):
     description: str
     protocol: str
     detected_service: str | None
-    first_found: dt.datetime
-    last_updated: dt.datetime
+    first_found: dt.datetime | None
+    last_updated: dt.datetime | None
 
 
 class OpenPortListData(Model):
@@ -89,7 +89,7 @@ class VolumeItem(Model):
     size: int
 
 
-class Volume_listData(Model):
+class VolumeListData(Model):
     volume: list[VolumeItem]
 
 
@@ -153,35 +153,76 @@ class Activation(Model):
     status: str
 
 
+class Oci_Compute(Model):
+    oci_id: str
+    tenant_id: str | None
+    tenant_name: str | None
+    compartment_id: str | None
+    compartment_name: str | None
+    image: str | None
+    shape: str | None
+    state: str
+    region: str | None
+    availability_domain: str | None
+    fault_domain: str | None
+    creation_date: dt.datetime
+    has_agent: bool
+    qualys_scanner: bool
+
+
+class CloudTag(Model):
+    key: str
+    value: str
+    type: str
+    name_space: str
+
+
+class Oci(Model):
+    compute: Oci_Compute
+    tags: list[CloudTag]
+
+
+class CloudProvider(Model):
+    oci: Oci | None
+
+
 class Agent(Model):
     version: str
     configuration_profile: str
     activations: list[Activation]
     connected_from: str
-    last_activity: int
-    last_checked_in: int
-    last_inventory: int
+    last_activity: dt.datetime
+    last_checked_in: dt.datetime
+    last_inventory: dt.datetime
     udc_manifest_assigned: bool
     error_status: bool
 
 
 class Sensor(Model):
     activated_for_modules: list[str]
-    pending_activation_for_modules: list[str | None]
-    lastVMScan: int
+    pending_activation_for_modules: list[str] | None
+    last_v_m_scan: dt.datetime
     last_compliance_scan: dt.datetime
     last_full_scan: dt.datetime
     last_vm_scan_date_scanner: dt.datetime
     last_vm_scan_date_agent: dt.datetime
     last_pc_scan_date_scanner: dt.datetime
     last_pc_scan_date_agent: dt.datetime
-    first_easm_scan_date: int | None
-    last_easm_scan_date: int | None
+    first_easm_scan_date: dt.datetime | None
+    last_easm_scan_date: dt.datetime | None
+
+
+class Container(Model):
+    product: str
+    version: str | None
+    no_of_containers: int
+    no_of_images: int
+    has_sensor: bool
 
 
 class Inventory(Model):
     source: str
-    created: int
+    created: dt.datetime
     last_updated: dt.datetime
 
 
@@ -204,7 +245,7 @@ class TagList(Model):
 
 
 class ServiceItem(Model):
-    description: None
+    description: str | None
     name: str
     status: str
 
@@ -214,28 +255,28 @@ class ServiceList(Model):
 
 
 class LastLocation(Model):
-    city: str
-    state: str
+    city: str | None
+    state: str | None
     country: str
     name: str
     continent: str
-    postal: str
+    postal: str | None
 
 
 class Criticality(Model):
     score: int
     is_default: bool
-    last_updated: str
+    last_updated: dt.datetime | None
 
 
 class Processor(Model):
     description: str
-    speed: int
-    numCPUs: int
-    no_of_socket: int
-    threads_per_core: int
-    cores_per_socket: int
-    multithreading_status: str
+    speed: int | None
+    numCPUs: int | None
+    no_of_socket: int | None
+    threads_per_core: int | None
+    cores_per_socket: int | None
+    multithreading_status: str | None
 
 
 class AssetItem(Model):
@@ -266,29 +307,29 @@ class AssetItem(Model):
     hardware: Hardware
     user_account_list_data: UserAccountListData | None
     open_port_list_data: OpenPortListData | None
-    volume_list_data: Volume_listData | None
-    network_interface_list_data: NetworkInterfaceListData
+    volume_list_data: VolumeListData | None
+    network_interface_list_data: NetworkInterfaceListData | None
     software_list_data: SoftwareListData | None
     provider: str | None
-    cloud_provider: str | None
+    cloud_provider: CloudProvider | None
     agent: Agent | None
     sensor: Sensor
-    container: str | None
+    container: Container | None
     inventory: Inventory
     activity: Activity
-    tag_list: TagList
+    tag_list: TagList | None
     service_list: ServiceList | None
-    last_location: LastLocation
+    last_location: LastLocation | None
     criticality: Criticality
     business_information: str | None
     assigned_location: str | None
     business_app_list_data: str | None
-    risk_score: int
+    risk_score: int | None
     passive_sensor: str | None
-    domain: str | None
-    subdomain: str | None
+    domain: list[str] | None
+    subdomain: list[str] | None
     missing_software: str | None
-    whois: str | None
+    whois: list[str] | None
     isp: str | None
     asn: str | None
     easm_tags: str | None

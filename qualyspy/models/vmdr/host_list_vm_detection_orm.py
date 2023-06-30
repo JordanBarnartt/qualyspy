@@ -7,7 +7,7 @@ from typing import Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as orm
 
-from . import sa_types
+from .. import sa_types
 
 
 class Base(orm.DeclarativeBase):
