@@ -74,7 +74,7 @@ class QualysAPIBase:
             self.username = self.config["AUTHENTICATION"]["username"]
             self.password = self.config["AUTHENTICATION"]["password"]
         except KeyError as e:
-            raise exceptions.ConfigError(f"Config file missing key: {e}")
+            raise exceptions.ConfigError(f"Config file {config_file} missing key: {e}")
 
         self.jwt: str | None = None
 
