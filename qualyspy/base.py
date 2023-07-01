@@ -304,7 +304,8 @@ class QualysORMMixin(ABC):
             self.db_password = urllib.parse.quote(api.config["POSTGRESQL"]["password"])
         except KeyError as e:
             raise exceptions.ConfigError(f"Config file missing key: {e}")
-        self.e_url = f"postgresql://{self.db_name}:{self.db_password}@{self.db_host}/{self.db_name}"
+        self.e_url = "postgresql:"
+        f"//{self.db_username}:{self.db_password}@{self.db_host}/{self.db_name}"
         self.engine = sa.create_engine(self.e_url, echo=echo)
 
         self.echo = echo
