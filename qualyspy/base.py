@@ -58,7 +58,7 @@ class QualysAPIBase:
 
         Args:
             config_file (str, optional): Path to the config file.  Defaults to
-                ~/etc/qualyspy/config.ini.
+                ~/.qualyspy.
             x_requested_with (str, optional): Value to send in the X-Requested-With header.
 
         Raises:

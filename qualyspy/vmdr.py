@@ -30,9 +30,7 @@ class VmdrAPI(QualysAPIBase):
 
     def __init__(
         self,
-        config_file: str = str(
-            os.path.join(os.path.expanduser("~"), "etc", "qualyspy", "config.ini")
-        ),
+        config_file: str = str(os.path.join(os.path.expanduser("~"), ".qualyspy")),
         x_requested_with: str = "QualysPy Python Library",
     ) -> None:
         """Initialize the VMDR API Class.
