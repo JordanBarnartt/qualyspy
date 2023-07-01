@@ -10,6 +10,7 @@ api.get("/msp/about.php")
 import configparser
 import datetime
 import os
+import urllib.parse
 from abc import ABC, abstractmethod
 from typing import Any, Callable, TypeVar
 
@@ -50,9 +51,7 @@ class QualysAPIBase:
 
     def __init__(
         self,
-        config_file: str = str(
-            os.path.join(os.path.expanduser("~"), ".qualyspy")
-        ),
+        config_file: str = str(os.path.join(os.path.expanduser("~"), ".qualyspy")),
         x_requested_with: str = "QualysPy Python Library",
     ) -> None:
         """Initializes an instance of the QualysAPIBase class.
@@ -215,7 +214,10 @@ class QualysAPIBase:
             raise ValueError("No valid API root or gateway found.")
 
     def post(
-        self, url: str, params: dict[str, str] | None = None, data: dict[str, str] | None = None
+        self,
+        url: str,
+        params: dict[str, str] | None = None,
+        data: dict[str, str] | None = None,
     ) -> requests.Response:
         """Send a POST request to the Qualys API.
 
@@ -299,7 +301,7 @@ class QualysORMMixin(ABC):
             self.db_host = api.config["POSTGRESQL"]["host"]
             self.db_name = api.config["POSTGRESQL"]["db_name"]
             self.db_username = api.config["POSTGRESQL"]["username"]
-            self.db_password = api.config["POSTGRESQL"]["password"]
+            self.db_password = urllib.parse.quote(api.config["POSTGRESQL"]["password"])
         except KeyError as e:
             raise exceptions.ConfigError(f"Config file missing key: {e}")
         self.e_url = f"postgresql://{self.db_name}:{self.db_password}@{self.db_host}/{self.db_name}"
