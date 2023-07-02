@@ -105,7 +105,7 @@ class AllAssetDetailsORM(GavAPI, QualysORMMixin):
             ]
 
             # Useful for debugging
-            print(last_seen_asset_id)
+            # print(last_seen_asset_id)
 
             _load_set(to_load)
 
