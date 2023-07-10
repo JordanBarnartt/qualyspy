@@ -66,5 +66,13 @@ class TestVMDR(unittest.TestCase):
             self.assertEqual(host_list[0].ip, ipaddress.ip_address("172.16.76.84"))
 
 
+class TestKnowledgebase(unittest.TestCase):
+    def test_vmdr_knowledgebase(self):
+        api = vmdr.VmdrAPI()
+        knowledgebase = api.knowledgebase(ids=105943)
+        print("test")
+        self.assertEqual(knowledgebase.vuln[0].qid, 105943)
+
+
 if __name__ == "__main__":
     unittest.main()

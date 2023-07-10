@@ -21,7 +21,11 @@ from xsdata.formats.dataclass.parsers import XmlParser
 
 from . import URLS, qutils
 from .base import QualysAPIBase, QualysORMMixin
-from .models.vmdr import host_list_vm_detection_orm, host_list_vm_detection_output
+from .models.vmdr import (
+    host_list_vm_detection_orm,
+    host_list_vm_detection_output,
+    knowledge_base_vuln_list_output,
+)
 from .models.vmdr import host_list_output, host_list_orm
 
 
@@ -149,6 +153,25 @@ class VmdrAPI(QualysAPIBase):
             next_id_min = int(next_id_match.group(1))
 
         return ret, truncated, next_id_min
+
+    def knowledgebase(
+        self, *, details: str | None = None, ids: int | list[int] | None = None
+    ) -> knowledge_base_vuln_list_output.VulnList:
+        params = {"details": details, "ids": ids}
+        params["action"] = "list"
+        params_cleaned = qutils.clean_dict(params)
+
+        raw_response = self.get(URLS.knowledgebase, params=params_cleaned).text
+        parsed: knowledge_base_vuln_list_output.KnowledgeBaseVulnListOutput = (
+            self.xmlparser.from_string(
+                raw_response,
+                knowledge_base_vuln_list_output.KnowledgeBaseVulnListOutput,
+            )
+        )
+        if parsed.response is not None and parsed.response.vuln_list is not None:
+            return parsed.response.vuln_list
+        else:
+            return knowledge_base_vuln_list_output.VulnList()
 
 
 class HostListDetectionORM(VmdrAPI, QualysORMMixin):

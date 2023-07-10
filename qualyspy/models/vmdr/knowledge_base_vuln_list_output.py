@@ -952,7 +952,7 @@ class Vuln:
     class Meta:
         name = "VULN"
 
-    qid: Optional[str] = field(
+    qid: Optional[int] = field(
         default=None,
         metadata={
             "name": "QID",
@@ -968,7 +968,7 @@ class Vuln:
             "required": True,
         }
     )
-    severity_level: Optional[str] = field(
+    severity_level: Optional[int] = field(
         default=None,
         metadata={
             "name": "SEVERITY_LEVEL",
