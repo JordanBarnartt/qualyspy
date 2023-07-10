@@ -21,7 +21,7 @@ _CONFIG_FILE = os.path.expanduser("~/qualysapi.conf")
 config = configparser.ConfigParser()
 config.read(_CONFIG_FILE)
 
-URLS = json.load(importlib.resources.files("qualyspy").joinpath("urls.json").open())
+URLS = json.load(importlib.resources.files("qualyspy_legacy").joinpath("urls.json").open())
 DB_HOST = config["POSTGRESQL"]["host"]
 DB_NAME = config["POSTGRESQL"]["db_name"]
 DB_USER = config["POSTGRESQL"]["user"]

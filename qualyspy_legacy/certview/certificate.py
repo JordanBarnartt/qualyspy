@@ -427,16 +427,6 @@ class List_Certificates_V2:
             certificates: list[Certificate] = []
             for cert in raw:
                 c = Certificate.parse_obj(cert)
-
-                # subject.name somtimes includes null characters "\x00", even though the GUI doesn't
-                # show these.  I've opened a ticket with Qualys about it.  In the meanwhile, this
-                # will replace them with something PostgreSQL is happy with.
-                # Also other fields, apparently...
-                #
-                c.subject.name = c.subject.name.replace("\x00", "\uFFFD")
-                c.subject.locality = c.subject.locality.replace("\x00", "\uFFFD")
-                c.subject.state = c.subject.state.replace("\x00", "\uFFFD")
-
                 certificates.append(c)
             return certificates
         else:
