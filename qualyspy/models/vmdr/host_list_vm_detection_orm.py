@@ -65,7 +65,7 @@ class DnsData(Base):
 class Qds(Base):
     __tablename__ = "qds"
 
-    severity: orm.Mapped[int] = orm.mapped_column(primary_key=True)
+    severity: orm.Mapped[str] = orm.mapped_column(primary_key=True)
     value: orm.Mapped[int] = orm.mapped_column(primary_key=True)
 
     detection_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("detection.id"))

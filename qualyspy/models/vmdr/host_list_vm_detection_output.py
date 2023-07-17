@@ -176,7 +176,7 @@ class Qds:
     class Meta:
         name = "QDS"
 
-    severity: Optional[int] = field(
+    severity: Optional[str] = field(
         default=None,
         metadata={
             "type": "Attribute",

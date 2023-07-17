@@ -15,6 +15,7 @@ session.close()
 import os
 import re
 from typing import Any
+import zoneinfo
 
 import sqlalchemy.orm as orm
 from xsdata.formats.dataclass.parsers import XmlParser
@@ -53,6 +54,10 @@ class VmdrAPI(QualysAPIBase):
         ids: int | list[int] | None = None,
         truncation_limit: int | None = None,
         id_min: int | None = None,
+        qids: int | list[int] | None = None,
+        show_qds: bool | None = None,
+        qds_min: int | None = None,
+        qds_max: int | None = None,
     ) -> tuple[host_list_vm_detection_output.HostList, bool, int]:
         """Get a list of hosts with associated vulnerability detections from the VMDR API.  A value
         of None for the parameters will use their default values in the API.
@@ -70,14 +75,21 @@ class VmdrAPI(QualysAPIBase):
         """
 
         params = {
-            k: str(v) for k, v in locals().items() if (k != "self" and v is not None)
+            "ids": ids,
+            "truncation_limit": truncation_limit,
+            "id_min": id_min,
+            "qids": qids,
+            "show_qds": show_qds,
+            "qds_min": qds_min,
+            "qds_max": qds_max,
         }
-        params["action"] = "list"
+        cleaned_params = qutils.clean_dict(params)
+        cleaned_params["action"] = "list"
 
         truncated = False
         next_id_min = 0
 
-        response = self.get(URLS.host_list_detection, params=params).text
+        response = self.get(URLS.host_list_detection, params=cleaned_params).text
         parsed: host_list_vm_detection_output.HostListVmDetectionOutput = (
             self.xmlparser.from_string(
                 response, host_list_vm_detection_output.HostListVmDetectionOutput
@@ -169,6 +181,11 @@ class VmdrAPI(QualysAPIBase):
             )
         )
         if parsed.response is not None and parsed.response.vuln_list is not None:
+            for vuln in parsed.response.vuln_list.vuln:
+                if vuln.published_datetime is not None:
+                    vuln.published_datetime = vuln.published_datetime.replace(
+                        tzinfo=zoneinfo.ZoneInfo("UTC")
+                    )
             return parsed.response.vuln_list
         else:
             return knowledge_base_vuln_list_output.VulnList()

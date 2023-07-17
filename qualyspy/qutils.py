@@ -167,4 +167,14 @@ def clean_dict(d: dict[str, Any]) -> dict[str, str]:
     Returns:
         dict[str, str]: The cleaned dictionary.
     """
-    return {k: str(v) for k, v in d.items() if v is not None}
+
+    def _clean_dict(v: Any) -> str:
+        # if l is a list, return a comma-separated string of the list items
+        if isinstance(v, list):
+            return ",".join([str(item) for item in v])
+        elif isinstance(v, bool):
+            return "1" if v else "0"
+        else:
+            return str(v)
+
+    return {k: _clean_dict(v) for k, v in d.items() if v is not None}
