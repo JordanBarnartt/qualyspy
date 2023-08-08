@@ -6,32 +6,20 @@ The dataclasses in this module are generated from the Qualys DTD schema using xs
 import datetime as dt
 import ipaddress
 from dataclasses import field
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from pydantic.dataclasses import dataclass
-from xsdata.formats.converter import Converter, converter
+from xsdata.formats.converter import converter
 
 from . import converters
 
 DT_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 
-class _StrConverter(Converter):
-    """Converter for str, as metadata is a reserved keyword in SQLAlchemy."""
-
-    def deserialize(self, value: str, **kwargs: dict[Any, Any]) -> str:
-        if value == "metadata":
-            return "metadata_"
-        return value
-
-    def serialize(self, value: str, **kwargs: dict[Any, Any]) -> str:
-        return str(value)
-
-
 converter.register_converter(ipaddress.IPv4Address, converters.IPv4AddressConverter())
 converter.register_converter(ipaddress.IPv6Address, converters.IPv6AddressConverter())
 converter.register_converter(dt.timedelta, converters.TimeDeltaConverter())
-converter.register_converter(str, _StrConverter())
+converter.register_converter(str, converters.StrConverter())
 
 
 @dataclass
@@ -382,6 +370,14 @@ class Detection:
     class Meta:
         name = "DETECTION"
 
+    unique_vuln_id: int = field(
+        metadata={
+            "name": "UNIQUE_VULN_ID",
+            "type": "Element",
+            "required": True,
+        },
+    )
+
     qid: Optional[int] = field(
         default=None,
         metadata={
@@ -468,6 +464,13 @@ class Detection:
             "name": "LAST_FOUND_DATETIME",
             "type": "Element",
             "format": DT_FORMAT,
+        },
+    )
+    source: Optional[str] = field(
+        default=None,
+        metadata={
+            "name": "SOURCE",
+            "type": "Element",
         },
     )
     qds: Optional[Qds] = field(

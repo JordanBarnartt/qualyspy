@@ -4,6 +4,7 @@ about = "/msp/about.php"
 host_list_detection = "/api/2.0/fo/asset/host/vm/detection/"
 host_list = "/api/2.0/fo/asset/host/"
 knowledgebase = "/api/2.0/fo/knowledge_base/vuln/"
+ignore_vuln = "/api/2.0/fo/ignore_vuln/index.php"
 
 gateway_auth = "/auth/"
 

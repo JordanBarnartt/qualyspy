@@ -12,10 +12,11 @@ host = hosts.host[0]
 session.close()
 """
 
+import ipaddress
 import os
 import re
-from typing import Any
 import zoneinfo
+from typing import Any
 
 import sqlalchemy.orm as orm
 from xsdata.formats.dataclass.parsers import XmlParser
@@ -23,11 +24,12 @@ from xsdata.formats.dataclass.parsers import XmlParser
 from . import URLS, qutils
 from .base import QualysAPIBase, QualysORMMixin
 from .models.vmdr import (
+    host_list_orm,
+    host_list_output,
     host_list_vm_detection_orm,
     host_list_vm_detection_output,
     knowledge_base_vuln_list_output,
 )
-from .models.vmdr import host_list_output, host_list_orm
 
 
 class VmdrAPI(QualysAPIBase):
@@ -171,6 +173,17 @@ class VmdrAPI(QualysAPIBase):
     def knowledgebase(
         self, *, details: str | None = None, ids: int | list[int] | None = None
     ) -> knowledge_base_vuln_list_output.VulnList:
+        """Get a list of vulnerabilities from the VMDR API.  A value of None for the parameters will
+        use their default values in the API.
+
+        Args:
+            details (str | None, optional): Details to return. Defaults to None.
+            ids (int | list[int] | None, optional): Vulnerability IDs to query. Defaults to None.
+
+        Returns:
+            knowledge_base_vuln_list_output.VulnList: A VulnList object containing the list of
+                vulnerabilities.
+        """
         params = {"details": details, "ids": ids}
         params["action"] = "list"
         params_cleaned = qutils.clean_dict(params)
@@ -191,6 +204,31 @@ class VmdrAPI(QualysAPIBase):
             return parsed.response.vuln_list
         else:
             return knowledge_base_vuln_list_output.VulnList()
+
+    def ignore_vuln(
+        self,
+        *,
+        action: str,
+        qids: list[int],
+        comments: str,
+        asset_groups: list[str] | None,
+        ips: list[str | ipaddress.IPv4Address | ipaddress.IPv6Address] | None,
+        dns_contains: str | None,
+    ) -> None:
+        """Ignore a list of vulnerabilities for a set of assets.
+
+        Does not return anything yet because the DDI for the return XML is not available.
+        """
+        params = {
+            "action": action,
+            "qids": qids,
+            "comments": comments,
+            "asset_groups": asset_groups,
+            "ips": ips,
+            "dns_contains": dns_contains,
+        }
+        params_cleaned = qutils.clean_dict(params)
+        self.post(URLS.ignore_vuln, params=params_cleaned)
 
 
 class HostListDetectionORM(VmdrAPI, QualysORMMixin):

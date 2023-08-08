@@ -163,7 +163,7 @@ class Tags(Base):
 class Detection(Base):
     __tablename__ = "detection"
 
-    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
+    unique_vuln_id: orm.Mapped[int] = orm.mapped_column(primary_key=True)
     qid: orm.Mapped[int]
     type: orm.Mapped[str | None]
     severity: orm.Mapped[int | None]
@@ -176,6 +176,7 @@ class Detection(Base):
     status: orm.Mapped[str | None]
     first_found_datetime: orm.Mapped[dt.datetime | None]
     last_found_datetime: orm.Mapped[dt.datetime | None]
+    source: orm.Mapped[str | None]
     qds: orm.Mapped[Qds | None] = orm.relationship(
         back_populates="detection", uselist=False
     )

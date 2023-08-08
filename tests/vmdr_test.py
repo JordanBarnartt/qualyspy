@@ -18,7 +18,6 @@ sys.path.insert(0, parentdir)
 import qualyspy.models.vmdr.host_list_orm as host_list_orm
 import qualyspy.models.vmdr.host_list_vm_detection_orm as host_list_vm_detection_orm
 from qualyspy import qutils, vmdr
-from tests import test_data
 
 
 class TestQutils(unittest.TestCase):
