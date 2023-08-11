@@ -1,19 +1,4 @@
 {
-    "python.linting.pylamaEnabled": true,
-    "python.linting.mypyEnabled": true,
-    "python.linting.mypyArgs": [
-        "--allow-untyped-calls",
-        "--follow-imports=silent",
-        "--ignore-missing-imports",
-        "--show-column-numbers",
-        "--no-pretty",
-        "--strict"
-    ],
-    "python.linting.enabled": true,
-    "python.linting.ignorePatterns": [
-        "debug/*.py"
-    ],
-    "python.formatting.provider": "black",
     "python.analysis.typeCheckingMode": "strict",
     "python.testing.unittestArgs": [
         "-v",
@@ -23,5 +8,11 @@
         "*_test.py"
     ],
     "python.testing.pytestEnabled": false,
-    "python.testing.unittestEnabled": true
+    "python.testing.unittestEnabled": true,
+    "mypy-type-checker.args": [
+        "--strict"
+    ],
+    "mypy-type-checker.path": [
+        "${workspaceFolder}/.venv/bin/python","-m", "mypy"
+    ]
 }

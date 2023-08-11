@@ -10,3 +10,8 @@ gateway_auth = "/auth/"
 
 asset_details = "/rest/2.0/get/am/asset"
 all_asset_details = "/rest/2.0/search/am/asset"
+
+create_tag = "/qps/rest/2.0/create/am/tag"
+update_tag = "/qps/rest/2.0/update/am/tag"
+search_tags = "/qps/rest/2.0/search/am/tag"
+create_azure_connector = "/qps/rest/3.0/create/am/azureassetdataconnector"

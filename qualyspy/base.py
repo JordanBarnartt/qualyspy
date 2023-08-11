@@ -22,7 +22,7 @@ from . import URLS, exceptions, qutils
 
 _C = TypeVar("_C")
 
-_USE_API_SERVER = ["msp", "api"]
+_USE_API_SERVER = ["msp", "api", "qps"]
 _USE_API_GATEWAY = ["rest"]
 
 
@@ -216,8 +216,11 @@ class QualysAPIBase:
     def post(
         self,
         url: str,
+        *,
         params: dict[str, str] | None = None,
-        data: dict[str, str] | None = None,
+        data: str | None = None,
+        content_type: str = "application/json",
+        accept: str = "application/json",
     ) -> requests.Response:
         """Send a POST request to the Qualys API.
 
@@ -238,7 +241,11 @@ class QualysAPIBase:
                 root + url,
                 data=data,
                 auth=(self.username, self.password),
-                headers={"X-Requested-With": self.x_requested_with},
+                headers={
+                    "X-Requested-With": self.x_requested_with,
+                    "Content-Type": content_type,
+                    "Accept": accept,
+                },
             )
             try:
                 response.raise_for_status()
@@ -305,7 +312,9 @@ class QualysORMMixin(ABC):
         except KeyError as e:
             raise exceptions.ConfigError(f"Config file missing key: {e}")
         self.e_url = "postgresql:"
-        self.e_url += f"//{self.db_username}:{self.db_password}@{self.db_host}/{self.db_name}"
+        self.e_url += (
+            f"//{self.db_username}:{self.db_password}@{self.db_host}/{self.db_name}"
+        )
         self.engine = sa.create_engine(self.e_url, echo=echo)
 
         self.echo = echo
