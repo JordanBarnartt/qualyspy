@@ -4,6 +4,9 @@ from .exceptions import QualysAPIError
 from typing import Any
 
 from .models.asset_mgmt_tagging import tag as tag_models
+from .models.asset_mgmt_tagging import (
+    azure_asset_data_connector as azure_connector_models,
+)
 from xsdata.formats.dataclass.serializers import JsonSerializer
 
 import json
@@ -64,7 +67,7 @@ class Filter:
         }
 
 
-class Tags(QualysAPIBase):
+class TagsAPI(QualysAPIBase):
     """This class contains methods for interacting with Qualys tags."""
 
     def _manage_tag(self, tag: tag_models.Tag, url: str) -> list[tag_models.Tag]:
@@ -175,3 +178,32 @@ class Tags(QualysAPIBase):
         if ret["ServiceResponse"]["responseCode"] != "SUCCESS":
             raise QualysAPIError(ret["ServiceResponse"])
         return tag_models.TagSimple(**ret["ServiceResponse"]["data"][0]["Tag"])
+
+
+class AzureConnectorAPI(QualysAPIBase):
+    """This class contains methods for interacting with Qualys Azure Connectors."""
+
+    def create_azure_connector(
+        self, connector: azure_connector_models.AzureAssetDataConnector
+    ) -> azure_connector_models.AzureAssetDataConnector:
+        """Create a new Azure connector.
+
+        Args:
+            connector (azure_connector_models.AzureAssetDataConnector): The connector to create.
+
+        Returns:
+            azure_connector_models.AzureAssetDataConnector: The created connector.
+        """
+        connector_json = json.loads(
+            JsonSerializer(dict_factory=_filter_none).render(connector)
+        )
+        data = {"ServiceRequest": {"data": {"AzureAssetDataConnector": connector_json}}}
+        response = self.post(URLS.create_azure_connector, data=json.dumps(data))
+        ret = json.loads(response.text)
+        if ret["ServiceResponse"]["responseCode"] != "SUCCESS":
+            raise QualysAPIError(ret["ServiceResponse"])
+        if "AzureAssetDataConnector" in ret["ServiceResponse"]["data"][0]:
+            new_connector = azure_connector_models.AzureAssetDataConnector(
+                **ret["ServiceResponse"]["data"][0]["AzureAssetDataConnector"]
+            )
+        return new_connector
