@@ -46,6 +46,18 @@ class TagSimple:
 
 
 @dataclass
+class TagSimpleList:
+    tag_simple: List[TagSimple] = field(
+        default_factory=list,
+        metadata={
+            "name": "TagSimple",
+            "type": "Element",
+            "namespace": "http://am.oxm.api.portal.qualys.com/v2",
+        },
+    )
+
+
+@dataclass
 class TagSimpleQlist:
     class Meta:
         name = "TagSimpleQList"
@@ -65,8 +77,8 @@ class TagSimpleQlist:
             "namespace": "http://am.oxm.api.portal.qualys.com/v2",
         },
     )
-    set: List[TagSimple] = field(
-        default_factory=list,
+    set: Optional[TagSimpleList] = field(
+        default=None,
         metadata={
             "type": "Element",
             "namespace": "http://am.oxm.api.portal.qualys.com/v2",

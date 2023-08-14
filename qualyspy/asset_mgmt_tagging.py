@@ -7,13 +7,27 @@ from .models.asset_mgmt_tagging import tag as tag_models
 from .models.asset_mgmt_tagging import (
     azure_asset_data_connector as azure_connector_models,
 )
+
 from xsdata.formats.dataclass.serializers import JsonSerializer
 
 import json
 
 
-def _filter_none(x: tuple[Any]) -> dict[str, Any]:
-    return {k: v for k, v in x if v is not None}
+def _filter_none_emptylist(x: tuple[Any]) -> dict[str, Any]:
+    return {k: v for k, v in x if (v is not None) and (not v == [])}
+
+
+# def _filter_none_emptylist(x: tuple[Any]) -> dict[str, Any]:
+#     ret = {}
+#     for k, v in x:
+#         if isinstance(v, list):
+#             if len(v) == 0:
+#                 continue
+#             inst_type = type(v[0])
+#             ret[k] = {str(inst_type.__name__): [_filter_none_emptylist(i) for i in v]}
+#         elif v is not None:
+#             ret[k] = v
+#     return ret
 
 
 class PaginationSettings:
@@ -83,7 +97,8 @@ class TagsAPI(QualysAPIBase):
         Raises:
             QualysAPIError: If the API returns an error.
         """
-        tag_json = json.loads(JsonSerializer(dict_factory=_filter_none).render(tag))
+        tag_json = JsonSerializer(dict_factory=_filter_none_emptylist).render(tag)
+        tag_json = json.loads(tag_json)
         data = {"ServiceRequest": {"data": {"Tag": tag_json}}}
         response = self.post(url, data=json.dumps(data))
         ret = json.loads(response.text)
@@ -195,7 +210,7 @@ class AzureConnectorAPI(QualysAPIBase):
             azure_connector_models.AzureAssetDataConnector: The created connector.
         """
         connector_json = json.loads(
-            JsonSerializer(dict_factory=_filter_none).render(connector)
+            JsonSerializer(dict_factory=_filter_none_emptylist).render(connector)
         )
         data = {"ServiceRequest": {"data": {"AzureAssetDataConnector": connector_json}}}
         response = self.post(URLS.create_azure_connector, data=json.dumps(data))

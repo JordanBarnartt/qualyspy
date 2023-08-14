@@ -17,8 +17,19 @@ import qualyspy.models.asset_mgmt_tagging.tag as tag_models  # noqa: E402
 
 class TestTags(unittest.TestCase):
     def test_create_update_delete_tag(self):
-        api = asset_mgmt_tagging.Tags()
-        tag = tag_models.Tag(name="Test Tag", description="Test Description")
+        api = asset_mgmt_tagging.TagsAPI()
+        tag = tag_models.Tag(
+            name="Test Tag",
+            description="Test Description",
+            children=tag_models.TagSimpleQlist(
+                set=tag_models.TagSimpleList(
+                    tag_simple=[
+                        tag_models.TagSimple(name="Child 1"),
+                        tag_models.TagSimple(name="Child 2"),
+                    ]
+                ),
+            ),
+        )
         new_tag = api.create_tag(tag=tag)
         tag = tag_models.Tag(name="Updated Test Tag")
         updated_tag = api.update_tag(id=new_tag.id, tag=tag)
@@ -27,7 +38,7 @@ class TestTags(unittest.TestCase):
         self.assertEqual(deleted_tag.id, new_tag.id)
 
     def test_search_tags(self):
-        api = asset_mgmt_tagging.Tags()
+        api = asset_mgmt_tagging.TagsAPI()
         tag = tag_models.Tag(name="Test Tag", description="Test Description")
         new_tag = api.create_tag(tag=tag)
         filters = [
@@ -39,7 +50,7 @@ class TestTags(unittest.TestCase):
         self.assertEqual(deleted_tag.id, new_tag.id)
 
     def test_count_tags(self):
-        api = asset_mgmt_tagging.Tags()
+        api = asset_mgmt_tagging.TagsAPI()
         tag = tag_models.Tag(name="Test Tag", description="Test Description")
         new_tag = api.create_tag(tag=tag)
         filters = [
