@@ -204,6 +204,14 @@ class ActivationModuleQlist:
             "namespace": "http://am.oxm.api.portal.qualys.com/v3",
         },
     )
+    activation_module: List[ActivationModule] = field(
+        default_factory=list,
+        metadata={
+            "name": "ActivationModule",
+            "type": "Element",
+            "namespace": "http://am.oxm.api.portal.qualys.com/v3",
+        },
+    )
 
 
 @dataclass
@@ -309,6 +317,18 @@ class DaysOfWeekQlist:
 
 
 @dataclass
+class ConnectorAppInfoObj:
+    connector_app_info: Optional[ConnectorAppInfo] = field(
+        default=None,
+        metadata={
+            "name": "ConnectorAppInfo",
+            "type": "Element",
+            "namespace": "http://am.oxm.api.portal.qualys.com/v3",
+        },
+    )
+
+
+@dataclass
 class ConnectorAppInfoQlist:
     class Meta:
         name = "ConnectorAppInfoQList"
@@ -320,7 +340,7 @@ class ConnectorAppInfoQlist:
             "namespace": "http://am.oxm.api.portal.qualys.com/v3",
         },
     )
-    list_value: List[ConnectorAppInfo] = field(
+    list_value: List[ConnectorAppInfoObj] = field(
         default_factory=list,
         metadata={
             "name": "list",
@@ -328,30 +348,54 @@ class ConnectorAppInfoQlist:
             "namespace": "http://am.oxm.api.portal.qualys.com/v3",
         },
     )
-    set: List[ConnectorAppInfo] = field(
+    set: Optional[ConnectorAppInfoObj] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://am.oxm.api.portal.qualys.com/v3",
+        },
+    )
+    add: List[ConnectorAppInfoObj] = field(
         default_factory=list,
         metadata={
             "type": "Element",
             "namespace": "http://am.oxm.api.portal.qualys.com/v3",
         },
     )
-    add: List[ConnectorAppInfo] = field(
+    remove: List[ConnectorAppInfoObj] = field(
         default_factory=list,
         metadata={
             "type": "Element",
             "namespace": "http://am.oxm.api.portal.qualys.com/v3",
         },
     )
-    remove: List[ConnectorAppInfo] = field(
+    update: List[ConnectorAppInfoObj] = field(
         default_factory=list,
         metadata={
             "type": "Element",
             "namespace": "http://am.oxm.api.portal.qualys.com/v3",
         },
     )
-    update: List[ConnectorAppInfo] = field(
+
+
+@dataclass
+class ConnectorAppInfoQlistList:
+    connector_app_info_q_list: list[ConnectorAppInfoQlist] = field(
         default_factory=list,
         metadata={
+            "name": "ConnectorAppInfoQList",
+            "type": "Element",
+            "namespace": "http://am.oxm.api.portal.qualys.com/v3",
+        },
+    )
+
+
+@dataclass
+class ConnectorAppInfoQlistObj:
+    connector_app_info_qlist: Optional[ConnectorAppInfoQlist] = field(
+        default=None,
+        metadata={
+            "name": "ConnectorAppInfoQList",
             "type": "Element",
             "namespace": "http://am.oxm.api.portal.qualys.com/v3",
         },
@@ -475,7 +519,7 @@ class ConnectorAppInfoList:
             "namespace": "http://am.oxm.api.portal.qualys.com/v3",
         },
     )
-    list_value: List[ConnectorAppInfoQlist] = field(
+    list_value: List[ConnectorAppInfoQlistObj] = field(
         default_factory=list,
         metadata={
             "name": "list",
@@ -483,29 +527,29 @@ class ConnectorAppInfoList:
             "namespace": "http://am.oxm.api.portal.qualys.com/v3",
         },
     )
-    set: List[ConnectorAppInfoQlist] = field(
-        default_factory=list,
+    set: Optional[ConnectorAppInfoQlistList] = field(
+        default=None,
         metadata={
             "type": "Element",
             "namespace": "http://am.oxm.api.portal.qualys.com/v3",
         },
     )
-    add: List[ConnectorAppInfoQlist] = field(
-        default_factory=list,
+    add: Optional[ConnectorAppInfoQlistList] = field(
+        default=None,
         metadata={
             "type": "Element",
             "namespace": "http://am.oxm.api.portal.qualys.com/v3",
         },
     )
-    remove: List[ConnectorAppInfoQlist] = field(
-        default_factory=list,
+    remove: Optional[ConnectorAppInfoQlistList] = field(
+        default=None,
         metadata={
             "type": "Element",
             "namespace": "http://am.oxm.api.portal.qualys.com/v3",
         },
     )
-    update: List[ConnectorAppInfoQlist] = field(
-        default_factory=list,
+    update: Optional[ConnectorAppInfoQlistList] = field(
+        default=None,
         metadata={
             "type": "Element",
             "namespace": "http://am.oxm.api.portal.qualys.com/v3",

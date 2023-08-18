@@ -7,6 +7,9 @@ api = QualysAPIBase()
 api.get("/msp/about.php")
 """
 
+# For SQLAlchemy:
+# mypy: allow-untyped-calls
+
 import configparser
 import datetime
 import os

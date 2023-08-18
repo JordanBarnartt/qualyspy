@@ -9,6 +9,7 @@ from .models.asset_mgmt_tagging import (
 )
 
 from xsdata.formats.dataclass.serializers import JsonSerializer
+from xsdata.formats.dataclass.parsers import JsonParser
 
 import json
 
@@ -17,17 +18,9 @@ def _filter_none_emptylist(x: tuple[Any]) -> dict[str, Any]:
     return {k: v for k, v in x if (v is not None) and (not v == [])}
 
 
-# def _filter_none_emptylist(x: tuple[Any]) -> dict[str, Any]:
-#     ret = {}
-#     for k, v in x:
-#         if isinstance(v, list):
-#             if len(v) == 0:
-#                 continue
-#             inst_type = type(v[0])
-#             ret[k] = {str(inst_type.__name__): [_filter_none_emptylist(i) for i in v]}
-#         elif v is not None:
-#             ret[k] = v
-#     return ret
+def _check_response_code(response: dict[str, Any]) -> None:
+    if response["responseCode"] != "SUCCESS":
+        raise QualysAPIError(response)
 
 
 class PaginationSettings:
@@ -93,17 +86,13 @@ class TagsAPI(QualysAPIBase):
 
         Returns:
             list[tag_models.Tag]: The created or updated tag.
-
-        Raises:
-            QualysAPIError: If the API returns an error.
         """
         tag_json = JsonSerializer(dict_factory=_filter_none_emptylist).render(tag)
         tag_json = json.loads(tag_json)
         data = {"ServiceRequest": {"data": {"Tag": tag_json}}}
         response = self.post(url, data=json.dumps(data))
         ret = json.loads(response.text)
-        if ret["ServiceResponse"]["responseCode"] != "SUCCESS":
-            raise QualysAPIError(ret["ServiceResponse"])
+        _check_response_code(ret["ServiceResponse"])
         tags: list[tag_models.Tag] = []
         for i in range(len(ret["ServiceResponse"]["data"])):
             if "Tag" in ret["ServiceResponse"]["data"][i]:
@@ -135,7 +124,7 @@ class TagsAPI(QualysAPIBase):
 
     def search_tags(
         self,
-        filters: list[Filter],
+        filters: list[Filter] | None = None,
         pagination_settings: PaginationSettings | None = None,
     ) -> list[tag_models.Tag]:
         """Returns a list of tags matching the given criteria.
@@ -146,15 +135,17 @@ class TagsAPI(QualysAPIBase):
         Returns:
             list[tag_models.Tag]: The tags matching the given criteria.
         """
-        data = {
-            "ServiceRequest": {"filters": {"Criteria": [f._as_dict() for f in filters]}}
-        }
-        if pagination_settings is not None:
-            data["ServiceRequest"].update(pagination_settings._preferences())  # type: ignore
-        response = self.post(URLS.search_tags, data=json.dumps(data))
+        if filters is not None:
+            data = {
+                "ServiceRequest": {
+                    "filters": {"Criteria": [f._as_dict() for f in filters]}
+                }
+            }
+            response = self.post(URLS.search_tags, data=json.dumps(data))
+        else:
+            response = self.post(URLS.search_tags)
         ret = json.loads(response.text)
-        if ret["ServiceResponse"]["responseCode"] != "SUCCESS":
-            raise QualysAPIError(ret["ServiceResponse"])
+        _check_response_code(ret["ServiceResponse"])
         tags: list[tag_models.Tag] = []
         for i in range(len(ret["ServiceResponse"]["data"])):
             if "Tag" in ret["ServiceResponse"]["data"][i]:
@@ -175,8 +166,7 @@ class TagsAPI(QualysAPIBase):
         }
         response = self.post(URLS.count_tags, data=json.dumps(data))
         ret = json.loads(response.text)
-        if ret["ServiceResponse"]["responseCode"] != "SUCCESS":
-            raise QualysAPIError(ret["ServiceResponse"])
+        _check_response_code(ret["ServiceResponse"])
         return int(ret["ServiceResponse"]["count"])
 
     def delete_tag(self, id: int) -> tag_models.TagSimple:
@@ -190,12 +180,11 @@ class TagsAPI(QualysAPIBase):
         """
         response = self.post(URLS.delete_tag + f"/{id}")
         ret = json.loads(response.text)
-        if ret["ServiceResponse"]["responseCode"] != "SUCCESS":
-            raise QualysAPIError(ret["ServiceResponse"])
+        _check_response_code(ret["ServiceResponse"])
         return tag_models.TagSimple(**ret["ServiceResponse"]["data"][0]["Tag"])
 
 
-class AzureConnectorAPI(QualysAPIBase):
+class AzureConnectorsAPI(QualysAPIBase):
     """This class contains methods for interacting with Qualys Azure Connectors."""
 
     def create_azure_connector(
@@ -215,10 +204,48 @@ class AzureConnectorAPI(QualysAPIBase):
         data = {"ServiceRequest": {"data": {"AzureAssetDataConnector": connector_json}}}
         response = self.post(URLS.create_azure_connector, data=json.dumps(data))
         ret = json.loads(response.text)
-        if ret["ServiceResponse"]["responseCode"] != "SUCCESS":
-            raise QualysAPIError(ret["ServiceResponse"])
+        _check_response_code(ret["ServiceResponse"])
         if "AzureAssetDataConnector" in ret["ServiceResponse"]["data"][0]:
             new_connector = azure_connector_models.AzureAssetDataConnector(
                 **ret["ServiceResponse"]["data"][0]["AzureAssetDataConnector"]
             )
         return new_connector
+
+    def delete_azure_connector(
+        self, id: int
+    ) -> azure_connector_models.AzureAssetDataConnector:
+        response = self.post(URLS.delete_azure_connector + f"/{id}")
+        ret = json.loads(response.text)
+        _check_response_code(ret["ServiceResponse"])
+        return azure_connector_models.AzureAssetDataConnector(
+            **ret["ServiceResponse"]["data"][0]["AzureAssetDataConnector"]
+        )
+
+    def search_azure_connectors(
+        self, filters: list[Filter] | None = None
+    ) -> list[azure_connector_models.AzureAssetDataConnector]:
+        if filters is not None:
+            data = {
+                "ServiceRequest": {
+                    "filters": {"Criteria": [f._as_dict() for f in filters]}
+                }
+            }
+            response = self.post(URLS.search_azure_connector, data=json.dumps(data))
+        else:
+            response = self.post(URLS.search_azure_connector)
+        resp = json.loads(response.text)
+        _check_response_code(resp["ServiceResponse"])
+
+        connectors: list[azure_connector_models.AzureAssetDataConnector] = []
+        for i in range(len(resp["ServiceResponse"]["data"])):
+            if "AzureAssetDataConnector" in resp["ServiceResponse"]["data"][i]:
+                connector_json = json.dumps(
+                    resp["ServiceResponse"]["data"][i]["AzureAssetDataConnector"]
+                )
+                connectors.append(
+                    JsonParser().from_string(
+                        connector_json, azure_connector_models.AzureAssetDataConnector
+                    )
+                )
+
+        return connectors
