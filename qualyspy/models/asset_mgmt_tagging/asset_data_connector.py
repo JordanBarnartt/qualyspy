@@ -511,6 +511,18 @@ class ConnectorScanConfiguration:
 
 
 @dataclass
+class ConnectorScanConfigurationObj:
+    connector_scan_config: Optional[ConnectorScanConfiguration] = field(
+        default=None,
+        metadata={
+            "name": "ConnectorScanConfiguration",
+            "type": "Element",
+            "namespace": "http://am.oxm.api.portal.qualys.com/v3",
+        },
+    )
+
+
+@dataclass
 class ConnectorAppInfoList:
     count: Optional[int] = field(
         default=None,
@@ -595,7 +607,7 @@ class ConnectorScanConfigQlist:
             "namespace": "http://am.oxm.api.portal.qualys.com/v3",
         },
     )
-    list_value: List[ConnectorScanConfiguration] = field(
+    list_value: List[ConnectorScanConfigurationObj] = field(
         default_factory=list,
         metadata={
             "name": "list",
