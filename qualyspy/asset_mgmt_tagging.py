@@ -237,15 +237,17 @@ class AzureConnectorsAPI(QualysAPIBase):
         _check_response_code(resp["ServiceResponse"])
 
         connectors: list[azure_connector_models.AzureAssetDataConnector] = []
-        for i in range(len(resp["ServiceResponse"]["data"])):
-            if "AzureAssetDataConnector" in resp["ServiceResponse"]["data"][i]:
-                connector_json = json.dumps(
-                    resp["ServiceResponse"]["data"][i]["AzureAssetDataConnector"]
-                )
-                connectors.append(
-                    JsonParser().from_string(
-                        connector_json, azure_connector_models.AzureAssetDataConnector
+        if "data" in resp["ServiceResponse"]:
+            for i in range(len(resp["ServiceResponse"]["data"])):
+                if "AzureAssetDataConnector" in resp["ServiceResponse"]["data"][i]:
+                    connector_json = json.dumps(
+                        resp["ServiceResponse"]["data"][i]["AzureAssetDataConnector"]
                     )
-                )
+                    connectors.append(
+                        JsonParser().from_string(
+                            connector_json,
+                            azure_connector_models.AzureAssetDataConnector,
+                        )
+                    )
 
         return connectors
