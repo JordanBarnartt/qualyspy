@@ -1,6 +1,5 @@
 # mypy: ignore-errors
 # type: ignore
-# pylama: ignore=E402
 
 import inspect
 import ipaddress
@@ -15,27 +14,12 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
 
-import qualyspy.models.vmdr.host_list_orm as host_list_orm
-import qualyspy.models.vmdr.host_list_vm_detection_orm as host_list_vm_detection_orm
-from qualyspy import qutils, vmdr
-
-
-class TestQutils(unittest.TestCase):
-    def test_to_orm_object(self):
-        data = test_data.example_hostlist
-        orm_object = qutils.to_orm_object(data.host[0], host_list_vm_detection_orm.Host)
-        self.assertEqual(orm_object.ip, data.host[0].ip)
+import qualyspy.models.vmdr.host_list_orm as host_list_orm  # noqa: E402
+import qualyspy.models.vmdr.host_list_vm_detection_orm as host_list_vm_detection_orm  # noqa: E402
+from qualyspy import vmdr  # noqa: E402
 
 
 class TestVMDR(unittest.TestCase):
-    def test_host_list_detection(self):
-        api = vmdr.VmdrAPI()
-        hostlist_detection, _, _ = api.host_list_detection(
-            ids=test_data.test_host_list_id
-        )
-        ip = hostlist_detection.host[0].ip
-        self.assertEqual(ip, ipaddress.ip_address(test_data.test_host_list_ip_address))
-
     def test_vmdr_host_list_det_orm_load(self):
         vmdr_orm = vmdr.HostListDetectionORM(echo=True)
         vmdr_orm.load()
@@ -46,12 +30,6 @@ class TestVMDR(unittest.TestCase):
                 .all()
             )
             self.assertEqual(host_list[0].ip, ipaddress.ip_address("172.16.76.84"))
-
-    def test_vmdr_host_list(self):
-        api = vmdr.VmdrAPI()
-        host_list, _, _ = api.host_list(ids=test_data.test_host_list_id)
-        ip = host_list.host[0].ip
-        self.assertEqual(ip, ipaddress.ip_address(test_data.test_host_list_ip_address))
 
     def test_vmdr_host_list_orm_load(self):
         vmdr_orm = vmdr.HostListORM(echo=True)

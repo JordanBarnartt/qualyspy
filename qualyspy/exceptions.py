@@ -11,3 +11,9 @@ class ConfigError(Exception):
     """Indicates an error with the configuration file."""
 
     pass
+
+
+class ValidationError(Exception):
+    """Wrapper for pydantic.error_wrappers.ValidationError"""
+
+    pass

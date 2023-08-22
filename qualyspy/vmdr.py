@@ -12,6 +12,7 @@ host = hosts.host[0]
 session.close()
 """
 
+import datetime as dt
 import ipaddress
 import os
 import re
@@ -23,13 +24,10 @@ from xsdata.formats.dataclass.parsers import XmlParser
 
 from . import URLS, qutils
 from .base import QualysAPIBase, QualysORMMixin
-from .models.vmdr import (
-    host_list_orm,
-    host_list_output,
-    host_list_vm_detection_orm,
-    host_list_vm_detection_output,
-    knowledge_base_vuln_list_output,
-)
+from .models.vmdr import (host_list_orm, host_list_output,
+                          host_list_vm_detection_orm,
+                          host_list_vm_detection_output,
+                          knowledge_base_vuln_list_output)
 
 
 class VmdrAPI(QualysAPIBase):
@@ -207,17 +205,17 @@ class VmdrAPI(QualysAPIBase):
 
     def ignore_vuln(
         self,
-        *,
-        action: str,
         qids: list[int],
         comments: str,
-        asset_groups: list[str] | None,
-        ips: list[str | ipaddress.IPv4Address | ipaddress.IPv6Address] | None,
-        dns_contains: str | None,
+        *,
+        action: str | None = None,
+        reopen_ignored_days: int | None = None,
+        reopen_ignored_date: dt.datetime | None = None,
+        asset_groups: list[str] | None = None,
+        ips: list[str | ipaddress.IPv4Address | ipaddress.IPv6Address] | None = None,
+        dns_contains: str | None = None,
     ) -> None:
         """Ignore a list of vulnerabilities for a set of assets.
-
-        Does not return anything yet because the DDI for the return XML is not available.
         """
         params = {
             "action": action,

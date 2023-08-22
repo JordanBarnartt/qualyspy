@@ -2,8 +2,10 @@ from typing import Any
 
 from . import URLS, qutils
 from .base import QualysAPIBase, QualysORMMixin
-from .exceptions import QualysAPIError
+from .exceptions import QualysAPIError, ValidationError
 from .models.gav import asset_details_orm, asset_details_output
+
+import pydantic
 
 import sqlalchemy.orm as orm
 
@@ -66,7 +68,10 @@ class GavAPI(QualysAPIBase):
                 if asset["cloudProvider"]["oci"]["tags"] is None:
                     asset["cloudProvider"]["oci"]["tags"] = []
 
-        response = asset_details_output.AssetDetailsOutput(**raw_response)
+        try:
+            response = asset_details_output.AssetDetailsOutput(**raw_response)
+        except pydantic.error_wrappers.ValidationError as e:
+            raise ValidationError(f"{e}; Response: {raw_response}")
 
         if response.response_code != "SUCCESS":
             raise QualysAPIError(
@@ -85,7 +90,6 @@ class AllAssetDetailsORM(GavAPI, QualysORMMixin):
     def _load(self, load_func: Any, **kwargs: Any) -> None:
         def _load_set(to_load: list[asset_details_orm.AssetItem]) -> None:
             with orm.Session(self.engine) as session:
-                session.add_all(to_load)
                 for obj in to_load:
                     session.merge(obj)
                 session.commit()

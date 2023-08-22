@@ -12,10 +12,10 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
-from qualyspy import gav
+from qualyspy import gav  # noqa: E402
 
-import sqlalchemy.orm as orm
-import qualyspy.models.gav.asset_details_orm as asset_details_orm
+import sqlalchemy.orm as orm  # noqa: E402
+import qualyspy.models.gav.asset_details_orm as asset_details_orm  # noqa: E402
 
 
 class TestGAV(unittest.TestCase):

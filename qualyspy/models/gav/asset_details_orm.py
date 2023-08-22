@@ -365,7 +365,9 @@ class Cloud_Provider(Base):
     __tablename__ = "cloud_provider"
 
     id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
-    oci: orm.Mapped[Oci] = orm.relationship("Oci", back_populates="cloud_provider", uselist=False)
+    oci: orm.Mapped[Oci] = orm.relationship(
+        "Oci", back_populates="cloud_provider", uselist=False
+    )
 
     asset_item_id: orm.Mapped[int] = orm.mapped_column(
         sa.ForeignKey("asset_item.asset_id")
@@ -466,19 +468,29 @@ class Activity(Base):
     asset_item: orm.Mapped["AssetItem"] = orm.relationship(back_populates="activity")
 
 
+taglist_tagitem_association_table = sa.Table(
+    "taglist_tagitem",
+    Base.metadata,
+    sa.Column("taglist_id", sa.Integer, sa.ForeignKey("tag_list.id"), primary_key=True),
+    sa.Column(
+        "tagitem_id", sa.Integer, sa.ForeignKey("tag_item.tag_id"), primary_key=True
+    ),
+)
+
+
 class TagItem(Base):
     __tablename__ = "tag_item"
 
-    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
-    tag_id: orm.Mapped[int]
+    tag_id: orm.Mapped[int] = orm.mapped_column(primary_key=True)
     tag_name: orm.Mapped[str]
     foreground_color: orm.Mapped[int]
     background_color: orm.Mapped[int]
     business_impact: orm.Mapped[str | None]
     criticality_score: orm.Mapped[int | None]
 
-    tag_list_id = orm.mapped_column(sa.ForeignKey("tag_list.id"))
-    tag_list: orm.Mapped["TagList"] = orm.relationship("TagList", back_populates="tag")
+    tag_list: orm.Mapped[list["TagList"]] = orm.relationship(
+        secondary=taglist_tagitem_association_table, back_populates="tag"
+    )
 
 
 class TagList(Base):
@@ -486,7 +498,7 @@ class TagList(Base):
 
     id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
     tag: orm.Mapped[list[TagItem]] = orm.relationship(
-        "TagItem", back_populates="tag_list"
+        secondary=taglist_tagitem_association_table, back_populates="tag_list"
     )
 
     asset_item_id: orm.Mapped[int] = orm.mapped_column(
