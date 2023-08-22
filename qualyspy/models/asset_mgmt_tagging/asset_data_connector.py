@@ -19,6 +19,18 @@ class ActivationModule(Enum):
 
 
 @dataclass
+class ActivationModuleObj:
+    activation_module: list[ActivationModule] = field(
+        default_factory=list,
+        metadata={
+            "name": "ActivationModule",
+            "type": "Element",
+            "namespace": "http://am.oxm.api.portal.qualys.com/v3",
+        },
+    )
+
+
+@dataclass
 class AssetDataConnectorErrors:
     error_message: Optional[str] = field(
         default=None,
@@ -176,29 +188,29 @@ class ActivationModuleQlist:
             "namespace": "http://am.oxm.api.portal.qualys.com/v3",
         },
     )
-    set: List[ActivationModule] = field(
-        default_factory=list,
+    set: Optional[ActivationModuleObj] = field(
+        default=None,
         metadata={
             "type": "Element",
             "namespace": "http://am.oxm.api.portal.qualys.com/v3",
         },
     )
-    add: List[ActivationModule] = field(
-        default_factory=list,
+    add: Optional[ActivationModuleObj] = field(
+        default=None,
         metadata={
             "type": "Element",
             "namespace": "http://am.oxm.api.portal.qualys.com/v3",
         },
     )
-    remove: List[ActivationModule] = field(
-        default_factory=list,
+    remove: Optional[ActivationModuleObj] = field(
+        default=None,
         metadata={
             "type": "Element",
             "namespace": "http://am.oxm.api.portal.qualys.com/v3",
         },
     )
-    update: List[ActivationModule] = field(
-        default_factory=list,
+    update: Optional[ActivationModuleObj] = field(
+        default=None,
         metadata={
             "type": "Element",
             "namespace": "http://am.oxm.api.portal.qualys.com/v3",

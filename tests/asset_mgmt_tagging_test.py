@@ -81,13 +81,15 @@ class TestAzureConnectors(unittest.TestCase):
         )
 
         activation_qlist = adc_models.ActivationModuleQlist(
-            set=[adc_models.ActivationModule.VM, adc_models.ActivationModule.CERTVIEW]
+            set=adc_models.ActivationModuleObj(
+                [adc_models.ActivationModule.VM, adc_models.ActivationModule.CERTVIEW]
+            )
         )
 
         auth_record_fields = {
             "application_id": "4d989e82-1a55-4811-8c30-14d05663ddf9",
             "directory_id": "4d989e82-1a55-4811-8c30-14d05663ddf9",
-            "subscription_id": "4d989e82-1a55-4811-8c30-14d05663ddf6",
+            "subscription_id": "4d989e82-1a55-4811-8c30-14d05663ddf5",
             "authentication_key": "NotARealKey",
         }
         auth_record = as_models.AzureAuthRecordSimple(**auth_record_fields)
@@ -196,9 +198,7 @@ class TestAzureConnectors(unittest.TestCase):
         new_connector = api.create_azure_connector(new_aadc)
         self.assertEqual(new_connector.name, new_aadc.name)
 
-        filters = [
-            asset_mgmt_tagging.Filter("name", "EQUALS", "Test Azure Connector")
-        ]
+        filters = [asset_mgmt_tagging.Filter("name", "EQUALS", "Test Azure Connector")]
         searched_connectors = api.search_azure_connectors(filters=filters)
         self.assertEqual(searched_connectors[0].id, new_connector.id)
 

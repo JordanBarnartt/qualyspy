@@ -202,6 +202,7 @@ class AzureConnectorsAPI(QualysAPIBase):
             JsonSerializer(dict_factory=_filter_none_emptylist).render(connector)
         )
         data = {"ServiceRequest": {"data": {"AzureAssetDataConnector": connector_json}}}
+        print(data)
         response = self.post(URLS.create_azure_connector, data=json.dumps(data))
         ret = json.loads(response.text)
         _check_response_code(ret["ServiceResponse"])
