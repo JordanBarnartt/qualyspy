@@ -3,12 +3,13 @@
 import ipaddress
 
 import sqlalchemy as sa
+import sqlalchemy.dialects.postgresql
 
 
 class IPv4AddressType(sa.types.TypeDecorator[sa.types.String]):
     """SQLAlchemy type for IPv4Address"""
 
-    impl = sa.types.String
+    impl = sqlalchemy.dialects.postgresql.INET
 
     def process_bind_param(self, value, dialect):  # type: ignore
         if value is not None:
@@ -26,7 +27,7 @@ class IPv4AddressType(sa.types.TypeDecorator[sa.types.String]):
 class IPv6AddressType(sa.types.TypeDecorator[sa.types.String]):
     """SQLAlchemy type for IPv6Address"""
 
-    impl = sa.types.String
+    impl = sqlalchemy.dialects.postgresql.INET
 
     def process_bind_param(self, value, dialect):  # type: ignore
         if value is not None:
@@ -42,7 +43,7 @@ class IPv6AddressType(sa.types.TypeDecorator[sa.types.String]):
 
 
 class IPAddressGenericType(sa.types.TypeDecorator[sa.types.String]):
-    impl = sa.types.String
+    impl = sqlalchemy.dialects.postgresql.INET
 
     # Clears the following warning:
     # SAWarning: TypeDecorator IPAddressGenericType() will not produce a cache key because the
