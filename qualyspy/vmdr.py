@@ -120,8 +120,9 @@ class VmdrAPI(QualysAPIBase):
     def host_list(
         self,
         *,
-        ids: int | list[int] | None = None,
         truncation_limit: int | None = None,
+        ips: list[str | ipaddress.IPv4Address | ipaddress.IPv6Address] | None = None,
+        ids: int | list[int] | None = None,
         id_min: int | None = None,
     ) -> tuple[host_list_output.HostList, bool, int]:
         """Get a list of hosts from the VMDR API.  A value of None for the parameters will use their
@@ -136,15 +137,19 @@ class VmdrAPI(QualysAPIBase):
                 results were truncated, and the next id_min to use for the next call.
         """
 
-        params = {
-            k: str(v) for k, v in locals().items() if (k != "self" and v is not None)
+        params: dict[str, Any] = {
+            "truncation_limit": truncation_limit,
+            "ips": ips,
+            "ids": ids,
+            "id_min": id_min,
         }
         params["action"] = "list"
+        params_cleaned = qutils.clean_dict(params)
 
         truncated = False
         next_id_min = 0
 
-        response = self.get(URLS.host_list, params=params).text
+        response = self.get(URLS.host_list, params=params_cleaned).text
         parsed: host_list_output.HostListOutput = self.xmlparser.from_string(
             response, host_list_output.HostListOutput
         )

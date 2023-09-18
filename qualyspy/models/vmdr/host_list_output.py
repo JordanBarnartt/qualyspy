@@ -779,6 +779,58 @@ class Host:
             "type": "Element",
         },
     )
+    last_boot: Optional[dt.datetime] = field(
+        default=None,
+        metadata={
+            "name": "LAST_BOOT",
+            "type": "Element",
+            "format": DT_FORMAT,
+        },
+    )
+    serial_number: Optional[str] = field(
+        default=None,
+        metadata={
+            "name": "SERIAL_NUMBER",
+            "type": "Element",
+        },
+    )
+    hardware_uuid: Optional[str] = field(
+        default=None,
+        metadata={
+            "name": "HARDWARE_UUID",
+            "type": "Element",
+        },
+    )
+    first_found_date: Optional[dt.datetime] = field(
+        default=None,
+        metadata={
+            "name": "FIRST_FOUND_DATE",
+            "type": "Element",
+            "format": DT_FORMAT,
+        },
+    )
+    last_activity: Optional[dt.datetime] = field(
+        default=None,
+        metadata={
+            "name": "LAST_ACTIVITY",
+            "type": "Element",
+            "format": DT_FORMAT,
+        },
+    )
+    agent_status: Optional[str] = field(
+        default=None,
+        metadata={
+            "name": "AGENT_STATUS",
+            "type": "Element",
+        },
+    )
+    cloud_agent_running_on: Optional[str] = field(
+        default=None,
+        metadata={
+            "name": "CLOUD_AGENT_RUNNING_ON",
+            "type": "Element",
+        },
+    )
     tags: Optional[Tags] = field(
         default=None,
         metadata={

@@ -341,6 +341,13 @@ class Host(Base):
     netbios: orm.Mapped[str | None]
     os: orm.Mapped[str | None]
     qg_hostid: orm.Mapped[str | None]
+    last_boot: orm.Mapped[dt.datetime | None]
+    serial_number: orm.Mapped[str | None]
+    hardware_uuid: orm.Mapped[str | None]
+    first_found_date: orm.Mapped[dt.datetime | None]
+    last_activity: orm.Mapped[dt.datetime | None]
+    agent_status: orm.Mapped[str | None]
+    cloud_agent_running_on: orm.Mapped[str | None]
     tags: orm.Mapped[Tags | None] = orm.relationship(
         back_populates="host", uselist=False
     )

@@ -30,7 +30,9 @@ class Attribute(Base):
     azure_id: orm.Mapped[int | None] = orm.mapped_column(sa.ForeignKey("azure.id"))
     azure: orm.Mapped[Optional["Azure"]] = orm.relationship(back_populates="attribute")
     google_id: orm.Mapped[int | None] = orm.mapped_column(sa.ForeignKey("google.id"))
-    google: orm.Mapped[Optional["Google"]] = orm.relationship(back_populates="attribute")
+    google: orm.Mapped[Optional["Google"]] = orm.relationship(
+        back_populates="attribute"
+    )
     ec2_id: orm.Mapped[int | None] = orm.mapped_column(sa.ForeignKey("ec2.id"))
     ec2: orm.Mapped[Optional["Ec2"]] = orm.relationship(back_populates="attribute")
 
@@ -68,7 +70,9 @@ class Qds(Base):
     severity: orm.Mapped[str] = orm.mapped_column(primary_key=True)
     value: orm.Mapped[int] = orm.mapped_column(primary_key=True)
 
-    detection_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("detection.id"))
+    detection_id: orm.Mapped[int] = orm.mapped_column(
+        sa.ForeignKey("detection.unique_vuln_id")
+    )
     detection: orm.Mapped["Detection"] = orm.relationship(back_populates="qds")
 
 
@@ -146,7 +150,9 @@ class QdsFactors(Base):
         back_populates="qds_factors"
     )
 
-    detection_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("detection.id"))
+    detection_id: orm.Mapped[int] = orm.mapped_column(
+        sa.ForeignKey("detection.unique_vuln_id")
+    )
     detection: orm.Mapped["Detection"] = orm.relationship(back_populates="qds_factors")
 
 

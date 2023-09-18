@@ -48,7 +48,6 @@ class GavAPI(QualysAPIBase):
         self, *, last_seen_asset_id: int | None = None, page_size: int | None = None
     ) -> tuple[list[asset_details_output.AssetItem], bool, int | None]:
         params = {"lastSeenAssetId": last_seen_asset_id, "pageSize": page_size}
-        params["lastSeenAssetId"] = last_seen_asset_id
         params_cleaned = qutils.clean_dict(params)
         raw_response = self.post(URLS.all_asset_details, params=params_cleaned).json()
 
