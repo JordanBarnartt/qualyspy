@@ -381,17 +381,17 @@ class Agent(Base):
     __tablename__ = "agent"
 
     id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
-    version: orm.Mapped[str]
-    configuration_profile: orm.Mapped[str]
+    version: orm.Mapped[str | None]
+    configuration_profile: orm.Mapped[str | None]
     activations: orm.Mapped[list[Activation]] = orm.relationship(
         "Activation", back_populates="agent"
     )
-    connected_from: orm.Mapped[str]
+    connected_from: orm.Mapped[str | None]
     last_activity: orm.Mapped[dt.datetime]
     last_checked_in: orm.Mapped[dt.datetime]
     last_inventory: orm.Mapped[dt.datetime]
-    udc_manifest_assigned: orm.Mapped[bool]
-    error_status: orm.Mapped[bool]
+    udc_manifest_assigned: orm.Mapped[bool | None]
+    error_status: orm.Mapped[bool | None]
 
     asset_item_id: orm.Mapped[int] = orm.mapped_column(
         sa.ForeignKey("asset_item.asset_id")
@@ -443,11 +443,11 @@ class Container(Base):
     __tablename__ = "container"
 
     id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
-    product: orm.Mapped[str]
+    product: orm.Mapped[str | None]
     version: orm.Mapped[str | None]
     no_of_containers: orm.Mapped[int]
     no_of_images: orm.Mapped[int]
-    has_sensor: orm.Mapped[bool]
+    has_sensor: orm.Mapped[bool | None]
 
     asset_item_id: orm.Mapped[int] = orm.mapped_column(
         sa.ForeignKey("asset_item.asset_id")
@@ -574,7 +574,7 @@ class Processor(Base):
     __tablename__ = "processor"
 
     id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
-    description: orm.Mapped[str]
+    description: orm.Mapped[str | None]
     speed: orm.Mapped[int | None]
     numCPUs: orm.Mapped[int | None]
     no_of_socket: orm.Mapped[int | None]

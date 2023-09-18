@@ -13,7 +13,10 @@ class IPv4AddressType(sa.types.TypeDecorator[sa.types.String]):
 
     def process_bind_param(self, value, dialect):  # type: ignore
         if value is not None:
-            return str(value)
+            if isinstance(value, list):
+                return value[0].exploded
+            else:
+                return value.exploded
         else:
             return None
 
@@ -31,7 +34,10 @@ class IPv6AddressType(sa.types.TypeDecorator[sa.types.String]):
 
     def process_bind_param(self, value, dialect):  # type: ignore
         if value is not None:
-            return str(value)
+            if isinstance(value, list):
+                return value[0].exploded
+            else:
+                return value.exploded
         else:
             return None
 
@@ -56,7 +62,10 @@ class IPAddressGenericType(sa.types.TypeDecorator[sa.types.String]):
 
     def process_bind_param(self, value, dialect):  # type: ignore
         if value is not None:
-            return str(value)
+            if isinstance(value, list):
+                return value[0].exploded
+            else:
+                return value.exploded
         else:
             return None
 

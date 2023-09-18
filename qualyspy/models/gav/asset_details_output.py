@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import datetime as dt
 import ipaddress
+from typing import Any
 
 from pydantic import BaseModel
 from pydantic.utils import to_lower_camel
@@ -187,15 +188,20 @@ class CloudProvider(Model):
 
 
 class Agent(Model):
-    version: str
-    configuration_profile: str
+    version: str | None
+    configuration_profile: str | None
     activations: list[Activation]
-    connected_from: str
+    connected_from: str | None
     last_activity: dt.datetime
     last_checked_in: dt.datetime
     last_inventory: dt.datetime
-    udc_manifest_assigned: bool
-    error_status: bool
+    udc_manifest_assigned: bool | None
+    error_status: bool | None
+
+    def __init__(self, **data: Any) -> None:
+        if data["activations"] is None:
+            data["activations"] = []
+        super().__init__(**data)
 
 
 class Sensor(Model):
@@ -213,11 +219,11 @@ class Sensor(Model):
 
 
 class Container(Model):
-    product: str
+    product: str | None
     version: str | None
     no_of_containers: int
     no_of_images: int
-    has_sensor: bool
+    has_sensor: bool | None
 
 
 class Inventory(Model):
@@ -270,7 +276,7 @@ class Criticality(Model):
 
 
 class Processor(Model):
-    description: str
+    description: str | None
     speed: int | None
     numCPUs: int | None
     no_of_socket: int | None
@@ -328,7 +334,6 @@ class AssetItem(Model):
     passive_sensor: str | None
     domain: list[str] | None
     subdomain: list[str] | None
-    missing_software: str | None
     whois: list[str] | None
     isp: str | None
     asn: str | None

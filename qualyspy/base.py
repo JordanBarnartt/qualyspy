@@ -28,6 +28,8 @@ _C = TypeVar("_C")
 _USE_API_SERVER = ["msp", "api", "qps"]
 _USE_API_GATEWAY = ["rest"]
 
+_TIMEOUT = 30
+
 
 class QualysAPIBase:
     """Base class for interacting with the Qualys API.  This class is not intended to be used
@@ -188,6 +190,7 @@ class QualysAPIBase:
                 params=params,
                 auth=(self.username, self.password),
                 headers={"X-Requested-With": self.x_requested_with},
+                timeout=_TIMEOUT
             )
             try:
                 response.raise_for_status()
@@ -206,6 +209,7 @@ class QualysAPIBase:
                     "X-Requested-With": self.x_requested_with,
                     "Authorization": f"Bearer {self.jwt}",
                 },
+                timeout=_TIMEOUT
             )
             try:
                 response.raise_for_status()
@@ -249,6 +253,7 @@ class QualysAPIBase:
                     "Content-Type": content_type,
                     "Accept": accept,
                 },
+                timeout=_TIMEOUT
             )
             try:
                 response.raise_for_status()
@@ -267,6 +272,7 @@ class QualysAPIBase:
                     "Authorization": f"Bearer {self.jwt}",
                     "Content-Type": "application/json",
                 },
+                timeout=_TIMEOUT
             )
             try:
                 response.raise_for_status()
