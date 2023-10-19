@@ -593,7 +593,7 @@ class AssetItem(Base):
 
     asset_id: orm.Mapped[int] = orm.mapped_column(primary_key=True)
     assetUUID: orm.Mapped[str]
-    host_id: orm.Mapped[int]
+    host_id: orm.Mapped[int | None]
     last_modified_date: orm.Mapped[dt.datetime]
     agent_id: orm.Mapped[str | None]
     created_date: orm.Mapped[dt.datetime]

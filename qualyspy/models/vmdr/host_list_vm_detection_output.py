@@ -1,955 +1,192 @@
-"""Data model for the Qualys VM Detection Output API.
-
-The dataclasses in this module are generated from the Qualys DTD schema using xsdata.
-"""
-
-import datetime as dt
+import datetime
 import ipaddress
-from dataclasses import field
-from typing import List, Optional
 
-from pydantic.dataclasses import dataclass
-from xsdata.formats.converter import converter
+from pydantic_xml import BaseXmlModel, attr, element, wrapped
 
-from . import converters
 
-DT_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+class ResponseWarning(BaseXmlModel):
+    code: str = element(tag="CODE")
+    text: str = element(tag="TEXT")
+    url: str = element(tag="URL")
 
 
-converter.register_converter(ipaddress.IPv4Address, converters.IPv4AddressConverter())
-converter.register_converter(ipaddress.IPv6Address, converters.IPv6AddressConverter())
-converter.register_converter(dt.timedelta, converters.TimeDeltaConverter())
-converter.register_converter(str, converters.StrConverter())
+class QdsFactor(BaseXmlModel):
+    name: str = attr(name="name")
+    value: str | None
 
 
-@dataclass
-class Attribute:
-    class Meta:
-        name = "ATTRIBUTE"
+class Qds(BaseXmlModel):
+    severity: str = attr(name="severity")
+    score: int | None
 
-    name: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "NAME",
-            "type": "Element",
-            "required": True,
-        },
-    )
-    last_status: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "LAST_STATUS",
-            "type": "Element",
-            "required": True,
-        },
-    )
-    value: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "VALUE",
-            "type": "Element",
-            "required": True,
-        },
-    )
-    last_success_date: Optional[dt.datetime] = field(
-        default=None,
-        metadata={
-            "name": "LAST_SUCCESS_DATE",
-            "type": "Element",
-            "format": DT_FORMAT,
-        },
-    )
-    last_error_date: Optional[dt.datetime] = field(
-        default=None,
-        metadata={
-            "name": "LAST_ERROR_DATE",
-            "type": "Element",
-            "format": DT_FORMAT,
-        },
-    )
-    last_error: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "LAST_ERROR",
-            "type": "Element",
-        },
-    )
-
-
-@dataclass
-class CloudTag:
-    class Meta:
-        name = "CLOUD_TAG"
-
-    name: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "NAME",
-            "type": "Element",
-            "required": True,
-        },
-    )
-    value: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "VALUE",
-            "type": "Element",
-            "required": True,
-        },
-    )
-    last_success_date: Optional[dt.datetime] = field(
-        default=None,
-        metadata={
-            "name": "LAST_SUCCESS_DATE",
-            "type": "Element",
-            "required": True,
-            "format": DT_FORMAT,
-        },
-    )
-
-
-@dataclass
-class DnsData:
-    class Meta:
-        name = "DNS_DATA"
-
-    hostname: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "HOSTNAME",
-            "type": "Element",
-        },
-    )
-    domain: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "DOMAIN",
-            "type": "Element",
-        },
-    )
-    fqdn: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "FQDN",
-            "type": "Element",
-        },
-    )
-
-
-@dataclass
-class Param:
-    class Meta:
-        name = "PARAM"
-
-    key: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "KEY",
-            "type": "Element",
-            "required": True,
-        },
-    )
-    value: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "VALUE",
-            "type": "Element",
-            "required": True,
-        },
-    )
-
-
-@dataclass
-class Qds:
-    class Meta:
-        name = "QDS"
-
-    severity: Optional[str] = field(
-        default=None,
-        metadata={
-            "type": "Attribute",
-            "required": True,
-        },
-    )
-    value: Optional[int] = field(
-        default=None,
-        metadata={
-            "required": True,
-        },
-    )
-
-
-@dataclass
-class QdsFactor:
-    class Meta:
-        name = "QDS_FACTOR"
-
-    name: Optional[str] = field(
-        default=None,
-        metadata={
-            "type": "Attribute",
-            "required": True,
-        },
-    )
-    value: Optional[int] = field(
-        default=None,
-        metadata={
-            "required": True,
-        },
-    )
-
 
-@dataclass
-class Tag:
-    class Meta:
-        name = "TAG"
-
-    tag_id: Optional[int] = field(
-        default=None,
-        metadata={
-            "name": "TAG_ID",
-            "type": "Element",
-        },
-    )
-    name: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "NAME",
-            "type": "Element",
-            "required": True,
-        },
-    )
-    color: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "COLOR",
-            "type": "Element",
-        },
-    )
-    background_color: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "BACKGROUND_COLOR",
-            "type": "Element",
-        },
+class Detection(BaseXmlModel):
+    unique_vuln_id: str = element(tag="UNIQUE_VULN_ID")
+    qid: int = element(tag="QID")
+    type: str = element(tag="TYPE")
+    severity: int | None = element(tag="SEVERITY", default=None)
+    port: int | None = element(tag="PORT", default=None)
+    protocol: str | None = element(tag="PROTOCOL", default=None)
+    fqdn: str | None = element(tag="FQDN", default=None)
+    ssl: bool | None = element(tag="SSL", default=None)
+    instance: str | None = element(tag="INSTANCE", default=None)
+    results: str | None = element(tag="RESULTS", default=None)
+    status: str | None = element(tag="STATUS", default=None)
+    first_found_datetime: datetime.datetime | None = element(
+        tag="FIRST_FOUND_DATETIME", default=None
     )
-
-
-@dataclass
-class Warning:
-    class Meta:
-        name = "WARNING"
-
-    code: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "CODE",
-            "type": "Element",
-        },
+    last_found_datetime: datetime.datetime | None = element(
+        tag="LAST_FOUND_DATETIME", default=None
     )
-    text: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "TEXT",
-            "type": "Element",
-            "required": True,
-        },
+    qds: Qds | None = element(tag="QDS", default=None)
+    qds_factors: list[QdsFactor] = wrapped(
+        "QDS_FACTORS", element(tag="QDS_FACTOR", default_factory=list)
     )
-    url: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "URL",
-            "type": "Element",
-        },
+    times_found: int | None = element(tag="TIMES_FOUND", default=None)
+    last_test_datetime: datetime.datetime | None = element(
+        tag="LAST_TEST_DATETIME", default=None
     )
-
-
-@dataclass
-class Azure:
-    class Meta:
-        name = "AZURE"
-
-    attribute: List[Attribute] = field(
-        default_factory=list,
-        metadata={
-            "name": "ATTRIBUTE",
-            "type": "Element",
-        },
+    last_update_datetime: datetime.datetime | None = element(
+        tag="LAST_UPDATE_DATETIME", default=None
     )
-
-
-@dataclass
-class CloudProviderTags:
-    class Meta:
-        name = "CLOUD_PROVIDER_TAGS"
-
-    cloud_tag: List[CloudTag] = field(
-        default_factory=list,
-        metadata={
-            "name": "CLOUD_TAG",
-            "type": "Element",
-            "min_occurs": 1,
-        },
+    last_fixed_datetime: datetime.datetime | None = element(
+        tag="LAST_FIXED_DATETIME", default=None
     )
-
-
-@dataclass
-class Ec2:
-    class Meta:
-        name = "EC2"
-
-    attribute: List[Attribute] = field(
-        default_factory=list,
-        metadata={
-            "name": "ATTRIBUTE",
-            "type": "Element",
-        },
+    first_reopened_datetime: datetime.datetime | None = element(
+        tag="FIRST_REOPENED_DATETIME", default=None
     )
-
-
-@dataclass
-class Google:
-    class Meta:
-        name = "GOOGLE"
-
-    attribute: List[Attribute] = field(
-        default_factory=list,
-        metadata={
-            "name": "ATTRIBUTE",
-            "type": "Element",
-        },
+    last_reopened_datetime: datetime.datetime | None = element(
+        tag="LAST_REOPENED_DATETIME", default=None
     )
-
-
-@dataclass
-class ParamList:
-    class Meta:
-        name = "PARAM_LIST"
-
-    param: List[Param] = field(
-        default_factory=list,
-        metadata={
-            "name": "PARAM",
-            "type": "Element",
-            "min_occurs": 1,
-        },
+    times_reopened: int | None = element(tag="TIMES_REOPENED", default=None)
+    service: str | None = element(tag="SERVICE", default=None)
+    is_ignored: bool | None = element(tag="IS_IGNORED", default=None)
+    is_disabled: bool | None = element(tag="IS_DISABLED", default=None)
+    affect_running_kernel: bool | None = element(
+        tag="AFFECT_RUNNING_KERNEL", default=None
     )
-
-
-@dataclass
-class QdsFactors:
-    class Meta:
-        name = "QDS_FACTORS"
-
-    qds_factor: List[QdsFactor] = field(
-        default_factory=list,
-        metadata={
-            "name": "QDS_FACTOR",
-            "type": "Element",
-        },
+    affect_running_service: bool | None = element(
+        tag="AFFECT_RUNNING_SERVICE", default=None
     )
-
-
-@dataclass
-class Tags:
-    class Meta:
-        name = "TAGS"
-
-    tag: List[Tag] = field(
-        default_factory=list,
-        metadata={
-            "name": "TAG",
-            "type": "Element",
-            "min_occurs": 1,
-        },
+    affect_exploitable_config: bool | None = element(
+        tag="AFFECT_EXPLOITABLE_CONFIG", default=None
     )
-
-
-@dataclass
-class Detection:
-    class Meta:
-        name = "DETECTION"
-
-    unique_vuln_id: int = field(
-        metadata={
-            "name": "UNIQUE_VULN_ID",
-            "type": "Element",
-            "required": True,
-        },
+    last_processed_datetime: datetime.datetime | None = element(
+        tag="LAST_PROCESSED_DATETIME", default=None
     )
+    asset_cve: str | None = element(tag="ASSET_CVE", default=None)
 
-    qid: Optional[int] = field(
-        default=None,
-        metadata={
-            "name": "QID",
-            "type": "Element",
-            "required": True,
-        },
-    )
-    type: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "TYPE",
-            "type": "Element",
-            "required": True,
-        },
-    )
-    severity: Optional[int] = field(
-        default=None,
-        metadata={
-            "name": "SEVERITY",
-            "type": "Element",
-        },
-    )
-    port: Optional[int] = field(
-        default=None,
-        metadata={
-            "name": "PORT",
-            "type": "Element",
-        },
-    )
-    protocol: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "PROTOCOL",
-            "type": "Element",
-        },
-    )
-    fqdn: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "FQDN",
-            "type": "Element",
-        },
-    )
-    ssl: Optional[bool] = field(
-        default=None,
-        metadata={
-            "name": "SSL",
-            "type": "Element",
-        },
-    )
-    instance: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "INSTANCE",
-            "type": "Element",
-        },
-    )
-    results: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "RESULTS",
-            "type": "Element",
-        },
-    )
-    status: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "STATUS",
-            "type": "Element",
-        },
-    )
-    first_found_datetime: Optional[dt.datetime] = field(
-        default=None,
-        metadata={
-            "name": "FIRST_FOUND_DATETIME",
-            "type": "Element",
-            "format": DT_FORMAT,
-        },
-    )
-    last_found_datetime: Optional[dt.datetime] = field(
-        default=None,
-        metadata={
-            "name": "LAST_FOUND_DATETIME",
-            "type": "Element",
-            "format": DT_FORMAT,
-        },
-    )
-    source: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "SOURCE",
-            "type": "Element",
-        },
-    )
-    qds: Optional[Qds] = field(
-        default=None,
-        metadata={
-            "name": "QDS",
-            "type": "Element",
-        },
-    )
-    qds_factors: Optional[QdsFactors] = field(
-        default=None,
-        metadata={
-            "name": "QDS_FACTORS",
-            "type": "Element",
-        },
-    )
-    times_found: Optional[int] = field(
-        default=None,
-        metadata={
-            "name": "TIMES_FOUND",
-            "type": "Element",
-        },
-    )
-    last_test_datetime: Optional[dt.datetime] = field(
-        default=None,
-        metadata={
-            "name": "LAST_TEST_DATETIME",
-            "type": "Element",
-            "format": DT_FORMAT,
-        },
-    )
-    last_update_datetime: Optional[dt.datetime] = field(
-        default=None,
-        metadata={
-            "name": "LAST_UPDATE_DATETIME",
-            "type": "Element",
-            "format": DT_FORMAT,
-        },
-    )
-    last_fixed_datetime: Optional[dt.datetime] = field(
-        default=None,
-        metadata={
-            "name": "LAST_FIXED_DATETIME",
-            "type": "Element",
-            "format": DT_FORMAT,
-        },
-    )
-    first_reopened_datetime: Optional[dt.datetime] = field(
-        default=None,
-        metadata={
-            "name": "FIRST_REOPENED_DATETIME",
-            "type": "Element",
-            "format": DT_FORMAT,
-        },
-    )
-    last_reopened_datetime: Optional[dt.datetime] = field(
-        default=None,
-        metadata={
-            "name": "LAST_REOPENED_DATETIME",
-            "type": "Element",
-            "format": DT_FORMAT,
-        },
-    )
-    times_reopened: Optional[int] = field(
-        default=None,
-        metadata={
-            "name": "TIMES_REOPENED",
-            "type": "Element",
-        },
-    )
-    service: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "SERVICE",
-            "type": "Element",
-        },
-    )
-    is_ignored: Optional[bool] = field(
-        default=None,
-        metadata={
-            "name": "IS_IGNORED",
-            "type": "Element",
-        },
-    )
-    is_disabled: Optional[bool] = field(
-        default=None,
-        metadata={
-            "name": "IS_DISABLED",
-            "type": "Element",
-        },
-    )
-    affect_running_kernel: Optional[bool] = field(
-        default=None,
-        metadata={
-            "name": "AFFECT_RUNNING_KERNEL",
-            "type": "Element",
-        },
-    )
-    affect_running_service: Optional[bool] = field(
-        default=None,
-        metadata={
-            "name": "AFFECT_RUNNING_SERVICE",
-            "type": "Element",
-        },
-    )
-    affect_exploitable_config: Optional[bool] = field(
-        default=None,
-        metadata={
-            "name": "AFFECT_EXPLOITABLE_CONFIG",
-            "type": "Element",
-        },
-    )
-    last_processed_datetime: Optional[dt.datetime] = field(
-        default=None,
-        metadata={
-            "name": "LAST_PROCESSED_DATETIME",
-            "type": "Element",
-            "format": DT_FORMAT,
-        },
-    )
-    asset_cve: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "ASSET_CVE",
-            "type": "Element",
-        },
-    )
 
+class CloudTag(BaseXmlModel):
+    name: str = element(tag="NAME")
+    value: str = element(tag="VALUE")
+    last_success_date: datetime.datetime = element(tag="LAST_SUCCESS_DATE")
 
-@dataclass
-class Metadata:
-    class Meta:
-        name = "METADATA"
 
-    ec2: List[Ec2] = field(
-        default_factory=list,
-        metadata={
-            "name": "EC2",
-            "type": "Element",
-        },
+class Attribute(BaseXmlModel):
+    name: str = element(tag="NAME")
+    last_status: str = element(tag="LAST_STATUS")
+    value: str = element(tag="VALUE")
+    last_success_date: datetime.datetime | None = element(
+        tag="LAST_SUCCESS_DATE", default=None
     )
-    google: List[Google] = field(
-        default_factory=list,
-        metadata={
-            "name": "GOOGLE",
-            "type": "Element",
-        },
+    last_error_date: datetime.datetime | None = element(
+        tag="LAST_ERROR_DATE", default=None
     )
-    azure: List[Azure] = field(
-        default_factory=list,
-        metadata={
-            "name": "AZURE",
-            "type": "Element",
-        },
-    )
-
+    last_error: str | None = element(tag="LAST_ERROR", default=None)
 
-@dataclass
-class Request:
-    class Meta:
-        name = "REQUEST"
 
-    datetime: Optional[dt.datetime] = field(
-        default=None,
-        metadata={
-            "name": "DATETIME",
-            "type": "Element",
-            "required": True,
-            "format": DT_FORMAT,
-        },
+class Metadata(BaseXmlModel):
+    ec2: list[Attribute] = wrapped(
+        "EC2", element(tag="ATTRIBUTE", default_factory=list)
     )
-    user_login: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "USER_LOGIN",
-            "type": "Element",
-            "required": True,
-        },
+    google: list[Attribute] = wrapped(
+        "GOOGLE", element(tag="ATTRIBUTE", default_factory=list)
     )
-    resource: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "RESOURCE",
-            "type": "Element",
-            "required": True,
-        },
+    azure: list[Attribute] = wrapped(
+        "AZURE", element(tag="ATTRIBUTE", default_factory=list)
     )
-    param_list: Optional[ParamList] = field(
-        default=None,
-        metadata={
-            "name": "PARAM_LIST",
-            "type": "Element",
-        },
-    )
-    post_data: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "POST_DATA",
-            "type": "Element",
-        },
-    )
 
 
-@dataclass
-class DetectionList:
-    class Meta:
-        name = "DETECTION_LIST"
+class Tag(BaseXmlModel):
+    tag_id: int | None = element(tag="TAG_ID")
+    name: str = element(tag="NAME")
+    color: str | None = element(tag="COLOR", default=None)
+    background_color: str | None = element(tag="BACKGROUND_COLOR", default=None)
 
-    detection: List[Detection] = field(
-        default_factory=list,
-        metadata={
-            "name": "DETECTION",
-            "type": "Element",
-            "min_occurs": 1,
-        },
-    )
 
+class DnsData(BaseXmlModel):
+    hostname: str | None = element(tag="HOSTNAME", default=None)
+    domain: str | None = element(tag="DOMAIN", default=None)
+    fqdn: str | None = element(tag="FQDN", default=None)
 
-@dataclass
-class Host:
-    class Meta:
-        name = "HOST"
 
-    id: Optional[int] = field(
-        default=None,
-        metadata={
-            "name": "ID",
-            "type": "Element",
-            "required": True,
-        },
-    )
-    asset_id: Optional[int] = field(
-        default=None,
-        metadata={
-            "name": "ASSET_ID",
-            "type": "Element",
-        },
-    )
-    ip: Optional[ipaddress.IPv4Address] = field(
-        default=None,
-        metadata={
-            "name": "IP",
-            "type": "Element",
-        },
-    )
-    ipv6: Optional[ipaddress.IPv6Address] = field(
-        default=None,
-        metadata={
-            "name": "IPV6",
-            "type": "Element",
-        },
-    )
-    tracking_method: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "TRACKING_METHOD",
-            "type": "Element",
-        },
-    )
-    network_id: Optional[int] = field(
-        default=None,
-        metadata={
-            "name": "NETWORK_ID",
-            "type": "Element",
-        },
-    )
-    os: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "OS",
-            "type": "Element",
-        },
-    )
-    os_cpe: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "OS_CPE",
-            "type": "Element",
-        },
-    )
-    dns: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "DNS",
-            "type": "Element",
-        },
-    )
-    dns_data: Optional[DnsData] = field(
-        default=None,
-        metadata={
-            "name": "DNS_DATA",
-            "type": "Element",
-        },
+class Host(BaseXmlModel):
+    id: int = element(tag="ID")
+    asset_id: int | None = element(tag="ASSET_ID", default=None)
+    ip: ipaddress.IPv4Address = element(tag="IP", default=None)
+    ipv6: ipaddress.IPv6Address | None = element(tag="IPV6", default=None)
+    tracking_method: str | None = element(tag="TRACKING_METHOD", default=None)
+    network_id: int | None = element(tag="NETWORK_ID", default=None)
+    os: str | None = element(tag="OS", default=None)
+    os_cpe: str | None = element(tag="OS_CPE", default=None)
+    dns: str | None = element(tag="DNS", default=None)
+    dns_data: DnsData | None = element(tag="DNS_DATA", default=None)
+    cloud_provider: str | None = element(tag="CLOUD_PROVIDER", default=None)
+    cloud_service: str | None = element(tag="CLOUD_SERVICE", default=None)
+    cloud_resource_id: str | None = element(tag="CLOUD_RESOURCE_ID", default=None)
+    ec2_instance_id: str | None = element(tag="EC2_INSTANCE_ID", default=None)
+    netbios: str | None = element(tag="NETBIOS", default=None)
+    qg_hostid: str | None = element(tag="QG_HOSTID", default=None)
+    last_scan_datetime: datetime.datetime | None = element(
+        tag="LAST_SCAN_DATETIME", default=None
     )
-    cloud_provider: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "CLOUD_PROVIDER",
-            "type": "Element",
-        },
+    last_vm_scanned_date: datetime.datetime | None = element(
+        tag="LAST_VM_SCANNED_DATE", default=None
     )
-    cloud_service: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "CLOUD_SERVICE",
-            "type": "Element",
-        },
+    last_vm_scanned_duration: int | None = element(
+        tag="LAST_VM_SCANNED_DURATION", default=None
     )
-    cloud_resource_id: Optional[int] = field(
-        default=None,
-        metadata={
-            "name": "CLOUD_RESOURCE_ID",
-            "type": "Element",
-        },
+    last_vm_auth_scanned_date: datetime.datetime | None = element(
+        tag="LAST_VM_AUTH_SCANNED_DATE", default=None
     )
-    ec2_instance_id: Optional[int] = field(
-        default=None,
-        metadata={
-            "name": "EC2_INSTANCE_ID",
-            "type": "Element",
-        },
+    last_vm_auth_scanned_duration: int | None = element(
+        tag="LAST_VM_AUTH_SCANNED_DURATION", default=None
     )
-    netbios: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "NETBIOS",
-            "type": "Element",
-        },
+    last_pc_scanned_date: datetime.datetime | None = element(
+        tag="LAST_PC_SCANNED_DATE", default=None
     )
-    qg_hostid: Optional[str] = field(
-        default=None,
-        metadata={
-            "name": "QG_HOSTID",
-            "type": "Element",
-        },
+    tags: list[Tag] = wrapped("TAGS", element(tag="TAG", default_factory=list))
+    metadata: Metadata | None = element(tag="METADATA", alias="metadata_", default=None)
+    cloud_provider_tags: list[CloudTag] = wrapped(
+        "CLOUD_PROVIDER_TAGS", element(tag="CLOUD_TAG", default_factory=list)
     )
-    last_scan_datetime: Optional[dt.datetime] = field(
-        default=None,
-        metadata={
-            "name": "LAST_SCAN_DATETIME",
-            "type": "Element",
-            "format": DT_FORMAT,
-        },
+    detections: list[Detection] = wrapped(
+        "DETECTION_LIST", element(tag="DETECTION", default_factory=list)
     )
-    last_vm_scanned_date: Optional[dt.datetime] = field(
-        default=None,
-        metadata={
-            "name": "LAST_VM_SCANNED_DATE",
-            "type": "Element",
-            "format": DT_FORMAT,
-        },
-    )
-    last_vm_scanned_duration: Optional[dt.timedelta] = field(
-        default=None,
-        metadata={
-            "name": "LAST_VM_SCANNED_DURATION",
-            "type": "Element",
-        },
-    )
-    last_vm_auth_scanned_date: Optional[dt.datetime] = field(
-        default=None,
-        metadata={
-            "name": "LAST_VM_AUTH_SCANNED_DATE",
-            "type": "Element",
-            "format": DT_FORMAT,
-        },
-    )
-    last_vm_auth_scanned_duration: Optional[dt.timedelta] = field(
-        default=None,
-        metadata={
-            "name": "LAST_VM_AUTH_SCANNED_DURATION",
-            "type": "Element",
-        },
-    )
-    last_pc_scanned_date: Optional[dt.datetime] = field(
-        default=None,
-        metadata={
-            "name": "LAST_PC_SCANNED_DATE",
-            "type": "Element",
-            "format": DT_FORMAT,
-        },
-    )
-    tags: Optional[Tags] = field(
-        default=None,
-        metadata={
-            "name": "TAGS",
-            "type": "Element",
-        },
-    )
-    metadata_: Optional[Metadata] = field(
-        default=None,
-        metadata={
-            "name": "METADATA",
-            "type": "Element",
-        },
-    )
-    cloud_provider_tags: Optional[CloudProviderTags] = field(
-        default=None,
-        metadata={
-            "name": "CLOUD_PROVIDER_TAGS",
-            "type": "Element",
-        },
-    )
-    detection_list: Optional[DetectionList] = field(
-        default=None,
-        metadata={
-            "name": "DETECTION_LIST",
-            "type": "Element",
-            "required": True,
-        },
-    )
-
 
-@dataclass
-class HostList:
-    class Meta:
-        name = "HOST_LIST"
 
-    host: List[Host] = field(
-        default_factory=list,
-        metadata={
-            "name": "HOST",
-            "type": "Element",
-            "min_occurs": 1,
-        },
+class Response(BaseXmlModel):
+    response_datetime: datetime.datetime = element(tag="DATETIME")
+    host_list: list[Host] | None = wrapped(
+        "HOST_LIST", element(tag="HOST", default=None)
     )
+    warning: ResponseWarning | None = element(tag="WARNING", default=None)
 
-    def __add__(self, other: "HostList") -> "HostList":
-        self.host.extend(other.host)
-        return self
 
+class Param(BaseXmlModel):
+    key: str = element(tag="KEY")
+    value: str = element(tag="VALUE")
 
-@dataclass
-class Response:
-    class Meta:
-        name = "RESPONSE"
-
-    datetime: Optional[dt.datetime] = field(
-        default=None,
-        metadata={
-            "name": "DATETIME",
-            "type": "Element",
-            "required": True,
-            "format": DT_FORMAT,
-        },
-    )
-    host_list: Optional[HostList] = field(
-        default=None,
-        metadata={
-            "name": "HOST_LIST",
-            "type": "Element",
-        },
-    )
-    warning: Optional[Warning] = field(
-        default=None,
-        metadata={
-            "name": "WARNING",
-            "type": "Element",
-        },
-    )
 
+class Request(BaseXmlModel):
+    request_datetime: datetime.datetime = element(tag="DATETIME")
+    user_login: str = element(tag="USER_LOGIN")
+    resource: str = element(tag="RESOURCE")
+    param_list: list[Param] | None = element(tag="PARAM_LIST")
+    post_data: str | None = element(tag="POST_DATA")
 
-@dataclass
-class HostListVmDetectionOutput:
-    class Meta:
-        name = "HOST_LIST_VM_DETECTION_OUTPUT"
 
-    request: Optional[Request] = field(
-        default=None,
-        metadata={
-            "name": "REQUEST",
-            "type": "Element",
-        },
-    )
-    response: Optional[Response] = field(
-        default=None,
-        metadata={
-            "name": "RESPONSE",
-            "type": "Element",
-            "required": True,
-        },
-    )
+class HostListVMDetectionOutput(BaseXmlModel, tag="HOST_LIST_VM_DETECTION_OUTPUT"):
+    request: Request | None = element(tag="REQUEST", default=None)
+    response: Response = element(tag="RESPONSE", default=None)

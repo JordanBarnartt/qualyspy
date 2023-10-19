@@ -11,17 +11,16 @@ api.get("/msp/about.php")
 # mypy: allow-untyped-calls
 
 import configparser
-import datetime
 import os
 import urllib.parse
 from abc import ABC, abstractmethod
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 import requests
 import sqlalchemy as sa
 import sqlalchemy.orm as orm
 
-from . import URLS, exceptions, qutils
+from . import URLS, exceptions
 
 _C = TypeVar("_C")
 
@@ -190,7 +189,7 @@ class QualysAPIBase:
                 params=params,
                 auth=(self.username, self.password),
                 headers={"X-Requested-With": self.x_requested_with},
-                timeout=_TIMEOUT
+                timeout=_TIMEOUT,
             )
             try:
                 response.raise_for_status()
@@ -209,7 +208,7 @@ class QualysAPIBase:
                     "X-Requested-With": self.x_requested_with,
                     "Authorization": f"Bearer {self.jwt}",
                 },
-                timeout=_TIMEOUT
+                timeout=_TIMEOUT,
             )
             try:
                 response.raise_for_status()
@@ -253,7 +252,7 @@ class QualysAPIBase:
                     "Content-Type": content_type,
                     "Accept": accept,
                 },
-                timeout=_TIMEOUT
+                timeout=_TIMEOUT,
             )
             try:
                 response.raise_for_status()
@@ -272,7 +271,7 @@ class QualysAPIBase:
                     "Authorization": f"Bearer {self.jwt}",
                     "Content-Type": "application/json",
                 },
-                timeout=_TIMEOUT
+                timeout=_TIMEOUT,
             )
             try:
                 response.raise_for_status()
@@ -342,48 +341,12 @@ class QualysORMMixin(ABC):
 
         self.orm_base.metadata.create_all(self.engine)
 
-    def safe_load(
-        self,
-        loader: Callable[..., Any],
-        load_func: Any,
-        **kwargs: dict[str, Any],
-    ) -> None:
-        """Safely load data into the database.  If an exception is raised, the database is
-        reverted to its previous state.
-
-        Args:
-            loader (Callable[..., Any]): Function which loads data into the database.
-            load_func (Any): Function which returns the data to load into the database.
-            **kwargs (dict[str, Any]): Keyword arguments to pass to the loader function.
-        """
-        self.init_db()
-        now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        schema = self.orm_base.metadata.schema
-        with orm.Session(self.engine) as session:
-            alter_schema = sa.DDL(f"ALTER SCHEMA {schema} RENAME TO {schema}_{now}")
-            session.execute(alter_schema)
-            session.commit()
-        try:
-            self.init_db()
-            loader(load_func, **kwargs)
-        except Exception as e:
-            with self.engine.connect() as conn:
-                conn.execute(sa.schema.DropSchema(schema, cascade=True))
-                conn.commit()
-            with orm.Session(self.engine) as session:
-                revert_schema = sa.DDL(
-                    f"ALTER SCHEMA {schema}_{now} RENAME TO {schema}"
-                )
-                session.execute(revert_schema)
-                session.commit()
-            raise e
-
     @abstractmethod
-    def load(self) -> None:
+    def load(self, **kwargs: Any) -> None:
         """Load data into the database."""
         ...
 
-    def query(self, stmt: Any, *, echo: bool = False) -> list[_C]:
+    def query(self, stmt: Any, *, echo: bool = False) -> Any:
         """Execute a query against the database.
 
         Args:
@@ -394,15 +357,10 @@ class QualysORMMixin(ABC):
         Returns:
             list[_C]: List of objects returned by the query.
         """
-        output: list[_C] = []
+
         with orm.Session(self.engine) as session:
             results = session.execute(stmt)
-            for result in results.all():
-                r = result.tuple()[0]
-                i = qutils.from_orm_object(r)
-                output.append(i)
-
-        return output
+            return results.all()
 
     def __setattr__(self, __name: str, __value: Any) -> None:
         """Set an attribute of the QualysORMMixin class.  If the attribute is "echo", the engine

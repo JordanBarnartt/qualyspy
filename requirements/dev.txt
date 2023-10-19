@@ -1,12 +1,11 @@
 -r deploy.txt
--r docs.txt
 black
 mypy
 pylama
 Sphinx
+sphinx-rtd-theme
 types-lxml
 types-python-dateutil
 types-requests
 build
 twine
-xsdata-pydantic[cli]

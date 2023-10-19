@@ -7,48 +7,54 @@ import os
 import sys
 import unittest
 
-import sqlalchemy.orm as orm
+import sqlalchemy as sa
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
-
-import qualyspy.models.vmdr.host_list_orm as host_list_orm  # noqa: E402
-import qualyspy.models.vmdr.host_list_vm_detection_orm as host_list_vm_detection_orm  # noqa: E402
 from qualyspy import vmdr  # noqa: E402
+from qualyspy.models.vmdr import host_list_orm, host_list_vm_detection_orm  # noqa: E402
 
 
-class TestVMDR(unittest.TestCase):
-    def test_vmdr_host_list_det_orm_load(self):
-        vmdr_orm = vmdr.HostListDetectionORM(echo=True)
-        vmdr_orm.load()
-        with orm.Session(vmdr_orm.engine) as session:
-            host_list = (
-                session.query(host_list_vm_detection_orm.Host)
-                .where(host_list_vm_detection_orm.Host.id == 11619472)
-                .all()
-            )
-            self.assertEqual(host_list[0].ip, ipaddress.ip_address("172.16.76.84"))
-
-    def test_vmdr_host_list_orm_load(self):
-        vmdr_orm = vmdr.HostListORM(echo=True)
-        vmdr_orm.load()
-        with orm.Session(vmdr_orm.engine) as session:
-            host_list = (
-                session.query(host_list_orm.Host)
-                .where(host_list_orm.Host.id == 11619472)
-                .all()
-            )
-            self.assertEqual(host_list[0].ip, ipaddress.ip_address("172.16.76.84"))
-
-
-class TestKnowledgebase(unittest.TestCase):
-    def test_vmdr_knowledgebase(self):
+class TestOutputModels(unittest.TestCase):
+    def test_host_list(self):
         api = vmdr.VmdrAPI()
-        knowledgebase = api.knowledgebase(ids=105943)
-        print("test")
-        self.assertEqual(knowledgebase.vuln[0].qid, 105943)
+        host_list, _, _ = api.host_list(
+            ids=11619472, show_trurisk=True, show_trurisk_factors=True
+        )
+        host = host_list[0]
+
+        self.assertEqual(host.ip, ipaddress.ip_address("172.16.76.84"))
+
+    def test_host_list_vm_detection(self):
+        api = vmdr.VmdrAPI()
+        host_list, _, _ = api.host_list_vm_detection(ids=11619472)
+        host = host_list[0]
+
+        self.assertEqual(host.ip, ipaddress.ip_address("172.16.76.84"))
+
+
+class TestORM(unittest.TestCase):
+    def test_sql_host_list(self):
+        api = vmdr.HostListORM()
+        # api.init_db()
+        # api.load()
+        stmt = sa.select(host_list_orm.Host).where(host_list_orm.Host.id == 11619472)
+        result = api.query(stmt)
+        host = result[0][0]
+        self.assertEqual(host.ip, ipaddress.ip_address("172.16.76.84"))
+
+    def test_sql_vm_detection(self):
+        api = vmdr.HostListVMDetectionORM()
+        # api.init_db()
+        # api.load()
+        stmt = sa.select(host_list_vm_detection_orm.Host).where(
+            host_list_vm_detection_orm.Host.id == 11619472
+        )
+        result = api.query(stmt)
+        host = result[0][0]
+        self.assertEqual(host.ip, ipaddress.ip_address("172.16.76.84"))
 
 
 if __name__ == "__main__":

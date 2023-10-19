@@ -156,26 +156,28 @@ class VulnCount(Base):
     __tablename__ = "vuln_count"
 
     id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
-    qds_severity: orm.Mapped[int | None]
-    value: orm.Mapped[int | None]
+    qds_severity: orm.Mapped[int]
+    count: orm.Mapped[int | None]
 
-    ars_factors_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("ars_factors.id"))
-    ars_factors: orm.Mapped["ArsFactors"] = orm.relationship(
+    trurisk_score_factors_id: orm.Mapped[int] = orm.mapped_column(
+        sa.ForeignKey("trurisk_score_factors.id")
+    )
+    trurisk_score_factors: orm.Mapped["TruriskScoreFactors"] = orm.relationship(
         back_populates="vuln_count"
     )
 
 
-class ArsFactors(Base):
-    __tablename__ = "ars_factors"
+class TruriskScoreFactors(Base):
+    __tablename__ = "trurisk_score_factors"
 
     id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
-    ars_formula: orm.Mapped[str | None]
+    trurisk_score_forumla: orm.Mapped[str | None]
     vuln_count: orm.Mapped[list[VulnCount]] = orm.relationship(
-        back_populates="ars_factors"
+        back_populates="trurisk_score_factors"
     )
 
     host_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("host.id"))
-    host: orm.Mapped["Host"] = orm.relationship(back_populates="ars_factors")
+    host: orm.Mapped["Host"] = orm.relationship(back_populates="trurisk_score_factors")
 
 
 class AssetGroupList(Base):
@@ -323,9 +325,9 @@ class Host(Base):
     ipv6: orm.Mapped[ipaddress.IPv6Address | None] = orm.mapped_column(
         "ipv6", sa_types.IPv6AddressType
     )
-    asset_risk_score: orm.Mapped[int | None]
+    trurisk_score: orm.Mapped[int | None]
     asset_criticality_score: orm.Mapped[int | None]
-    ars_factors: orm.Mapped[ArsFactors | None] = orm.relationship(
+    trurisk_score_factors: orm.Mapped[TruriskScoreFactors | None] = orm.relationship(
         back_populates="host", uselist=False
     )
     tracking_method: orm.Mapped[str | None]
@@ -366,5 +368,7 @@ class Host(Base):
     last_scap_scan_datetime: orm.Mapped[dt.datetime | None]
     owner: orm.Mapped[str | None]
     comments: orm.Mapped[str | None]
-    user_def: orm.Mapped[UserDef | None] = orm.relationship(back_populates="host", uselist=False)
+    user_def: orm.Mapped[UserDef | None] = orm.relationship(
+        back_populates="host", uselist=False
+    )
     asset_group_ids: orm.Mapped[str | None]

@@ -12,13 +12,13 @@ import ipaddress
 from typing import Any
 
 from pydantic import BaseModel
-from pydantic.utils import to_lower_camel
+from pydantic.alias_generators import to_camel
 
 
 class Model(BaseModel):
     class Config:
-        allow_population_by_field_name = True
-        alias_generator = to_lower_camel
+        populate_by_name = True
+        alias_generator = to_camel
 
 
 class Taxonomy(Model):
@@ -190,7 +190,7 @@ class CloudProvider(Model):
 class Agent(Model):
     version: str | None
     configuration_profile: str | None
-    activations: list[Activation]
+    activations: list[Activation] | None
     connected_from: str | None
     last_activity: dt.datetime
     last_checked_in: dt.datetime
@@ -287,8 +287,8 @@ class Processor(Model):
 
 class AssetItem(Model):
     asset_id: int
-    assetUUID: str
-    host_id: int
+    assetUUID: str | None
+    host_id: int | None
     last_modified_date: dt.datetime
     agent_id: str | None
     created_date: dt.datetime

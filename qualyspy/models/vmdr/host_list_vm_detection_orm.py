@@ -44,12 +44,8 @@ class CloudTag(Base):
     value: orm.Mapped[str | None]
     last_success_date: orm.Mapped[dt.datetime | None]
 
-    cloud_provider_tags_id: orm.Mapped[int] = orm.mapped_column(
-        sa.ForeignKey("cloud_provider_tags.id")
-    )
-    cloud_provider_tags: orm.Mapped["CloudProviderTags"] = orm.relationship(
-        back_populates="cloud_tag"
-    )
+    host_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("host.id"))
+    host: orm.Mapped["Host"] = orm.relationship(back_populates="cloud_provider_tags")
 
 
 class DnsData(Base):
@@ -58,7 +54,7 @@ class DnsData(Base):
     id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
     hostname: orm.Mapped[str | None]
     domain: orm.Mapped[str | None]
-    fqdn: orm.Mapped[str]
+    fqdn: orm.Mapped[str | None]
 
     host_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("host.id"))
     host: orm.Mapped["Host"] = orm.relationship(back_populates="dns_data")
@@ -96,8 +92,8 @@ class Tag(Base):
     color: orm.Mapped[str | None]
     background_color: orm.Mapped[str | None]
 
-    tags_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("tags.id"))
-    tags: orm.Mapped["Tags"] = orm.relationship(back_populates="tag")
+    host_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("host.id"))
+    host: orm.Mapped["Host"] = orm.relationship(back_populates="tags")
 
 
 class Azure(Base):
@@ -108,18 +104,6 @@ class Azure(Base):
 
     metadata_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("metadata_.id"))
     metadata_: orm.Mapped["Metadata"] = orm.relationship(back_populates="azure")
-
-
-class CloudProviderTags(Base):
-    __tablename__ = "cloud_provider_tags"
-
-    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
-    cloud_tag: orm.Mapped[list[CloudTag]] = orm.relationship(
-        back_populates="cloud_provider_tags"
-    )
-
-    host_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("host.id"))
-    host: orm.Mapped["Host"] = orm.relationship(back_populates="cloud_provider_tags")
 
 
 class Ec2(Base):
@@ -156,16 +140,6 @@ class QdsFactors(Base):
     detection: orm.Mapped["Detection"] = orm.relationship(back_populates="qds_factors")
 
 
-class Tags(Base):
-    __tablename__ = "tags"
-
-    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
-    tag: orm.Mapped[list[Tag]] = orm.relationship(back_populates="tags")
-
-    host_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("host.id"))
-    host: orm.Mapped["Host"] = orm.relationship(back_populates="tags")
-
-
 class Detection(Base):
     __tablename__ = "detection"
 
@@ -186,8 +160,8 @@ class Detection(Base):
     qds: orm.Mapped[Qds | None] = orm.relationship(
         back_populates="detection", uselist=False
     )
-    qds_factors: orm.Mapped[QdsFactors | None] = orm.relationship(
-        back_populates="detection", uselist=False
+    qds_factors: orm.Mapped[list[QdsFactors]] = orm.relationship(
+        back_populates="detection", uselist=True
     )
     times_found: orm.Mapped[int | None]
     last_test_datetime: orm.Mapped[dt.datetime | None]
@@ -205,12 +179,8 @@ class Detection(Base):
     last_processed_datetime: orm.Mapped[dt.datetime | None]
     asset_cve: orm.Mapped[str | None]
 
-    detection_list_id: orm.Mapped[int] = orm.mapped_column(
-        sa.ForeignKey("detection_list.id")
-    )
-    detection_list: orm.Mapped["DetectionList"] = orm.relationship(
-        back_populates="detection"
-    )
+    host_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("host.id"))
+    host: orm.Mapped["Host"] = orm.relationship(back_populates="detections")
 
 
 class Metadata(Base):
@@ -223,18 +193,6 @@ class Metadata(Base):
 
     host_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("host.id"))
     host: orm.Mapped["Host"] = orm.relationship(back_populates="metadata_")
-
-
-class DetectionList(Base):
-    __tablename__ = "detection_list"
-
-    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
-    detection: orm.Mapped[list[Detection]] = orm.relationship(
-        back_populates="detection_list"
-    )
-
-    host_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("host.id"))
-    host: orm.Mapped["Host"] = orm.relationship(back_populates="detection_list")
 
 
 class Host(Base):
@@ -264,19 +222,17 @@ class Host(Base):
     qg_hostid: orm.Mapped[str | None]
     last_scan_datetime: orm.Mapped[dt.datetime | None]
     last_vm_scanned_date: orm.Mapped[dt.datetime | None]
-    last_vm_scanned_duration: orm.Mapped[dt.timedelta | None]
+    last_vm_scanned_duration: orm.Mapped[int | None]
     last_vm_auth_scanned_date: orm.Mapped[dt.datetime | None]
-    last_vm_auth_scanned_duration: orm.Mapped[dt.timedelta | None]
+    last_vm_auth_scanned_duration: orm.Mapped[int | None]
     last_pc_scanned_date: orm.Mapped[dt.datetime | None]
-    tags: orm.Mapped[Tags | None] = orm.relationship(
-        back_populates="host", uselist=False
-    )
+    tags: orm.Mapped[list[Tag]] = orm.relationship(back_populates="host", uselist=True)
     metadata_: orm.Mapped[Metadata | None] = orm.relationship(
         back_populates="host", uselist=False
     )
-    cloud_provider_tags: orm.Mapped[CloudProviderTags | None] = orm.relationship(
-        back_populates="host", uselist=False
+    cloud_provider_tags: orm.Mapped[list[CloudTag]] = orm.relationship(
+        back_populates="host", uselist=True
     )
-    detection_list: orm.Mapped[DetectionList | None] = orm.relationship(
-        back_populates="host", uselist=False
+    detections: orm.Mapped[list[Detection]] = orm.relationship(
+        back_populates="host", uselist=True
     )

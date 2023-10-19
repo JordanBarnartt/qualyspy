@@ -1,13 +1,11 @@
 from typing import Any
 
+import sqlalchemy.orm as orm
+
 from . import URLS, qutils
 from .base import QualysAPIBase, QualysORMMixin
-from .exceptions import QualysAPIError, ValidationError
+from .exceptions import QualysAPIError
 from .models.gav import asset_details_orm, asset_details_output
-
-import pydantic
-
-import sqlalchemy.orm as orm
 
 
 class GavAPI(QualysAPIBase):
@@ -23,16 +21,19 @@ class GavAPI(QualysAPIBase):
             return ips.split(", ")
         return [ips]
 
-    def asset_details(self, *, asset_id: int) -> asset_details_output.AssetItem:
+    def asset_details(self, *, asset_id: int) -> asset_details_output.AssetItem | None:
         params = {"assetId": asset_id}
         params_cleaned = qutils.clean_dict(params)
 
-        raw_response = self.get(URLS.asset_details, params=params_cleaned).json()
+        raw_response = self.get(URLS.asset_details, params=params_cleaned)
+        if raw_response.status_code == 204:
+            return None
+        response_json = raw_response.json()
         if (
-            raw_response["assetListData"]["asset"][0]["networkInterfaceListData"]
+            response_json["assetListData"]["asset"][0]["networkInterfaceListData"]
             is not None
         ):
-            for interface in raw_response["assetListData"]["asset"][0][
+            for interface in response_json["assetListData"]["asset"][0][
                 "networkInterfaceListData"
             ]["networkInterface"]:
                 interface["addressIpV4"] = self._convert_ipaddress(
@@ -41,7 +42,7 @@ class GavAPI(QualysAPIBase):
                 interface["addressIpV6"] = self._convert_ipaddress(
                     interface["addressIpV6"]
                 )
-        response = asset_details_output.AssetDetailsOutput(**raw_response)
+        response = asset_details_output.AssetDetailsOutput(**response_json)
         return response.asset_list_data.asset[0]
 
     def all_asset_details(
@@ -67,10 +68,7 @@ class GavAPI(QualysAPIBase):
                 if asset["cloudProvider"]["oci"]["tags"] is None:
                     asset["cloudProvider"]["oci"]["tags"] = []
 
-        try:
-            response = asset_details_output.AssetDetailsOutput(**raw_response)
-        except pydantic.error_wrappers.ValidationError as e:
-            raise ValidationError(f"{e}; Response: {raw_response}")
+        response = asset_details_output.AssetDetailsOutput(**raw_response)
 
         if response.response_code != "SUCCESS":
             raise QualysAPIError(
@@ -86,7 +84,7 @@ class AllAssetDetailsORM(GavAPI, QualysORMMixin):
         self.orm_base = asset_details_orm.Base  # type: ignore
         QualysORMMixin.__init__(self, self, echo=echo)
 
-    def _load(self, load_func: Any, **kwargs: Any) -> None:
+    def load(self, **kwargs: Any) -> None:
         def _load_set(to_load: list[asset_details_orm.AssetItem]) -> None:
             with orm.Session(self.engine) as session:
                 for obj in to_load:
@@ -101,7 +99,7 @@ class AllAssetDetailsORM(GavAPI, QualysORMMixin):
 
         while has_more:
             kwargs["last_seen_asset_id"] = last_seen_asset_id
-            assets, has_more, last_seen_asset_id = load_func(**kwargs)
+            assets, has_more, last_seen_asset_id = self.all_asset_details(**kwargs)
             to_load = [
                 qutils.to_orm_object(asset, asset_details_orm.AssetItem)
                 for asset in assets
@@ -111,6 +109,3 @@ class AllAssetDetailsORM(GavAPI, QualysORMMixin):
             # print(last_seen_asset_id)
 
             _load_set(to_load)
-
-    def load(self, **kwargs: Any) -> None:
-        self.safe_load(self._load, self.all_asset_details, **kwargs)

@@ -8,8 +8,6 @@ import copy
 from typing import Any, TypeVar
 import dataclasses
 
-from .models.vmdr import host_list_vm_detection_output
-
 _D = TypeVar("_D")
 _RE_QUALYSPY_CLASSNAME = re.compile(r"(qualyspy[\w._]*)")
 _RE_SA_CLASSNAME = re.compile(r"sqlalchemy.orm")
@@ -93,7 +91,7 @@ def to_orm_object(
     return _to_orm_object(obj_dict, out_cls)
 
 
-def from_orm_object(obj: Any) -> Any:
+def from_orm_object(obj: Any, output_class: Any) -> Any:
     """Convert an ORM object to a dataclass instance of a Qualys object.
 
     Args:
@@ -107,6 +105,8 @@ def from_orm_object(obj: Any) -> Any:
     # classes we've already processed to avoid infinite recursion.
     processed_classes: set[Any] = set()
 
+    builtin_types = (str, int, float, bool, type(None))
+
     def get_attributes(obj: Any) -> dict[str, Any]:
         """Get the attributes of an ORM object.
 
@@ -116,20 +116,27 @@ def from_orm_object(obj: Any) -> Any:
         Returns:
             dict[str, Any]: The attributes of the ORM object.
         """
-        result: dict[str, Any] = {}
-        keys = obj.__mapper__.attrs.keys()
         nonlocal processed_classes
+        processed_classes.add(type(obj))
+
+        result: dict[str, Any] = {}
+        keys = obj.__mapper__.attrs.keys()  # List of attributes of the ORM object
         for key in keys:
             value = getattr(obj, key)
+
+            # Check for bultin types first so they don't get added to processed_classes
+            if isinstance(value, builtin_types):
+                result[key] = value
+                continue
+
+            # Skip classes we've already processed so we don't go back up the hierarchy
             if type(value) in processed_classes:
                 continue
             else:
-                processed_classes.add(type(obj))
+                processed_classes.add(type(value))
 
-            if callable(value):
+            if callable(value):  # Skip methods
                 continue
-            if isinstance(value, (str, int, float, bool, type(None))):
-                result[key] = value
             elif isinstance(value, list):
                 result[key] = [_from_orm_object(v) for v in value]
             else:
@@ -148,7 +155,6 @@ def from_orm_object(obj: Any) -> Any:
             return obj
         return get_attributes(obj)
 
-    output_class = getattr(host_list_vm_detection_output, obj.__class__.__name__)
     return output_class(**_from_orm_object(obj))
 
 

@@ -1,4 +1,0 @@
-sphinx-rtd-theme
-sqlalchemy
-pydantic
-xsdata

@@ -1,6 +1,7 @@
 lxml
 requests
 python-dateutil
-pydantic[email]<2.0.0,>=1.9.0 # Required version for xsdata-pydantic
+pydantic
 SQLAlchemy
 psycopg2
+pydantic-xml
