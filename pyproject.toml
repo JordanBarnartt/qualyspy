@@ -25,10 +25,10 @@ dependencies = [
   "lxml",
   "requests",
   "python-dateutil",
-  "pydantic[email]<2.0.0,>=1.9.0",
+  "pydantic",
   "SQLAlchemy",
   "psycopg2",
-  "xsdata",
+  "pydantic-xml",
 ]
 
 [project.urls]
