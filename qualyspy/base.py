@@ -346,6 +346,14 @@ class QualysORMMixin(ABC):
         """Load data into the database."""
         ...
 
+    def drop(self) -> None:
+        """Drop the database."""
+        with self.engine.connect() as conn:
+            conn.execute(
+                sa.schema.DropSchema(self.orm_base.metadata.schema, cascade=True, if_exists=True)
+            )
+            conn.commit()
+
     def query(self, stmt: Any, *, echo: bool = False) -> Any:
         """Execute a query against the database.
 
