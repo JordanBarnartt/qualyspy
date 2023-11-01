@@ -1,0 +1,106 @@
+from . import URLS
+from .base import QualysAPIBase
+from .models.asset_mgmt_tagging import tag_output, tag_request
+
+
+class AssetMgmtTaggingAPI(QualysAPIBase):
+    def create_tag(
+        self,
+        name: str,
+        rule_type: tag_request.tag_rule_types | None = None,
+        rule_text: str | None = None,
+        criticality_score: int | None = None,
+        color: str | None = None,
+        children: list[str] = [],
+    ) -> tag_output.ServiceResponse:
+        request_data = tag_request.create_add_tag_request(
+            name=name,
+            rule_type=rule_type,
+            rule_text=rule_text,
+            criticality_score=criticality_score,
+            color=color,
+            children=children,
+        )
+        request_data_xml = request_data.to_xml(
+            skip_empty=True, pretty_print=True, encoding="UTF-8", xml_declaration=True
+        )
+
+        resp = self.post(
+            URLS.create_tag, data=request_data_xml, content_type="application/xml"
+        )
+        ret = tag_output.Wrapper.model_validate_json(resp.text)
+
+        return ret.service_response
+
+    def update_tag(
+        self,
+        tag_id: int,
+        name: str | None = None,
+        criticality_score: int | None = None,
+        rule_type: tag_request.tag_rule_types | None = None,
+        rule_text: str | None = None,
+        color: str | None = None,
+        add_children: list[str] = [],
+        remove_children: list[int] = [],
+    ) -> tag_output.ServiceResponse:
+        if add_children and remove_children:
+            raise ValueError(
+                "Cannot add and remove children at the same time. Please use separate calls."
+            )
+        request_data = tag_request.create_update_tag_request(
+            name=name,
+            rule_type=rule_type,
+            rule_text=rule_text,
+            criticality_score=criticality_score,
+            color=color,
+            add_children=add_children,
+            remove_children=remove_children,
+        )
+        request_data_xml = request_data.to_xml(
+            skip_empty=True, pretty_print=True, encoding="UTF-8", xml_declaration=True
+        )
+
+        resp = self.post(
+            URLS.update_tag + f"/{tag_id}",
+            data=request_data_xml,
+            content_type="application/xml",
+        )
+        ret = tag_output.Wrapper.model_validate_json(resp.text)
+
+        return ret.service_response
+
+    def search_tags(
+        self,
+        id: int | None = None,
+        name: str | None = None,
+        parent: int | None = None,
+        rule_type: tag_request.tag_rule_types | None = None,
+        provider: tag_request.tag_provider_types | None = None,
+        color: str | None = None,
+    ) -> tag_output.ServiceResponse:
+        request_data = tag_request.create_search_tags_request(
+            id=id,
+            name=name,
+            parent=parent,
+            rule_type=rule_type,
+            provider=provider,
+            color=color,
+        )
+        request_data_xml = request_data.to_xml(
+            skip_empty=True, pretty_print=True, encoding="UTF-8", xml_declaration=True
+        )
+
+        resp = self.post(
+            URLS.search_tags,
+            data=request_data_xml,
+            content_type="application/xml",
+        )
+        ret = tag_output.Wrapper.model_validate_json(resp.text)
+
+        return ret.service_response
+
+    def delete_tag(self, tag_id: int) -> tag_output.ServiceResponse:
+        resp = self.post(URLS.delete_tag + f"/{tag_id}")
+        ret = tag_output.Wrapper.model_validate_json(resp.text)
+
+        return ret.service_response

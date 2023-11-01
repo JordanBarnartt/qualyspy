@@ -224,7 +224,7 @@ class QualysAPIBase:
         url: str,
         *,
         params: dict[str, str] | None = None,
-        data: str | None = None,
+        data: str | bytes | None = None,
         content_type: str = "application/json",
         accept: str = "application/json",
     ) -> requests.Response:

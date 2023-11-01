@@ -1,0 +1,39 @@
+{
+    "ServiceResponse": {
+        "responseCode": "SUCCESS",
+        "data": [
+            {
+                "Tag": {
+                    "created": "2023-10-20T17:47:37Z",
+                    "modified": "2023-10-20T17:47:37Z",
+                    "id": 12007863,
+                    "name": "Parent Tag",
+                    "color": "#FFFFFF",
+                    "children": {
+                        "list": [
+                            {
+                                "TagSimple": {
+                                    "id": 12007864,
+                                    "name": "Child 3"
+                                }
+                            },
+                            {
+                                "TagSimple": {
+                                    "id": 12007865,
+                                    "name": "Child 1"
+                                }
+                            },
+                            {
+                                "TagSimple": {
+                                    "id": 12007866,
+                                    "name": "Child 2"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        ],
+        "count": 1
+    }
+}
