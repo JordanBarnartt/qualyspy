@@ -38,8 +38,8 @@ class TestOutputModels(unittest.TestCase):
 class TestORM(unittest.TestCase):
     def test_sql_host_list(self):
         api = vmdr.HostListORM()
-        # api.init_db()
-        # api.load()
+        api.init_db()
+        api.load()
         stmt = sa.select(host_list_orm.Host).where(host_list_orm.Host.id == 11619472)
         result = api.query(stmt)
         host = result[0][0]

@@ -63,7 +63,7 @@ class OperatingSystem(Base):
     product_url: orm.Mapped[str | None]
     product_family: orm.Mapped[str | None]
     install_date: orm.Mapped[str | None]
-    release: orm.Mapped[str]
+    release: orm.Mapped[str | None]
 
     asset_item_id: orm.Mapped[int] = orm.mapped_column(
         sa.ForeignKey("asset_item.asset_id")

@@ -28,8 +28,8 @@ class TestOutputModels(unittest.TestCase):
 class TestORM(unittest.TestCase):
     def test_sql_all_asset_details(self):
         api = gav.AllAssetDetailsORM()
-        # api.init_db()
-        # api.load()
+        api.init_db()
+        api.load()
         stmt = sa.select(asset_details_orm.AssetItem).where(
             asset_details_orm.AssetItem.asset_id == 14355608
         )

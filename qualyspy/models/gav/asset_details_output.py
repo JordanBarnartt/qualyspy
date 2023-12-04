@@ -37,7 +37,7 @@ class OperatingSystem(Model):
     product_url: str | None
     product_family: str | None
     install_date: str | None
-    release: str
+    release: str | None
 
 
 class Hardware(Model):
