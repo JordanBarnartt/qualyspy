@@ -26,6 +26,7 @@ from .models.vmdr import (
     host_list_output,
     host_list_vm_detection_orm,
     host_list_vm_detection_output,
+    knowledgebase_output,
 )
 
 
@@ -241,41 +242,41 @@ class VmdrAPI(QualysAPIBase):
 
         return host_list, truncated, next_id_min
 
-    # def knowledgebase(
-    #     self, *, details: str | None = None, ids: int | list[int] | None = None
-    # ) -> knowledge_base_vuln_list_output.VulnList:
-    #     """Get a list of vulnerabilities from the VMDR API.  A value of None for the parameters
-    #     will use their default values in the API.
+    def knowledgebase(
+        self, *, details: str | None = None, ids: int | list[int] | None = None
+    ) -> list[knowledgebase_output.Vuln]:
+        """Get a list of vulnerabilities from the VMDR API.  A value of None for the parameters
+        will use their default values in the API.
 
-    #         Args:
-    #             details (str | None, optional): Details to return. Defaults to None.
-    #             ids (int | list[int] | None, optional): Vulnerability IDs to query. Defaults to
-    #               None.
+            Args:
+                details (str | None, optional): Details to return. Defaults to None.
+                ids (int | list[int] | None, optional): Vulnerability IDs to query. Defaults to
+                  None.
 
-    #         Returns:
-    #             knowledge_base_vuln_list_output.VulnList: A VulnList object containing the list of
-    #                 vulnerabilities.
-    #     """
-    #     params = {"details": details, "ids": ids}
-    #     params["action"] = "list"
-    #     params_cleaned = qutils.clean_dict(params)
+            Returns:
+                knowledge_base_vuln_list_output.VulnList: A VulnList object containing the list of
+                    vulnerabilities.
+        """
+        params = {"details": details, "ids": ids}
+        params["action"] = "list"
+        params_cleaned = qutils.clean_dict(params)
 
-    #     raw_response = self.get(URLS.knowledgebase, params=params_cleaned).text
-    #     parsed: knowledge_base_vuln_list_output.KnowledgeBaseVulnListOutput = (
-    #         self.xmlparser.from_string(
-    #             raw_response,
-    #             knowledge_base_vuln_list_output.KnowledgeBaseVulnListOutput,
-    #         )
-    #     )
-    #     if parsed.response is not None and parsed.response.vuln_list is not None:
-    #         for vuln in parsed.response.vuln_list.vuln:
-    #             if vuln.published_datetime is not None:
-    #                 vuln.published_datetime = vuln.published_datetime.replace(
-    #                     tzinfo=zoneinfo.ZoneInfo("UTC")
-    #                 )
-    #         return parsed.response.vuln_list
-    #     else:
-    #         return knowledge_base_vuln_list_output.VulnList()
+        raw_response = self.get(URLS.knowledgebase, params=params_cleaned).text
+        match = re.search(
+            r"<KNOWLEDGE_BASE_VULN_LIST_OUTPUT>.*?</KNOWLEDGE_BASE_VULN_LIST_OUTPUT>",
+            raw_response,
+            re.DOTALL,
+        )
+        if match is None:
+            raise ValueError("Cannot find KNOWLEDGE_BASE_VULN_LIST_OUTPUT in response.")
+        knowledge_base_output_str = match.group(0)
+        knowledge_base_output_obj = knowledgebase_output.KnowledgeBaseOutput.from_xml(
+            knowledge_base_output_str
+        )
+        if knowledge_base_output_obj.response.vuln_list is None:
+            raise ValueError("Response has no vuln_list")
+
+        return knowledge_base_output_obj.response.vuln_list
 
 
 class HostListORM(VmdrAPI, QualysORMMixin):

@@ -34,6 +34,13 @@ class TestOutputModels(unittest.TestCase):
 
         self.assertEqual(host.ip, ipaddress.ip_address("172.16.76.84"))
 
+    def test_knowledgebase(self):
+        api = vmdr.VmdrAPI()
+        kb = api.knowledgebase(ids=105142)
+        vuln = kb[0]
+
+        self.assertEqual(vuln.qid, 105142)
+
 
 class TestORM(unittest.TestCase):
     def test_sql_host_list(self):
