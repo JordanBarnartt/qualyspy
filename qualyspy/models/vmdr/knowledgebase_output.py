@@ -158,7 +158,7 @@ class Vuln(BaseXmlModel):
         tag="LAST_SERVICE_MODIFICATION_DATETIME", default=None
     )
     published_datetime: datetime.datetime = element(tag="PUBLISHED_DATETIME")
-    patchable: bool = element(tag="PATCHABLE")
+    patchable: bool | None = element(tag="PATCHABLE", default=None)
     software_list: list[Software] | None = wrapped(
         "SOFTWARE_LIST", element(tag="SOFTWARE", default=None)
     )
@@ -187,7 +187,7 @@ class Vuln(BaseXmlModel):
         "THREAT_INTELLIGENCE", element(tag="THREAT_INTEL", default=None)
     )
     supported_modules: str | None = element(tag="SUPPORTED_MODULES", default=None)
-    discovery: Discovery = element(tag="DISCOVERY")
+    discovery: Discovery | None = element(tag="DISCOVERY", default=None)
     is_disabled: bool | None = element(tag="IS_DISABLED", default=None)
     change_log_list: list[ChangeLog] | None = wrapped(
         "CHANGE_LOG_LIST", element(tag="CHANGE_LOG", default=None)
