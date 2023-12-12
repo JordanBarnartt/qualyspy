@@ -137,6 +137,11 @@ class Software(BaseXmlModel):
     vendor: str = element(tag="VENDOR")
 
 
+class Bugtraq(BaseXmlModel):
+    id: str = element(tag="ID")
+    url: str = element(tag="URL")
+
+
 class LastCustomization(BaseXmlModel):
     last_customization_datetime: datetime.datetime | None = element(
         tag="DATETIME", defaul=None
@@ -158,6 +163,9 @@ class Vuln(BaseXmlModel):
         tag="LAST_SERVICE_MODIFICATION_DATETIME", default=None
     )
     published_datetime: datetime.datetime = element(tag="PUBLISHED_DATETIME")
+    bugtraq_list: list[Bugtraq] | None = wrapped(
+        "BUGTRAQ_LIST", element(tag="BUGTRAQ", default=None)
+    )
     patchable: bool | None = element(tag="PATCHABLE", default=None)
     software_list: list[Software] | None = wrapped(
         "SOFTWARE_LIST", element(tag="SOFTWARE", default=None)
