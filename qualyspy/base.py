@@ -27,7 +27,7 @@ _C = TypeVar("_C")
 _USE_API_SERVER = ["msp", "api", "qps"]
 _USE_API_GATEWAY = ["rest"]
 
-_TIMEOUT = 30
+_TIMEOUT = 60
 
 
 class QualysAPIBase:
