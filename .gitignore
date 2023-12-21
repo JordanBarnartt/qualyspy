@@ -7,6 +7,10 @@ tests/test_data.py
 # qualysapi config file
 qualysapi.conf
 
+# testing files
+input.txt
+output.py
+
 # Visual Studio Code
 #.vscode/
 

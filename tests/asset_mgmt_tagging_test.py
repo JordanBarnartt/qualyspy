@@ -6,7 +6,6 @@ import os
 import sys
 import unittest
 
-
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
@@ -41,3 +40,17 @@ class TestTags(unittest.TestCase):
         delete_resp = api.delete_tag(parent_tag_id)
 
         self.assertEqual(delete_resp.response_code, "SUCCESS")
+
+    def test_asset(self):
+        api = asset_mgmt_tagging.AssetMgmtTaggingAPI()
+        get_resp = api.get_asset_info(asset_id=14355608)
+
+        self.assertEqual(get_resp.response_code, "SUCCESS")
+
+        update_resp = api.update_asset(
+            asset_id=14355608,
+            name="taijitu.private",
+            add_tags=[12158745],
+        )
+
+        self.assertEqual(update_resp.response_code, "SUCCESS")

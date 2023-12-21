@@ -168,7 +168,12 @@ class QualysAPIBase:
             response.headers, "X-ConcurrencyRunning"
         )
 
-    def get(self, url: str, params: dict[str, str] | None = None) -> requests.Response:
+    def get(
+        self,
+        url: str,
+        params: dict[str, str] | None = None,
+        accept: str = "application/xml",
+    ) -> requests.Response:
         """Send a GET request to the Qualys API.
 
         Args:
@@ -188,7 +193,7 @@ class QualysAPIBase:
                 root + url,
                 params=params,
                 auth=(self.username, self.password),
-                headers={"X-Requested-With": self.x_requested_with},
+                headers={"X-Requested-With": self.x_requested_with, "Accept": accept},
                 timeout=_TIMEOUT,
             )
             try:
@@ -350,7 +355,9 @@ class QualysORMMixin(ABC):
         """Drop the database."""
         with self.engine.connect() as conn:
             conn.execute(
-                sa.schema.DropSchema(self.orm_base.metadata.schema, cascade=True, if_exists=True)
+                sa.schema.DropSchema(
+                    self.orm_base.metadata.schema, cascade=True, if_exists=True
+                )
             )
             conn.commit()
 
