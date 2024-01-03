@@ -38,9 +38,9 @@ class Datum(Model):
 
 
 class ServiceResponse(Model):
-    data: list[Datum]
+    data: list[Datum] | None = None
     response_code: str = Field(alias="responseCode")
-    count: int
+    count: int | None = None
 
 
 class Wrapper(Model):

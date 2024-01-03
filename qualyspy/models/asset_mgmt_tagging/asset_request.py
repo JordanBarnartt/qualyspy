@@ -17,8 +17,8 @@ class Collection(BaseXmlModel):
 
 
 class Asset(BaseXmlModel):
-    name: str = element(tag="name")
-    tags: Collection = element(tag="tags")
+    name: str | None = element(tag="name", default=None)
+    tags: Collection | None = element(tag="tags", default=None)
 
 
 class Data(BaseXmlModel):
