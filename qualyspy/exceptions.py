@@ -17,3 +17,9 @@ class ValidationError(Exception):
     """Wrapper for pydantic.error_wrappers.ValidationError"""
 
     pass
+
+
+class TimeoutError(Exception):
+    """Wrapper for requests.exceptions.Timeout"""
+
+    pass

@@ -189,13 +189,23 @@ class QualysAPIBase:
         """
         root = self._choose_url(url)
         if root == self.api_server:
-            response = requests.get(
-                root + url,
-                params=params,
-                auth=(self.username, self.password),
-                headers={"X-Requested-With": self.x_requested_with, "Accept": accept},
-                timeout=_TIMEOUT,
-            )
+            try:
+                response = requests.get(
+                    root + url,
+                    params=params,
+                    auth=(self.username, self.password),
+                    headers={
+                        "X-Requested-With": self.x_requested_with,
+                        "Accept": accept,
+                    },
+                    timeout=_TIMEOUT,
+                )
+            except requests.exceptions.ReadTimeout:
+                request = response.request
+                request_str = (
+                    f"{request.method!r} {request.url!r} {request.headers!r}"
+                )
+                raise exceptions.TimeoutError(request_str)
             try:
                 response.raise_for_status()
             except requests.exceptions.HTTPError as e:
@@ -206,15 +216,22 @@ class QualysAPIBase:
         elif root == self.api_gateway:
             if self.jwt is None:
                 self._get_jwt()
-            response = requests.get(
-                root + url,
-                params=params,
-                headers={
-                    "X-Requested-With": self.x_requested_with,
-                    "Authorization": f"Bearer {self.jwt}",
-                },
-                timeout=_TIMEOUT,
-            )
+            try:
+                response = requests.get(
+                    root + url,
+                    params=params,
+                    headers={
+                        "X-Requested-With": self.x_requested_with,
+                        "Authorization": f"Bearer {self.jwt}",
+                    },
+                    timeout=_TIMEOUT,
+                )
+            except requests.exceptions.ReadTimeout:
+                request = response.request
+                request_str = (
+                    f"{request.method!r} {request.url!r} {request.headers!r}"
+                )
+                raise exceptions.TimeoutError(request_str)
             try:
                 response.raise_for_status()
             except requests.exceptions.HTTPError as e:
@@ -248,17 +265,24 @@ class QualysAPIBase:
         """
         root = self._choose_url(url)
         if root == self.api_server:
-            response = requests.post(
-                root + url,
-                data=data,
-                auth=(self.username, self.password),
-                headers={
-                    "X-Requested-With": self.x_requested_with,
-                    "Content-Type": content_type,
-                    "Accept": accept,
-                },
-                timeout=_TIMEOUT,
-            )
+            try:
+                response = requests.post(
+                    root + url,
+                    data=data,
+                    auth=(self.username, self.password),
+                    headers={
+                        "X-Requested-With": self.x_requested_with,
+                        "Content-Type": content_type,
+                        "Accept": accept,
+                    },
+                    timeout=_TIMEOUT,
+                )
+            except requests.exceptions.ReadTimeout:
+                request = response.request
+                request_str = (
+                    f"{request.method!r} {request.url!r} {request.headers!r} {request.body!r}"
+                )
+                raise exceptions.TimeoutError(request_str)
             try:
                 response.raise_for_status()
             except requests.exceptions.HTTPError as e:
@@ -267,17 +291,24 @@ class QualysAPIBase:
         elif root == self.api_gateway:
             if self.jwt is None:
                 self._get_jwt()
-            response = requests.post(
-                root + url,
-                params=params,
-                data=data,
-                headers={
-                    "X-Requested-With": self.x_requested_with,
-                    "Authorization": f"Bearer {self.jwt}",
-                    "Content-Type": "application/json",
-                },
-                timeout=_TIMEOUT,
-            )
+            try:
+                response = requests.post(
+                    root + url,
+                    params=params,
+                    data=data,
+                    headers={
+                        "X-Requested-With": self.x_requested_with,
+                        "Authorization": f"Bearer {self.jwt}",
+                        "Content-Type": "application/json",
+                    },
+                    timeout=_TIMEOUT,
+                )
+            except requests.exceptions.ReadTimeout:
+                request = response.request
+                request_str = (
+                    f"{request.method!r} {request.url!r} {request.headers!r} {request.body!r}"
+                )
+                raise exceptions.TimeoutError(request_str)
             try:
                 response.raise_for_status()
             except requests.exceptions.HTTPError as e:
