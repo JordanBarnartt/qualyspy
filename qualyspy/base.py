@@ -188,58 +188,31 @@ class QualysAPIBase:
             exceptions.QualysAPIError: Raised if the Qualys API returns a non-200 response.
         """
         root = self._choose_url(url)
+        headers = {
+            "X-Requested-With": self.x_requested_with,
+        }
         if root == self.api_server:
-            try:
-                response = requests.get(
-                    root + url,
-                    params=params,
-                    auth=(self.username, self.password),
-                    headers={
-                        "X-Requested-With": self.x_requested_with,
-                        "Accept": accept,
-                    },
-                    timeout=_TIMEOUT,
-                )
-            except requests.exceptions.ReadTimeout:
-                request = response.request
-                request_str = (
-                    f"{request.method!r} {request.url!r} {request.headers!r}"
-                )
-                raise exceptions.TimeoutError(request_str)
-            try:
-                response.raise_for_status()
-            except requests.exceptions.HTTPError as e:
-                raise exceptions.QualysAPIError(response.text) from e
-
-            self._update_limits(response)
-            return response
+            headers["Accept"] = accept
         elif root == self.api_gateway:
             if self.jwt is None:
                 self._get_jwt()
-            try:
-                response = requests.get(
-                    root + url,
-                    params=params,
-                    headers={
-                        "X-Requested-With": self.x_requested_with,
-                        "Authorization": f"Bearer {self.jwt}",
-                    },
-                    timeout=_TIMEOUT,
-                )
-            except requests.exceptions.ReadTimeout:
-                request = response.request
-                request_str = (
-                    f"{request.method!r} {request.url!r} {request.headers!r}"
-                )
-                raise exceptions.TimeoutError(request_str)
-            try:
-                response.raise_for_status()
-            except requests.exceptions.HTTPError as e:
-                raise exceptions.QualysAPIError(response.text) from e
-            self._update_limits(response)
-            return response
+            headers["Authorization"] = f"Bearer {self.jwt}"
         else:
             raise ValueError("No valid API root or gateway found.")
+        response = requests.get(
+            root + url,
+            params=params,
+            auth=(self.username, self.password) if root == self.api_server else None,
+            headers=headers,
+            timeout=_TIMEOUT,
+        )
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise exceptions.QualysAPIError(response.text) from e
+
+        self._update_limits(response)
+        return response
 
     def post(
         self,
@@ -264,59 +237,33 @@ class QualysAPIBase:
             exceptions.QualysAPIError: Raised if the Qualys API returns a non-200 response.
         """
         root = self._choose_url(url)
+        headers = {
+            "X-Requested-With": self.x_requested_with,
+            "Content-Type": content_type,
+        }
         if root == self.api_server:
-            try:
-                response = requests.post(
-                    root + url,
-                    data=data,
-                    auth=(self.username, self.password),
-                    headers={
-                        "X-Requested-With": self.x_requested_with,
-                        "Content-Type": content_type,
-                        "Accept": accept,
-                    },
-                    timeout=_TIMEOUT,
-                )
-            except requests.exceptions.ReadTimeout:
-                request = response.request
-                request_str = (
-                    f"{request.method!r} {request.url!r} {request.headers!r} {request.body!r}"
-                )
-                raise exceptions.TimeoutError(request_str)
-            try:
-                response.raise_for_status()
-            except requests.exceptions.HTTPError as e:
-                raise exceptions.QualysAPIError(response.text) from e
-            return response
+            headers["Accept"] = accept
         elif root == self.api_gateway:
             if self.jwt is None:
                 self._get_jwt()
-            try:
-                response = requests.post(
-                    root + url,
-                    params=params,
-                    data=data,
-                    headers={
-                        "X-Requested-With": self.x_requested_with,
-                        "Authorization": f"Bearer {self.jwt}",
-                        "Content-Type": "application/json",
-                    },
-                    timeout=_TIMEOUT,
-                )
-            except requests.exceptions.ReadTimeout:
-                request = response.request
-                request_str = (
-                    f"{request.method!r} {request.url!r} {request.headers!r} {request.body!r}"
-                )
-                raise exceptions.TimeoutError(request_str)
-            try:
-                response.raise_for_status()
-            except requests.exceptions.HTTPError as e:
-                raise exceptions.QualysAPIError(response.text) from e
-            self._update_limits(response)
-            return response
+            headers["Authorization"] = f"Bearer {self.jwt}"
         else:
             raise ValueError("No valid API root or gateway found.")
+        response = requests.post(
+            root + url,
+            params=params,
+            data=data,
+            auth=(self.username, self.password) if root == self.api_server else None,
+            headers=headers,
+            timeout=_TIMEOUT,
+        )
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise exceptions.QualysAPIError(response.text) from e
+
+        self._update_limits(response)
+        return response
 
 
 class QualysORMMixin(ABC):
