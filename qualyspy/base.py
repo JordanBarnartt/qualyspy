@@ -11,6 +11,7 @@ api.get("/msp/about.php")
 # mypy: allow-untyped-calls
 
 import configparser
+import datetime
 import os
 import urllib.parse
 from abc import ABC, abstractmethod
@@ -81,6 +82,7 @@ class QualysAPIBase:
             raise exceptions.ConfigError(f"Config file {config_file} missing key: {e}")
 
         self.jwt: str | None = None
+        self.jwt_request: requests.PreparedRequest | None = None
 
         self.x_requested_with = x_requested_with
         self.orm_base = orm.DeclarativeBase()
@@ -199,13 +201,25 @@ class QualysAPIBase:
             headers["Authorization"] = f"Bearer {self.jwt}"
         else:
             raise ValueError("No valid API root or gateway found.")
-        response = requests.get(
-            root + url,
-            params=params,
-            auth=(self.username, self.password) if root == self.api_server else None,
-            headers=headers,
-            timeout=_TIMEOUT,
-        )
+        try:
+            response = requests.get(
+                root + url,
+                params=params,
+                auth=(self.username, self.password)
+                if root == self.api_server
+                else None,
+                headers=headers,
+                timeout=_TIMEOUT,
+            )
+        except requests.exceptions.ReadTimeout as e:
+            raise exceptions.QualysAPIError(
+                f"""
+                                            Request for {root + url} timed out.
+                                            params: {params},
+                                            headers: {headers},
+                                            timestamp: {datetime.datetime.now()}
+                                            """
+            ) from e
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
@@ -249,14 +263,27 @@ class QualysAPIBase:
             headers["Authorization"] = f"Bearer {self.jwt}"
         else:
             raise ValueError("No valid API root or gateway found.")
-        response = requests.post(
-            root + url,
-            params=params,
-            data=data,
-            auth=(self.username, self.password) if root == self.api_server else None,
-            headers=headers,
-            timeout=_TIMEOUT,
-        )
+        try:
+            response = requests.post(
+                root + url,
+                params=params,
+                data=data,
+                auth=(self.username, self.password)
+                if root == self.api_server
+                else None,
+                headers=headers,
+                timeout=_TIMEOUT,
+            )
+        except requests.exceptions.ReadTimeout as e:
+            raise exceptions.QualysAPIError(
+                f"""
+                                            Request for {root + url} timed out.
+                                            params: {params},
+                                            data: {data!r},
+                                            headers: {headers},
+                                            timestamp: {datetime.datetime.now()}
+                                            """
+            ) from e
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
