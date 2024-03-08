@@ -27,6 +27,14 @@ class TestOutputModels(unittest.TestCase):
 
         self.assertEqual(host.ip, ipaddress.ip_address("172.16.76.84"))
 
+    def test_host_list_by_ip(self):
+        api = vmdr.VmdrAPI()
+        ips = ["172.16.68.91", "129.97.128.5", "129.97.85.51", "172.16.64.51"]
+        host_list, _, _ = api.host_list(ips=ips)
+        host = host_list[0]
+
+        self.assertEqual(host.ip, ipaddress.ip_address("172.16.68.91"))
+
     def test_host_list_vm_detection(self):
         api = vmdr.VmdrAPI()
         host_list, _, _ = api.host_list_vm_detection(ids=11619472)

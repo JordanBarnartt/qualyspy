@@ -40,7 +40,13 @@ class VmdrAPI(QualysAPIBase):
         details: Literal["Basic", "Basic/AGs", "All", "All/AGs", "None"] | None = None,
         os_pattern: str | None = None,
         truncation_limit: int | None = None,
-        ips: list[str | ipaddress.IPv4Address | ipaddress.IPv6Address] | None = None,
+        ips: (
+            list[str | ipaddress.IPv4Address | ipaddress.IPv6Address]
+            | str
+            | ipaddress.IPv4Address
+            | ipaddress.IPv6Address
+            | None
+        ) = None,
         ag_ids: int | list[int] | None = None,
         ag_titles: str | list[str] | None = None,
         ids: int | list[int] | None = None,
@@ -85,6 +91,8 @@ class VmdrAPI(QualysAPIBase):
         """
 
         if ips is not None:
+            if not isinstance(ips, list):
+                ips = [ips]
             ipv4_ips = [
                 ip
                 for ip in ips
@@ -97,9 +105,20 @@ class VmdrAPI(QualysAPIBase):
                 if isinstance(ip, ipaddress.IPv6Address)
                 or isinstance(ipaddress.ip_address(ip), ipaddress.IPv6Address)
             ]
+
+            if not ipv4_ips:
+                ipv4_ips = None
+            if not ipv6_ips:
+                ipv6_ips = None
         else:
             ipv4_ips = None
             ipv6_ips = None
+
+        # Cannot pass both IPv4 and IPv6 addresses in the same call.
+        if ipv4_ips and ipv6_ips:
+            raise ValueError(
+                "Cannot pass both IPv4 and IPv6 addresses in the same call."
+            )
 
         params: dict[str, Any] = {
             "show_asset_id": show_asset_id,
