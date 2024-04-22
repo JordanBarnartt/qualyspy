@@ -163,6 +163,9 @@ class Vuln(BaseXmlModel):
         tag="LAST_SERVICE_MODIFICATION_DATETIME", default=None
     )
     published_datetime: datetime.datetime = element(tag="PUBLISHED_DATETIME")
+    code_modified_datetime: datetime.datetime | None = element(
+        tag="CODE_MODIFIED_DATETIME", default=None
+    )
     bugtraq_list: list[Bugtraq] | None = wrapped(
         "BUGTRAQ_LIST", element(tag="BUGTRAQ", default=None)
     )
