@@ -28,6 +28,7 @@ class TestOutputModels(unittest.TestCase):
 class TestORM(unittest.TestCase):
     def test_sql_all_asset_details(self):
         api = gav.AllAssetDetailsORM()
+        api.drop()
         api.init_db()
         api.load()
         stmt = sa.select(asset_details_orm.AssetItem).where(

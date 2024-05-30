@@ -81,7 +81,7 @@ class Hardware(Base):
     category: orm.Mapped[str]
     category1: orm.Mapped[str]
     category2: orm.Mapped[str]
-    manufacturer: orm.Mapped[str]
+    manufacturer: orm.Mapped[str | None]
     product_name: orm.Mapped[str]
     model: orm.Mapped[str | None]
     lifecycle: orm.Mapped[str | None]

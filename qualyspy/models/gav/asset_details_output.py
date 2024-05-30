@@ -45,7 +45,7 @@ class Hardware(Model):
     category: str
     category1: str
     category2: str
-    manufacturer: str
+    manufacturer: str | None
     product_name: str
     model: str | None
     lifecycle: str | None
