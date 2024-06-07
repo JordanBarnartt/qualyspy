@@ -15,16 +15,16 @@ class Model(BaseModel):
 class Taxonomy(Model):
     id: int | None
     name: str
-    category1: str
-    category2: str
+    category1: str | None
+    category2: str | None
 
 
 class OperatingSystem(Model):
     os_name: str
     full_name: str
     category: str
-    category1: str
-    category2: str
+    category1: str | None
+    category2: str | None
     product_name: str
     publisher: str
     edition: str | None

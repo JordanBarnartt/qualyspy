@@ -22,8 +22,8 @@ class Taxonomy(Base):
     orm_id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
     id: orm.Mapped[int | None]
     name: orm.Mapped[str]
-    category1: orm.Mapped[str]
-    category2: orm.Mapped[str]
+    category1: orm.Mapped[str | None]
+    category2: orm.Mapped[str | None]
 
     operating_system_id: orm.Mapped[int | None] = orm.mapped_column(
         sa.ForeignKey("operating_system.id")
@@ -47,8 +47,8 @@ class OperatingSystem(Base):
     os_name: orm.Mapped[str]
     full_name: orm.Mapped[str]
     category: orm.Mapped[str]
-    category1: orm.Mapped[str]
-    category2: orm.Mapped[str]
+    category1: orm.Mapped[str | None]
+    category2: orm.Mapped[str | None]
     product_name: orm.Mapped[str]
     publisher: orm.Mapped[str]
     edition: orm.Mapped[str | None]
