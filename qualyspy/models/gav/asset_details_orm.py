@@ -242,7 +242,7 @@ class SoftwareItem(Base):
 
     orm_id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
     id: orm.Mapped[str]
-    full_name: orm.Mapped[str]
+    full_name: orm.Mapped[str | None]
     software_type: orm.Mapped[str]
     is_ignored: orm.Mapped[bool]
     ignored_reason: orm.Mapped[str | None]

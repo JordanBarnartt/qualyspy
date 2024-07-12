@@ -105,7 +105,7 @@ class NetworkInterfaceListData(Model):
 
 class SoftwareItem(Model):
     id: int
-    full_name: str
+    full_name: str | None
     software_type: str
     is_ignored: bool
     ignored_reason: str | None
