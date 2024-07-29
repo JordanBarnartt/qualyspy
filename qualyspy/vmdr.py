@@ -200,6 +200,7 @@ class VmdrAPI(QualysAPIBase):
         qds_min: int | None = None,
         qds_max: int | None = None,
         arf_kernel_filter: int | None = None,
+        show_igs: bool | None = None,
     ) -> tuple[list[host_list_vm_detection_output.Host], bool, int]:
         """Get a list of hosts with associated vulnerability detections from the VMDR API.  A
         value of None for the parameters will use their default values in the API.
@@ -225,6 +226,7 @@ class VmdrAPI(QualysAPIBase):
             "qds_min": qds_min,
             "qds_max": qds_max,
             "arf_kernel_filter": arf_kernel_filter,
+            "show_igs": show_igs,
         }
         cleaned_params = qutils.clean_dict(params)
         cleaned_params["action"] = "list"

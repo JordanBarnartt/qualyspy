@@ -37,7 +37,7 @@ class TestOutputModels(unittest.TestCase):
 
     def test_host_list_vm_detection(self):
         api = vmdr.VmdrAPI()
-        host_list, _, _ = api.host_list_vm_detection(ids=11619472)
+        host_list, _, _ = api.host_list_vm_detection(ids=11619472, show_igs=True)
         host = host_list[0]
 
         self.assertEqual(host.ip, ipaddress.ip_address("172.16.76.84"))
@@ -62,8 +62,8 @@ class TestORM(unittest.TestCase):
 
     def test_sql_vm_detection(self):
         api = vmdr.HostListVMDetectionORM()
-        # api.init_db()
-        # api.load()
+        api.init_db()
+        api.load(show_igs=True)
         stmt = sa.select(host_list_vm_detection_orm.Host).where(
             host_list_vm_detection_orm.Host.id == 11619472
         )
