@@ -18,3 +18,5 @@ count_tags = "/qps/rest/2.0/count/am/tag"
 delete_tag = "/qps/rest/2.0/delete/am/tag"
 get_asset_info = "/qps/rest/2.0/get/am/asset"
 update_asset = "/qps/rest/2.0/update/am/asset"
+
+add_bulk_external_sites = "/certview/v1/externalSites/bulkAdd"

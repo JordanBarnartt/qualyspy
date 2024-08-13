@@ -26,7 +26,7 @@ from . import URLS, exceptions
 _C = TypeVar("_C")
 
 _USE_API_SERVER = ["msp", "api", "qps"]
-_USE_API_GATEWAY = ["rest"]
+_USE_API_GATEWAY = ["rest", "certview"]
 
 _TIMEOUT = 60
 
@@ -120,6 +120,7 @@ class QualysAPIBase:
             self.api_gateway + URLS.gateway_auth,
             data={
                 "token": "true",
+                "permissions": "true",  # Needed by CertView
                 "username": self.username,
                 "password": self.password,
             },
@@ -234,7 +235,8 @@ class QualysAPIBase:
         *,
         params: dict[str, str] | None = None,
         data: str | bytes | None = None,
-        content_type: str = "application/json",
+        files: dict[str, Any] | None = None,
+        content_type: str | None = "application/json",
         accept: str = "application/json",
     ) -> requests.Response:
         """Send a POST request to the Qualys API.
@@ -268,6 +270,7 @@ class QualysAPIBase:
                 root + url,
                 params=params,
                 data=data,
+                files=files,
                 auth=(self.username, self.password)
                 if root == self.api_server
                 else None,
