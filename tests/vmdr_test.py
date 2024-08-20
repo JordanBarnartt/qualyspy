@@ -37,17 +37,17 @@ class TestOutputModels(unittest.TestCase):
 
     def test_host_list_vm_detection(self):
         api = vmdr.VmdrAPI()
-        host_list, _, _ = api.host_list_vm_detection(ids=11619472, show_igs=True)
+        host_list, _, _ = api.host_list_vm_detection(ids=17819518, show_igs=True)
         host = host_list[0]
 
         self.assertEqual(host.ip, ipaddress.ip_address("172.16.76.84"))
 
     def test_knowledgebase(self):
         api = vmdr.VmdrAPI()
-        kb = api.knowledgebase(ids=120098)
+        kb = api.knowledgebase(ids=985605)
         vuln = kb[0]
 
-        self.assertEqual(vuln.qid, 120098)
+        self.assertEqual(vuln.qid, 985605)
 
 
 class TestORM(unittest.TestCase):

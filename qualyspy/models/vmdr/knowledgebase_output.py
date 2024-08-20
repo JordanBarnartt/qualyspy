@@ -155,6 +155,7 @@ class Vuln(BaseXmlModel):
     severity_level: int = element(tag="SEVERITY_LEVEL")
     title: str = element(tag="TITLE")
     category: str | None = element(tag="CATEGORY", default=None)
+    technology: str | None = element(tag="TECHNOLOGY", default=None)
     detection_info: str | None = element(tag="DETECTION_INFO", default=None)
     last_customization: LastCustomization | None = element(
         tag="LAST_CUSTOMIZATION", default=None
