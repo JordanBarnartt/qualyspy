@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "QualysPy"
-version = "0.4.4.1"
+version = "0.5.0.0"
 authors = [
   { name="Jordan Barnartt", email="jbarnart@uwaterloo.ca" },
 ]
@@ -29,6 +29,7 @@ dependencies = [
   "SQLAlchemy",
   "psycopg2",
   "pydantic-xml",
+  "python-decouple",
 ]
 
 [project.urls]

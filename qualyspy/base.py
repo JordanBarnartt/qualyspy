@@ -10,7 +10,6 @@ api.get("/msp/about.php")
 # For SQLAlchemy:
 # mypy: allow-untyped-calls
 
-import configparser
 import datetime
 import os
 import urllib.parse
@@ -20,6 +19,7 @@ from typing import Any, TypeVar
 import requests
 import sqlalchemy as sa
 import sqlalchemy.orm as orm
+from decouple import config  # type: ignore
 
 from . import URLS, exceptions
 
@@ -37,7 +37,6 @@ class QualysAPIBase:
     calls.
 
     Attributes:
-        config_file (str): Path to the config file.  See config-example.ini for an example.
         api_root (str): Root URL of the Qualys API.
         username (str): Username to use when authenticating to the Qualys API.
         password (str): Password to use when authenticating to the Qualys API.
@@ -56,7 +55,6 @@ class QualysAPIBase:
 
     def __init__(
         self,
-        config_file: str = str(os.path.join(os.path.expanduser("~"), ".qualyspy")),
         x_requested_with: str = "QualysPy Python Library",
     ) -> None:
         """Initializes an instance of the QualysAPIBase class.
@@ -71,15 +69,10 @@ class QualysAPIBase:
         """
 
         # Read config file
-        self.config = configparser.ConfigParser()
-        self.config.read(config_file)
-        try:
-            self.api_server = self.config["AUTHENTICATION"]["api_server"]
-            self.api_gateway = self.config["AUTHENTICATION"]["api_gateway"]
-            self.username = self.config["AUTHENTICATION"]["username"]
-            self.password = self.config["AUTHENTICATION"]["password"]
-        except KeyError as e:
-            raise exceptions.ConfigError(f"Config file {config_file} missing key: {e}")
+        self.api_server = str(config("QUALYS_API_SERVER"))
+        self.api_gateway = str(config("QUALYS_API_GATEWAY"))
+        self.username = str(config("QUALYS_USERNAME"))
+        self.password = str(config("QUALYS_PASSWORD"))
 
         self.jwt: str | None = None
         self.jwt_request: requests.PreparedRequest | None = None
@@ -326,10 +319,10 @@ class QualysORMMixin(ABC):
         self.api = api
         self.orm_base = api.orm_base
         try:
-            self.db_host = api.config["POSTGRESQL"]["host"]
-            self.db_name = api.config["POSTGRESQL"]["db_name"]
-            self.db_username = api.config["POSTGRESQL"]["username"]
-            self.db_password = urllib.parse.quote(api.config["POSTGRESQL"]["password"])
+            self.db_host = str(config("PG_HOST"))
+            self.db_name = str(config("PG_DB"))
+            self.db_username = str(config("PG_USERNAME"))
+            self.db_password = urllib.parse.quote(str(config("PG_PASSWORD")))
         except KeyError as e:
             raise exceptions.ConfigError(f"Config file missing key: {e}")
         self.e_url = "postgresql:"

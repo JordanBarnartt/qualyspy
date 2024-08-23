@@ -5,3 +5,4 @@ pydantic
 SQLAlchemy
 psycopg2
 pydantic-xml
+python-decouple
