@@ -27,7 +27,9 @@ class TestOutputModels(unittest.TestCase):
     def test_all_asset_details(self):
         api = gav.GavAPI()
         assets, _, _ = api.all_asset_details(
-            filter=[{"field": "asset.assetID", "operator": "EQUALS", "value": "14355608"}]
+            filter=[{"field": "asset.assetID", "operator": "EQUALS", "value": "14355608"},
+                    {"field": "inventory.source", "operator": "EQUALS", "value": "Cloud Agent"}],
+            filter_operation="AND"
         )
         asset = assets[0]
 
