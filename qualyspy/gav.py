@@ -50,7 +50,7 @@ class GavAPI(QualysAPIBase):
         *,
         last_seen_asset_id: int | None = None,
         page_size: int | None = None,
-        filter: list[dict[str, Any]] | None = None,
+        filter: list[dict[str, str]] | None = None,
     ) -> tuple[list[asset_details_output.AssetItem], bool, int | None]:
         params = {
             "lastSeenAssetId": last_seen_asset_id,
