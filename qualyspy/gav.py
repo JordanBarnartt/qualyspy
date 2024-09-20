@@ -46,11 +46,19 @@ class GavAPI(QualysAPIBase):
         return response.asset_list_data.asset[0]
 
     def all_asset_details(
-        self, *, last_seen_asset_id: int | None = None, page_size: int | None = None
+        self,
+        *,
+        last_seen_asset_id: int | None = None,
+        page_size: int | None = None,
+        filter: list[dict[str, Any]] | None = None,
     ) -> tuple[list[asset_details_output.AssetItem], bool, int | None]:
-        params = {"lastSeenAssetId": last_seen_asset_id, "pageSize": page_size}
+        params = {
+            "lastSeenAssetId": last_seen_asset_id,
+            "pageSize": page_size,
+        }
         params_cleaned = qutils.clean_dict(params)
-        raw_response = self.post(URLS.all_asset_details, params=params_cleaned).json()
+        body = str({"filters": filter}).replace("'", '"')
+        raw_response = self.post(URLS.all_asset_details, params=params_cleaned, data=body).json()
 
         for asset in raw_response["assetListData"]["asset"]:
             if asset["networkInterfaceListData"] is not None:

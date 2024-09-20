@@ -24,6 +24,15 @@ class TestOutputModels(unittest.TestCase):
 
         self.assertEqual(asset.address, ipaddress.ip_address("172.16.76.84"))
 
+    def test_all_asset_details(self):
+        api = gav.GavAPI()
+        assets, _, _ = api.all_asset_details(
+            filter=[{"field": "asset.assetID", "operator": "EQUALS", "value": "14355608"}]
+        )
+        asset = assets[0]
+
+        self.assertEqual(asset.address, ipaddress.ip_address("172.16.76.84"))
+
 
 class TestORM(unittest.TestCase):
     def test_sql_all_asset_details(self):
