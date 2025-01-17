@@ -29,7 +29,7 @@ class AssetMgmtTaggingAPI(QualysAPIBase):
         )
 
         resp = self.post(
-            URLS.create_tag, data=request_data_xml, content_type="application/xml"
+            URLS.create_tag, content=request_data_xml, content_type="application/xml"
         )
         ret = tag_output.Wrapper.model_validate_json(resp.text)
 
@@ -65,7 +65,7 @@ class AssetMgmtTaggingAPI(QualysAPIBase):
 
         resp = self.post(
             URLS.update_tag + f"/{tag_id}",
-            data=request_data_xml,
+            content=request_data_xml,
             content_type="application/xml",
         )
         ret = tag_output.Wrapper.model_validate_json(resp.text)
@@ -95,7 +95,7 @@ class AssetMgmtTaggingAPI(QualysAPIBase):
 
         resp = self.post(
             URLS.search_tags,
-            data=request_data_xml,
+            content=request_data_xml,
             content_type="application/xml",
         )
         ret = tag_output.Wrapper.model_validate_json(resp.text)
@@ -138,7 +138,7 @@ class AssetMgmtTaggingAPI(QualysAPIBase):
 
         resp = self.post(
             URLS.update_asset + f"/{asset_id}",
-            data=request_data_xml,
+            content=request_data_xml,
             content_type="application/xml",
         )
         ret = asset_output.Wrapper.model_validate_json(resp.text)

@@ -11,19 +11,16 @@ api.get("/msp/about.php")
 # mypy: allow-untyped-calls
 
 import datetime
-import os
 import urllib.parse
 from abc import ABC, abstractmethod
-from typing import Any, TypeVar
+from typing import Any
 
-import requests
+import httpx
 import sqlalchemy as sa
 import sqlalchemy.orm as orm
 from decouple import config  # type: ignore
 
 from . import URLS, exceptions
-
-_C = TypeVar("_C")
 
 _USE_API_SERVER = ["msp", "api", "qps"]
 _USE_API_GATEWAY = ["rest", "certview"]
@@ -75,7 +72,6 @@ class QualysAPIBase:
         self.password = str(config("QUALYS_PASSWORD"))
 
         self.jwt: str | None = None
-        self.jwt_request: requests.PreparedRequest | None = None
 
         self.x_requested_with = x_requested_with
         self.orm_base = orm.DeclarativeBase()
@@ -109,7 +105,7 @@ class QualysAPIBase:
 
     def _get_jwt(self) -> None:
         """Get a new JWT from the Qualys API."""
-        response = requests.post(
+        response = httpx.post(
             self.api_gateway + URLS.gateway_auth,
             data={
                 "token": "true",
@@ -124,11 +120,11 @@ class QualysAPIBase:
         )
         try:
             response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
+        except httpx.HTTPError as e:
             raise exceptions.QualysAPIError(response.text) from e
         self.jwt = response.text
 
-    def _update_limits(self, response: requests.Response) -> None:
+    def _update_limits(self, response: httpx.Response) -> None:
         """Update the rate limit and concurrency limit information.
 
         Args:
@@ -169,7 +165,7 @@ class QualysAPIBase:
         url: str,
         params: dict[str, str] | None = None,
         accept: str = "application/xml",
-    ) -> requests.Response:
+    ) -> httpx.Response:
         """Send a GET request to the Qualys API.
 
         Args:
@@ -196,7 +192,7 @@ class QualysAPIBase:
         else:
             raise ValueError("No valid API root or gateway found.")
         try:
-            response = requests.get(
+            response = httpx.get(
                 root + url,
                 params=params,
                 auth=(self.username, self.password)
@@ -205,7 +201,7 @@ class QualysAPIBase:
                 headers=headers,
                 timeout=_TIMEOUT,
             )
-        except requests.exceptions.ReadTimeout as e:
+        except httpx.ReadTimeout as e:
             raise exceptions.QualysAPIError(
                 f"""
                                             Request for {root + url} timed out.
@@ -216,7 +212,7 @@ class QualysAPIBase:
             ) from e
         try:
             response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
+        except httpx.HTTPError as e:
             raise exceptions.QualysAPIError(response.text) from e
 
         self._update_limits(response)
@@ -227,11 +223,12 @@ class QualysAPIBase:
         url: str,
         *,
         params: dict[str, str] | None = None,
-        data: str | bytes | None = None,
+        content: str | bytes | None = None,
+        data: dict[str, str] | None = None,
         files: dict[str, Any] | None = None,
         content_type: str | None = "application/json",
         accept: str = "application/json",
-    ) -> requests.Response:
+    ) -> httpx.Response:
         """Send a POST request to the Qualys API.
 
         Args:
@@ -246,10 +243,11 @@ class QualysAPIBase:
             exceptions.QualysAPIError: Raised if the Qualys API returns a non-200 response.
         """
         root = self._choose_url(url)
-        headers = {
+        headers: dict[str, str] = {
             "X-Requested-With": self.x_requested_with,
-            "Content-Type": content_type,
         }
+        if content_type is not None:
+            headers["Content-Type"] = content_type
         if root == self.api_server:
             headers["Accept"] = accept
         elif root == self.api_gateway:
@@ -259,9 +257,10 @@ class QualysAPIBase:
         else:
             raise ValueError("No valid API root or gateway found.")
         try:
-            response = requests.post(
+            response = httpx.post(
                 root + url,
                 params=params,
+                content=content,
                 data=data,
                 files=files,
                 auth=(self.username, self.password)
@@ -270,7 +269,7 @@ class QualysAPIBase:
                 headers=headers,
                 timeout=_TIMEOUT,
             )
-        except requests.exceptions.ReadTimeout as e:
+        except httpx.ReadTimeout as e:
             raise exceptions.QualysAPIError(
                 f"""
                                             Request for {root + url} timed out.
@@ -282,7 +281,7 @@ class QualysAPIBase:
             ) from e
         try:
             response.raise_for_status()
-        except requests.exceptions.HTTPError as e:
+        except httpx.HTTPError as e:
             raise exceptions.QualysAPIError(response.text) from e
 
         self._update_limits(response)
@@ -338,6 +337,8 @@ class QualysORMMixin(ABC):
     ) -> None:
         """Initialize the database.  Creates the schema and tables if they don't already exist."""
         with self.engine.connect() as conn:
+            if self.orm_base.metadata.schema is None:
+                raise exceptions.ConfigError("Schema not set in ORM base.")
             conn.execute(
                 sa.schema.CreateSchema(
                     self.orm_base.metadata.schema, if_not_exists=True
@@ -355,6 +356,8 @@ class QualysORMMixin(ABC):
     def drop(self) -> None:
         """Drop the database."""
         with self.engine.connect() as conn:
+            if self.orm_base.metadata.schema is None:
+                raise exceptions.ConfigError("Schema not set in ORM base.")
             conn.execute(
                 sa.schema.DropSchema(
                     self.orm_base.metadata.schema, cascade=True, if_exists=True

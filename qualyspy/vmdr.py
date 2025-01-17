@@ -93,13 +93,17 @@ class VmdrAPI(QualysAPIBase):
         if ips is not None:
             if not isinstance(ips, list):
                 ips = [ips]
-            ipv4_ips = [
+            ipv4_ips: (
+                list[str | ipaddress.IPv4Address | ipaddress.IPv6Address] | None
+            ) = [
                 ip
                 for ip in ips
                 if isinstance(ip, ipaddress.IPv4Address)
                 or isinstance(ipaddress.ip_address(ip), ipaddress.IPv4Address)
             ]
-            ipv6_ips = [
+            ipv6_ips: (
+                list[str | ipaddress.IPv4Address | ipaddress.IPv6Address] | None
+            ) = [
                 ip
                 for ip in ips
                 if isinstance(ip, ipaddress.IPv6Address)

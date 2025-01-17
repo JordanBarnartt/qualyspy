@@ -146,5 +146,5 @@ def create_search_tags_request(
         "color": color,
     }.items():
         if value:
-            criteria_list.append(Criteria(field=field, operator="EQUALS", value=value))
+            criteria_list.append(Criteria(field=field, operator="EQUALS", value=str(value)))
     return ServiceRequest(filters=Filters(criteria=criteria_list))

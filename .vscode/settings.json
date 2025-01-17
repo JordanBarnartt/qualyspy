@@ -1,5 +1,4 @@
 {
-    "python.analysis.typeCheckingMode": "strict",
     "python.testing.unittestArgs": [
         "-v",
         "-s",
@@ -12,8 +11,5 @@
     "testing.defaultGutterClickAction": "debug",
     "mypy-type-checker.args": [
         "--strict"
-    ],
-    "mypy-type-checker.path": [
-        "${workspaceFolder}/.venv/bin/python","-m", "mypy"
     ]
 }

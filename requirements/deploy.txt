@@ -1,8 +1,7 @@
-lxml
-requests
+httpx
 python-dateutil
 pydantic
 SQLAlchemy
-psycopg2
+psycopg[binary]
 pydantic-xml
 python-decouple

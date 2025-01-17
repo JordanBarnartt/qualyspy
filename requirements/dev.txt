@@ -1,11 +1,7 @@
 -r deploy.txt
-black
 mypy
-pylama
 Sphinx
 sphinx-rtd-theme
-types-lxml
 types-python-dateutil
-types-requests
 build
 twine
