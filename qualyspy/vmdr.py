@@ -27,6 +27,7 @@ from .models.vmdr import (
     host_list_vm_detection_orm,
     host_list_vm_detection_output,
     knowledgebase_output,
+    simple_return,
 )
 
 
@@ -302,6 +303,28 @@ class VmdrAPI(QualysAPIBase):
             raise ValueError("Response has no vuln_list")
 
         return knowledge_base_output_obj.response.vuln_list
+
+    def launch_vm_scan(
+        self,
+        *,
+        scan_title: str | None = None,
+        iscanner_name: str | None = None,
+        option_title: str | None = None,
+        fqdn: str | list[str] | None = None,
+    ):
+        params = {
+            "scan_title": scan_title,
+            "iscanner_name": iscanner_name,
+            "option_title": option_title,
+            "fqdn": fqdn,
+        }
+        params["action"] = "launch"
+        params_cleaned = qutils.clean_dict(params)
+
+        raw_response = self.post(URLS.launch_vm_scan, params=params_cleaned).text
+        launch_vm_scan_output_obj = simple_return.SimpleReturn.from_xml(raw_response)
+
+        return launch_vm_scan_output_obj
 
 
 class HostListORM(VmdrAPI, QualysORMMixin):

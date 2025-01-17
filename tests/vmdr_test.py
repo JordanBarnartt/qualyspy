@@ -49,6 +49,18 @@ class TestOutputModels(unittest.TestCase):
 
         self.assertEqual(vuln.qid, 985605)
 
+    def test_launch_vm_scan(self):
+        api = vmdr.VmdrAPI()
+        ret = api.launch_vm_scan(
+            scan_title="Test Scan",
+            iscanner_name="iss-qg-cr-v05",
+            option_title="CertViewFree Profile",
+            fqdn="learn.uwaterloo.ca",
+        )
+        text = ret.response.text
+
+        self.assertEqual(text, "New vm scan launched")
+
 
 class TestORM(unittest.TestCase):
     def test_sql_host_list(self):

@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "QualysPy"
-version = "0.5.2.0"
+version = "0.5.3.0"
 authors = [
   { name="Jordan Barnartt", email="jbarnart@uwaterloo.ca" },
 ]
 description = "A Python wrapper for the Qualys API."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Information Technology",
@@ -22,12 +22,11 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-  "lxml",
-  "requests",
+  "httpx",
   "python-dateutil",
   "pydantic",
   "SQLAlchemy",
-  "psycopg2",
+  "psycopg[binary]",
   "pydantic-xml",
   "python-decouple",
 ]
