@@ -321,8 +321,15 @@ class VmdrAPI(QualysAPIBase):
         params["action"] = "launch"
         params_cleaned = qutils.clean_dict(params)
 
-        raw_response = self.post(URLS.launch_vm_scan, params=params_cleaned).text
+        raw_response = self.post(
+            URLS.launch_vm_scan, params=params_cleaned
+        ).text.encode("utf-8")
         launch_vm_scan_output_obj = simple_return.SimpleReturn.from_xml(raw_response)
+
+        if launch_vm_scan_output_obj.response.text != "New vm scan launched":
+            raise ValueError(
+                f"Failed to launch VM scan.  Response: {launch_vm_scan_output_obj.response.text}"
+            )
 
         return launch_vm_scan_output_obj
 
