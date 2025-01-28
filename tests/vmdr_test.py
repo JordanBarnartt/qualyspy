@@ -61,6 +61,22 @@ class TestOutputModels(unittest.TestCase):
 
         self.assertEqual(text, "New vm scan launched")
 
+    def test_map_report_list(self):
+        api = vmdr.VmdrAPI()
+        reports = api.map_report_list(last=True)
+        report = reports.report_list[0]
+
+        self.assertEqual(report.title, "External Map baseline")
+
+    def test_map_report(self):
+        api = vmdr.VmdrAPI()
+        reports = api.map_report_list(last=True)
+        report_ref = reports.report_list[0].ref
+
+        report = api.download_saved_map_report(ref=report_ref)
+
+        self.assertEqual(report.value, report_ref)
+
 
 class TestORM(unittest.TestCase):
     def test_sql_host_list(self):

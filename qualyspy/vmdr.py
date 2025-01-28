@@ -27,6 +27,8 @@ from .models.vmdr import (
     host_list_vm_detection_orm,
     host_list_vm_detection_output,
     knowledgebase_output,
+    map_report,
+    map_report_list,
     simple_return,
 )
 
@@ -311,7 +313,7 @@ class VmdrAPI(QualysAPIBase):
         iscanner_name: str | None = None,
         option_title: str | None = None,
         fqdn: str | list[str] | None = None,
-    ):
+    ) -> simple_return.SimpleReturn:
         params = {
             "scan_title": scan_title,
             "iscanner_name": iscanner_name,
@@ -332,6 +334,34 @@ class VmdrAPI(QualysAPIBase):
             )
 
         return launch_vm_scan_output_obj
+
+    def map_report_list(
+        self, *, last: bool | None = None, domain: str | None = None
+    ) -> map_report_list.MapReportList:
+        params = {"domain": domain}
+        if last:
+            params["last"] = "yes"
+        params_cleaned = qutils.clean_dict(params)
+
+        raw_response = self.get(
+            URLS.map_report_list, params=params_cleaned
+        ).text.encode("utf-8")
+        map_report_list_output_obj = map_report_list.MapReportList.from_xml(
+            raw_response
+        )
+
+        return map_report_list_output_obj
+
+    def download_saved_map_report(self, *, ref: str | None) -> map_report.Map:
+        params = {"ref": ref}
+        params_cleaned = qutils.clean_dict(params)
+
+        raw_response = self.get(
+            URLS.download_saved_map_report, params=params_cleaned
+        ).text.encode("utf-8")
+        map_report_output_obj = map_report.Map.from_xml(raw_response)
+
+        return map_report_output_obj
 
 
 class HostListORM(VmdrAPI, QualysORMMixin):
