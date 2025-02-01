@@ -1,9 +1,12 @@
 from . import URLS
 from .base import QualysAPIBase
-from .models.asset_mgmt_tagging import (asset_output, asset_request,
-                                        tag_output, tag_request)
-from .models.asset_mgmt_tagging.asset_request import \
-    Criteria as AssetSearchCriteria
+from .models.asset_mgmt_tagging import (
+    asset_output,
+    asset_request,
+    tag_output,
+    tag_request,
+)
+from .models.asset_mgmt_tagging.asset_request import Criteria as AssetSearchCriteria
 
 
 class AssetMgmtTaggingAPI(QualysAPIBase):
@@ -126,7 +129,7 @@ class AssetMgmtTaggingAPI(QualysAPIBase):
             raise ValueError(
                 "Cannot add and remove tags at the same time. Please use separate calls."
             )
-        request_data = asset_request.create_update_asset_request(
+        request_data = asset_request.create_asset_request(
             criteria=criteria,
             name=name,
             add_tags=add_tags,
@@ -138,6 +141,23 @@ class AssetMgmtTaggingAPI(QualysAPIBase):
 
         resp = self.post(
             URLS.update_asset + f"/{asset_id}",
+            content=request_data_xml,
+            content_type="application/xml",
+        )
+        ret = asset_output.Wrapper.model_validate_json(resp.text)
+
+        return ret.service_response
+
+    def search_assets(
+        self, criteria: list[AssetSearchCriteria]
+    ) -> asset_output.ServiceResponse:
+        request_data = asset_request.create_asset_request(criteria=criteria)
+        request_data_xml = request_data.to_xml(
+            skip_empty=True, pretty_print=True, encoding="UTF-8", xml_declaration=True
+        )
+
+        resp = self.post(
+            URLS.search_assets,
             content=request_data_xml,
             content_type="application/xml",
         )

@@ -40,7 +40,7 @@ class ServiceRequest(BaseXmlModel, tag="ServiceRequest"):
     filters: Filters | None = element(tag="filters", default=None)
 
 
-def create_update_asset_request(
+def create_asset_request(
     criteria: list[Criteria] | None,
     name: str | None = None,
     add_tags: list[int] = [],

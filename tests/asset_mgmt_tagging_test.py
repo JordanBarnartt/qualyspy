@@ -11,6 +11,7 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
 from qualyspy import asset_mgmt_tagging  # noqa: E402
+from qualyspy.models.asset_mgmt_tagging import asset_request  # noqa: E402
 
 
 class TestTags(unittest.TestCase):
@@ -54,3 +55,13 @@ class TestTags(unittest.TestCase):
         )
 
         self.assertEqual(update_resp.response_code, "SUCCESS")
+
+    def test_search_assets(self):
+        api = asset_mgmt_tagging.AssetMgmtTaggingAPI()
+        criteria = asset_request.Criteria(
+            field="tagName", operator="EQUALS", value="Test Search Assets"
+        )
+
+        search_resp = api.search_assets(criteria=[criteria])
+        
+        self.assertEqual(search_resp.count, 1)
