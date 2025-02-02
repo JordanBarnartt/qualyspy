@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "QualysPy"
-version = "0.5.5.3"
+version = "0.5.5.4"
 authors = [
   { name="Jordan Barnartt", email="jbarnart@uwaterloo.ca" },
 ]
 description = "A Python wrapper for the Qualys API."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Information Technology",
