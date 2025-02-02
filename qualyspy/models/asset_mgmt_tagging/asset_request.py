@@ -35,9 +35,16 @@ class Filters(BaseXmlModel):
     criteria: list[Criteria] | None = element(tag="Criteria")
 
 
+class Preferences(BaseXmlModel):
+    start_from_offset: int | None = element(tag="startFromOffset", default=None)
+    start_from_id: int | None = element(tag="startFromId", default=None)
+    limit_results: int | None = element(tag="limitResults", default=None)
+
+
 class ServiceRequest(BaseXmlModel, tag="ServiceRequest"):
     data: Data | None = element(tag="data", default=None)
     filters: Filters | None = element(tag="filters", default=None)
+    preferences: Preferences | None = element(tag="preferences", default=None)
 
 
 def create_asset_request(
@@ -45,6 +52,9 @@ def create_asset_request(
     name: str | None = None,
     add_tags: list[int] = [],
     remove_tags: list[int] = [],
+    start_from_offset: int | None = None,
+    start_from_id: int | None = None,
+    limit_results: int | None = None,
 ) -> ServiceRequest:
     if add_tags or remove_tags:
         tags = Collection(
@@ -63,4 +73,9 @@ def create_asset_request(
             )
         ),
         filters=Filters(criteria=criteria),
+        preferences=Preferences(
+            start_from_offset=start_from_offset,
+            start_from_id=start_from_id,
+            limit_results=limit_results,
+        ),
     )
