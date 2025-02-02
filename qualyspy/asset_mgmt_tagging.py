@@ -124,6 +124,9 @@ class AssetMgmtTaggingAPI(QualysAPIBase):
         name: str | None = None,
         add_tags: list[int] = [],
         remove_tags: list[int] = [],
+        start_from_offset: int | None = None,
+        start_from_id: int | None = None,
+        limit_results: int | None = None,
     ) -> asset_output.ServiceResponse:
         if add_tags and remove_tags:
             raise ValueError(
@@ -134,6 +137,9 @@ class AssetMgmtTaggingAPI(QualysAPIBase):
             name=name,
             add_tags=add_tags,
             remove_tags=remove_tags,
+            start_from_offset=start_from_offset,
+            start_from_id=start_from_id,
+            limit_results=limit_results,
         )
         request_data_xml = request_data.to_xml(
             skip_empty=True, pretty_print=True, encoding="UTF-8", xml_declaration=True
@@ -149,9 +155,18 @@ class AssetMgmtTaggingAPI(QualysAPIBase):
         return ret.service_response
 
     def search_assets(
-        self, criteria: list[AssetSearchCriteria]
+        self,
+        criteria: list[AssetSearchCriteria],
+        start_from_offset: int | None = None,
+        start_from_id: int | None = None,
+        limit_results: int | None = None,
     ) -> asset_output.ServiceResponse:
-        request_data = asset_request.create_asset_request(criteria=criteria)
+        request_data = asset_request.create_asset_request(
+            criteria=criteria,
+            start_from_offset=start_from_offset,
+            start_from_id=start_from_id,
+            limit_results=limit_results,
+        )
         request_data_xml = request_data.to_xml(
             skip_empty=True, pretty_print=True, encoding="UTF-8", xml_declaration=True
         )
