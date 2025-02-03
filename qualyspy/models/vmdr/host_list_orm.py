@@ -101,11 +101,12 @@ class Param(Base):
 class Tag(Base):
     __tablename__ = "tag"
 
-    tag_id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
+    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
+    tag_id: orm.Mapped[int]
     name: orm.Mapped[str | None]
 
-    tags_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("tags.id"))
-    tags: orm.Mapped["Tags"] = orm.relationship(back_populates="tag")
+    host_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("host.id"))
+    host: orm.Mapped["Host"] = orm.relationship(back_populates="tags")
 
 
 class User(Base):
@@ -243,14 +244,14 @@ class ParamList(Base):
     param: orm.Mapped[list[Param]] = orm.relationship(back_populates="param_list")
 
 
-class Tags(Base):
-    __tablename__ = "tags"
+# class Tags(Base):
+#     __tablename__ = "tags"
 
-    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
-    tag: orm.Mapped[list[Tag]] = orm.relationship(back_populates="tags")
+#     id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
+#     tag: orm.Mapped[list[Tag]] = orm.relationship(back_populates="tags")
 
-    host_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("host.id"))
-    host: orm.Mapped["Host"] = orm.relationship(back_populates="tags")
+#     host_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("host.id"))
+#     host: orm.Mapped["Host"] = orm.relationship(back_populates="tags")
 
 
 class UserDef(Base):
@@ -350,9 +351,7 @@ class Host(Base):
     last_activity: orm.Mapped[dt.datetime | None]
     agent_status: orm.Mapped[str | None]
     cloud_agent_running_on: orm.Mapped[str | None]
-    tags: orm.Mapped[Tags | None] = orm.relationship(
-        back_populates="host", uselist=False
-    )
+    tags: orm.Mapped[list[Tag]] = orm.relationship(back_populates="host", uselist=True)
     metadata_: orm.Mapped[Metadata | None] = orm.relationship(
         back_populates="host", uselist=False
     )

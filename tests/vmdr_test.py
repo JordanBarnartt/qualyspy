@@ -30,7 +30,7 @@ class TestOutputModels(unittest.TestCase):
     def test_host_list_by_ip(self):
         api = vmdr.VmdrAPI()
         ips = ["172.16.68.91", "129.97.128.5", "129.97.85.51", "172.16.64.51"]
-        host_list, _, _ = api.host_list(ips=ips)
+        host_list, _, _ = api.host_list(ips=ips, show_tags=True)
         host = host_list[0]
 
         self.assertEqual(host.ip, ipaddress.ip_address("172.16.68.91"))
@@ -82,7 +82,7 @@ class TestORM(unittest.TestCase):
     def test_sql_host_list(self):
         api = vmdr.HostListORM()
         api.init_db()
-        api.load()
+        api.load(show_tags=True)
         stmt = sa.select(host_list_orm.Host).where(host_list_orm.Host.id == 11619472)
         result = api.query(stmt)
         host = result[0][0]

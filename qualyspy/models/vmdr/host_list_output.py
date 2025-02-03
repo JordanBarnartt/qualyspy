@@ -126,7 +126,7 @@ class Host(BaseXmlModel):
     cloud_agent_running_on: str | None = element(
         tag="CLOUD_AGENT_RUNNING_ON", default=None
     )
-    tags: list[Tag] | None = wrapped("TAGS", element(tag="TAG", default=None))
+    tags: list[Tag] = wrapped("TAGS", element(tag="TAG", default_factory=list))
     metadata: Metadata | None = element(tag="METADATA", alias="metadata_", default=None)
     cloud_provider_tags: list[CloudTag] | None = wrapped(
         "CLOUD_PROVIDER_TAGS", element(tag="CLOUD_TAG", default=None)

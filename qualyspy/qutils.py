@@ -1,6 +1,5 @@
 """Utility functions for qualyspy.  Primarily for internal use."""
 
-
 import importlib
 import inspect
 import re
@@ -60,6 +59,7 @@ def to_orm_object(
         """Helper function for to_orm_object.  Recursively converts a dataclass instance of a Qualys
         object to an ORM object.  This separate function allows obj to be converted from a
         dataclass to a dict before the recursive calls."""
+
         obj_copy = copy.deepcopy(obj)
         annots = inspect.get_annotations(out_cls)
         for k, v in obj_copy.items():

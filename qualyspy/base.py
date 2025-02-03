@@ -324,7 +324,7 @@ class QualysORMMixin(ABC):
             self.db_password = urllib.parse.quote(str(config("PG_PASSWORD")))
         except KeyError as e:
             raise exceptions.ConfigError(f"Config file missing key: {e}")
-        self.e_url = "postgresql:"
+        self.e_url = "postgresql+psycopg:"
         self.e_url += (
             f"//{self.db_username}:{self.db_password}@{self.db_host}/{self.db_name}"
         )
