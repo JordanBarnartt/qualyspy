@@ -11,7 +11,6 @@ api.get("/msp/about.php")
 # mypy: allow-untyped-calls
 
 import datetime
-import tempfile
 import urllib.parse
 from abc import ABC, abstractmethod
 from typing import Any
@@ -218,43 +217,6 @@ class QualysAPIBase:
 
         self._update_limits(response)
         return response
-
-    def get_stream(
-        self,
-        url: str,
-        params: dict[str, str] | None = None,
-        accept: str = "application/xml",
-    ) -> str:
-        root = self._choose_url(url)
-        headers = {
-            "X-Requested-With": self.x_requested_with,
-        }
-        if root == self.api_server:
-            headers["Accept"] = accept
-        elif root == self.api_gateway:
-            if self.jwt is None:
-                self._get_jwt()
-            headers["Authorization"] = f"Bearer {self.jwt}"
-        else:
-            raise ValueError("No valid API root or gateway found.")
-        with tempfile.NamedTemporaryFile() as temp:
-            with httpx.stream(
-                "GET",
-                root + url,
-                params=params,
-                headers=headers,
-                auth=(self.username, self.password)
-                if root == self.api_server
-                else None,
-                timeout=_TIMEOUT,
-            ) as response:
-                # response.raise_for_status()
-                # self._update_limits(response)
-                for chunk in response.iter_bytes():
-                    temp.write(chunk)
-            temp.seek(0)
-            r = str(temp.read())
-        return r
 
     def post(
         self,
