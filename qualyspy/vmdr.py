@@ -448,7 +448,7 @@ class HostListVMDetectionORM(VmdrAPI, QualysORMMixin):
                     session.merge(obj)
                 session.commit()
 
-        kwargs.setdefault("truncation_limit", 10000)
+        kwargs.setdefault("truncation_limit", 1000)
         truncated = True
         next_id_min = None
         while truncated:
