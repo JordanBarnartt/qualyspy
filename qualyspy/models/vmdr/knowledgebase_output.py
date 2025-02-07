@@ -16,14 +16,14 @@ class ChangeLog(BaseXmlModel):
 
 class Discovery(BaseXmlModel):
     remote: bool = element(tag="REMOTE")
-    auth_type_list: list[str] | None = wrapped(
-        "AUTH_TYPE_LIST", element(tag="AUTH_TYPE", default=None)
+    auth_type_list: list[str] = wrapped(
+        "AUTH_TYPE_LIST", element(tag="AUTH_TYPE", default_factory=list)
     )
     additional_info: str | None = element(tag="ADDITIONAL_INFO", default=None)
 
 
 class ThreatIntel(BaseXmlModel):
-    id: str = attr(name="id")
+    threat_intel_id: str = attr(name="id")
     value: str
 
 
@@ -108,11 +108,11 @@ class ExpltSrc(BaseXmlModel):
 
 
 class Correlation(BaseXmlModel):
-    exploits: list[ExpltSrc] | None = wrapped(
-        "EXPLOITS", element(tag="EXPLT_SRC", default=None)
+    exploits: list[ExpltSrc] = wrapped(
+        "EXPLOITS", element(tag="EXPLT_SRC", default_factory=list)
     )
-    malware: list[MWSrc] | None = wrapped(
-        "MALWARE", element(tag="MW_SRC", default=None)
+    malware: list[MWSrc] = wrapped(
+        "MALWARE", element(tag="MW_SRC", default_factory=list)
     )
 
 
@@ -138,7 +138,7 @@ class Software(BaseXmlModel):
 
 
 class Bugtraq(BaseXmlModel):
-    id: str = element(tag="ID")
+    bugtraq_id: str = element(tag="ID")
     url: str = element(tag="URL")
 
 
@@ -167,51 +167,51 @@ class Vuln(BaseXmlModel):
     code_modified_datetime: datetime.datetime | None = element(
         tag="CODE_MODIFIED_DATETIME", default=None
     )
-    bugtraq_list: list[Bugtraq] | None = wrapped(
-        "BUGTRAQ_LIST", element(tag="BUGTRAQ", default=None)
+    bugtraq_list: list[Bugtraq] = wrapped(
+        "BUGTRAQ_LIST", element(tag="BUGTRAQ", default_factory=list)
     )
     patchable: bool | None = element(tag="PATCHABLE", default=None)
-    software_list: list[Software] | None = wrapped(
-        "SOFTWARE_LIST", element(tag="SOFTWARE", default=None)
+    software_list: list[Software] = wrapped(
+        "SOFTWARE_LIST", element(tag="SOFTWARE", default_factory=list)
     )
-    vendor_reference_list: list[VendorReference] | None = wrapped(
-        "VENDOR_REFERENCE_LIST", element(tag="VENDOR_REFERENCE", default=None)
+    vendor_reference_list: list[VendorReference] = wrapped(
+        "VENDOR_REFERENCE_LIST", element(tag="VENDOR_REFERENCE", default_factory=list)
     )
-    cve_list: list[CVE] | None = wrapped("CVE_LIST", element(tag="CVE", default=None))
+    cve_list: list[CVE] = wrapped("CVE_LIST", element(tag="CVE", default_factory=list))
     diagnosis: str | None = element(tag="DIAGNOSIS", default=None)
     diagnosis_comment: str | None = element(tag="DIAGNOSIS_COMMENT", default=None)
     consequence: str | None = element(tag="CONSEQUENCE", default=None)
     consequence_comment: str | None = element(tag="CONSEQUENCE_COMMENT", default=None)
     solution: str | None = element(tag="SOLUTION", default=None)
     solution_comment: str | None = element(tag="SOLUTION_COMMENT", default=None)
-    compliance_list: list[Compliance] | None = wrapped(
-        "COMPLIANCE_LIST", element(tag="COMPLIANCE", default=None)
+    compliance_list: list[Compliance] = wrapped(
+        "COMPLIANCE_LIST", element(tag="COMPLIANCE", default_factory=list)
     )
     correlation: Correlation | None = element(tag="CORRELATION", default=None)
     cvss: CVSS | None = element(tag="CVSS", default=None)
     cvss_v3: CVSSv3 | None = element(tag="CVSS_V3", default=None)
     pci_flag: bool | None = element(tag="PCI_FLAG", default=None)
     automatic_pci_fail: bool | None = element(tag="AUTOMATIC_PCI_FAIL", default=None)
-    pci_reasons: list[str] | None = wrapped(
-        "PCI_REASONS", element(tag="PCI_REASON", default=None)
+    pci_reasons: list[str] = wrapped(
+        "PCI_REASONS", element(tag="PCI_REASON", default_factory=list)
     )
-    threat_intelligence: list[ThreatIntel] | None = wrapped(
-        "THREAT_INTELLIGENCE", element(tag="THREAT_INTEL", default=None)
+    threat_intelligence: list[ThreatIntel] = wrapped(
+        "THREAT_INTELLIGENCE", element(tag="THREAT_INTEL", default_factory=list)
     )
     supported_modules: str | None = element(tag="SUPPORTED_MODULES", default=None)
     discovery: Discovery | None = element(tag="DISCOVERY", default=None)
     is_disabled: bool | None = element(tag="IS_DISABLED", default=None)
-    change_log_list: list[ChangeLog] | None = wrapped(
-        "CHANGE_LOG_LIST", element(tag="CHANGE_LOG", default=None)
+    change_log_list: list[ChangeLog] = wrapped(
+        "CHANGE_LOG_LIST", element(tag="CHANGE_LOG", default_factory=list)
     )
 
 
 class Response(BaseXmlModel):
     response_datetime: datetime.datetime = element(tag="DATETIME")
-    vuln_list: list[Vuln] | None = wrapped(
-        "VULN_LIST", element(tag="VULN", default=None)
+    vuln_list: list[Vuln] = wrapped(
+        "VULN_LIST", element(tag="VULN", default_factory=list)
     )
-    id_set: list[int] | None = wrapped("ID_SET", element(tag="ID", default=None))
+    id_set: list[int] = wrapped("ID_SET", element(tag="ID", default_factory=list))
     warning: ResponseWarning | None = element(tag="WARNING", default=None)
 
 
@@ -224,7 +224,7 @@ class Request(BaseXmlModel):
     request_datetime: datetime.datetime = element(tag="DATETIME")
     user_login: str = element(tag="USER_LOGIN")
     resource: str = element(tag="RESOURCE")
-    param_list: list[Param] | None = element(tag="PARAM_LIST")
+    param_list: list[Param] = element(tag="PARAM_LIST", default_factory=list)
     post_data: str | None = element(tag="POST_DATA")
 
 

@@ -26,6 +26,7 @@ from .models.vmdr import (
     host_list_output,
     host_list_vm_detection_orm,
     host_list_vm_detection_output,
+    knowledgebase_orm,
     knowledgebase_output,
     map_report,
     map_report_list,
@@ -271,7 +272,12 @@ class VmdrAPI(QualysAPIBase):
         return host_list, truncated, next_id_min
 
     def knowledgebase(
-        self, *, details: str | None = None, ids: int | list[int] | None = None
+        self,
+        *,
+        details: str | None = None,
+        ids: int | list[int] | None = None,
+        id_min: int | None = None,
+        id_max: int | None = None,
     ) -> list[knowledgebase_output.Vuln]:
         """Get a list of vulnerabilities from the VMDR API.  A value of None for the parameters
         will use their default values in the API.
@@ -285,7 +291,7 @@ class VmdrAPI(QualysAPIBase):
                 knowledge_base_vuln_list_output.VulnList: A VulnList object containing the list of
                     vulnerabilities.
         """
-        params = {"details": details, "ids": ids}
+        params = {"details": details, "ids": ids, "id_min": id_min, "id_max": id_max}
         params["action"] = "list"
         params_cleaned = qutils.clean_dict(params)
 
@@ -442,7 +448,7 @@ class HostListVMDetectionORM(VmdrAPI, QualysORMMixin):
                     session.merge(obj)
                 session.commit()
 
-        kwargs.setdefault("truncation_limit", 10000)
+        kwargs.setdefault("truncation_limit", 1000)
         truncated = True
         next_id_min = None
         while truncated:
@@ -453,3 +459,19 @@ class HostListVMDetectionORM(VmdrAPI, QualysORMMixin):
                 for host in hosts
             ]
             load_set(to_load)
+
+
+class KnowledgebaseORM(VmdrAPI, QualysORMMixin):
+    def __init__(self, echo: bool = False) -> None:
+        VmdrAPI.__init__(self)
+        self.orm_base = knowledgebase_orm.Base  # type: ignore
+        QualysORMMixin.__init__(self, self, echo=echo)
+
+    def load(self, **kwargs: Any) -> None:
+        vulns = self.knowledgebase(**kwargs)
+        to_load = [qutils.to_orm_object(vuln, knowledgebase_orm.Vuln) for vuln in vulns]
+        with orm.Session(self.engine) as session:
+            for vuln in to_load:
+                session.merge(vuln)
+                
+            session.commit()

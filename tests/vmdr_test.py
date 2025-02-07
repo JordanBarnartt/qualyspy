@@ -79,7 +79,7 @@ class TestOutputModels(unittest.TestCase):
 
 
 class TestORM(unittest.TestCase):
-    def test_sql_host_list(self):
+    def test_orm_host_list(self):
         api = vmdr.HostListORM()
         api.init_db()
         api.load(show_tags=True)
@@ -88,7 +88,7 @@ class TestORM(unittest.TestCase):
         host = result[0][0]
         self.assertEqual(host.ip, ipaddress.ip_address("172.16.76.84"))
 
-    def test_sql_vm_detection(self):
+    def test_orm_vm_detection(self):
         api = vmdr.HostListVMDetectionORM()
         api.init_db()
         api.load(show_igs=True)
@@ -98,6 +98,17 @@ class TestORM(unittest.TestCase):
         result = api.query(stmt)
         host = result[0][0]
         self.assertEqual(host.ip, ipaddress.ip_address("172.16.76.84"))
+
+    def test_orm_knowledgebase(self):
+        api = vmdr.KnowledgebaseORM()
+        api.init_db()
+        api.load(details="All")
+        stmt = sa.select(vmdr.knowledgebase_orm.Vuln).where(
+            vmdr.knowledgebase_orm.Vuln.qid == 6
+        )
+        result = api.query(stmt)
+        vuln = result[0][0]
+        self.assertEqual(vuln.title, "DNS Host Name")
 
 
 if __name__ == "__main__":
