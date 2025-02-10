@@ -206,7 +206,7 @@ class ExpltSrc(Base):
     __tablename__ = "explt_src"
 
     id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
-    src_name: orm.Mapped[str]
+    src_name: orm.Mapped[str | None]
     explt_list: orm.Mapped[list[Explt]] = orm.relationship(
         back_populates="explt_src", uselist=True
     )

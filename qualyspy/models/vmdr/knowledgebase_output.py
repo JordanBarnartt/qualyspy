@@ -101,7 +101,7 @@ class Explt(BaseXmlModel):
 
 
 class ExpltSrc(BaseXmlModel):
-    src_name: str = element(tag="SRC_NAME")
+    src_name: str | None = element(tag="SRC_NAME", default=None)
     explt_list: list[Explt] = wrapped(
         "EXPLT_LIST", element(tag="EXPLT", default_factory=list)
     )
