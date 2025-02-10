@@ -44,10 +44,10 @@ class TestOutputModels(unittest.TestCase):
 
     def test_knowledgebase(self):
         api = vmdr.VmdrAPI()
-        kb = api.knowledgebase(ids=110458)
+        kb = api.knowledgebase(ids=92203)
         vuln = kb[0]
 
-        self.assertEqual(vuln.qid, 110458)
+        self.assertEqual(vuln.qid, 92203)
 
     def test_launch_vm_scan(self):
         api = vmdr.VmdrAPI()

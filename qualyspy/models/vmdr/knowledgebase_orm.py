@@ -322,7 +322,7 @@ class Vuln(Base):
     bugtraq_list: orm.Mapped[list[Bugtraq]] = orm.relationship(
         back_populates="vuln", uselist=True
     )
-    patchable: orm.Mapped[bool]
+    patchable: orm.Mapped[bool | None]
     patch_published_date: orm.Mapped[datetime.datetime | None]
     software_list: orm.Mapped[list[Software]] = orm.relationship(
         back_populates="vuln", uselist=True

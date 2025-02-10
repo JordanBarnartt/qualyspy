@@ -169,7 +169,7 @@ class Vuln(BaseXmlModel):
     bugtraq_list: list[Bugtraq] | None = wrapped(
         "BUGTRAQ_LIST", element(tag="BUGTRAQ", default_factory=list)
     )
-    patchable: bool = element(tag="PATCHABLE")
+    patchable: bool | None = element(tag="PATCHABLE", default=None)
     patch_published_date: datetime.datetime | None = element(
         tag="PATCH_PUBLISHED_DATE", default=None
     )
