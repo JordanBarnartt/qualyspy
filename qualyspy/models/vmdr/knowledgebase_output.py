@@ -162,7 +162,9 @@ class Vuln(BaseXmlModel):
     last_service_modification_datetime: datetime.datetime | None = element(
         tag="LAST_SERVICE_MODIFICATION_DATETIME", default=None
     )
-    published_datetime: datetime.datetime | None = element(tag="PUBLISHED_DATETIME")
+    published_datetime: datetime.datetime | None = element(
+        tag="PUBLISHED_DATETIME", default=None
+    )
     code_modified_datetime: datetime.datetime | None = element(
         tag="CODE_MODIFIED_DATETIME", default=None
     )
