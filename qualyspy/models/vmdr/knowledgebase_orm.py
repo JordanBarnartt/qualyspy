@@ -312,7 +312,6 @@ class Vuln(Base):
     severity_level: orm.Mapped[int]
     title: orm.Mapped[str]
     category: orm.Mapped[str | None]
-    technology: orm.Mapped[str | None]
     detection_info: orm.Mapped[str | None]
     last_customization: orm.Mapped[LastCustomization | None] = orm.relationship(
         back_populates="vuln", uselist=False
@@ -323,7 +322,8 @@ class Vuln(Base):
     bugtraq_list: orm.Mapped[list[Bugtraq]] = orm.relationship(
         back_populates="vuln", uselist=True
     )
-    patchable: orm.Mapped[bool | None]
+    patchable: orm.Mapped[bool]
+    patch_published_date: orm.Mapped[datetime.datetime | None]
     software_list: orm.Mapped[list[Software]] = orm.relationship(
         back_populates="vuln", uselist=True
     )

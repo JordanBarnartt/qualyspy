@@ -44,10 +44,10 @@ class TestOutputModels(unittest.TestCase):
 
     def test_knowledgebase(self):
         api = vmdr.VmdrAPI()
-        kb = api.knowledgebase(ids=985605)
+        kb = api.knowledgebase(ids=110458)
         vuln = kb[0]
 
-        self.assertEqual(vuln.qid, 985605)
+        self.assertEqual(vuln.qid, 110458)
 
     def test_launch_vm_scan(self):
         api = vmdr.VmdrAPI()
@@ -102,7 +102,7 @@ class TestORM(unittest.TestCase):
     def test_orm_knowledgebase(self):
         api = vmdr.KnowledgebaseORM()
         api.init_db()
-        api.load(details="All")
+        api.load(details="All", id_min=110000, id_max=120000)
         stmt = sa.select(vmdr.knowledgebase_orm.Vuln).where(
             vmdr.knowledgebase_orm.Vuln.qid == 6
         )

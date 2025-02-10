@@ -155,7 +155,6 @@ class Vuln(BaseXmlModel):
     severity_level: int = element(tag="SEVERITY_LEVEL")
     title: str = element(tag="TITLE")
     category: str | None = element(tag="CATEGORY", default=None)
-    technology: str | None = element(tag="TECHNOLOGY", default=None)
     detection_info: str | None = element(tag="DETECTION_INFO", default=None)
     last_customization: LastCustomization | None = element(
         tag="LAST_CUSTOMIZATION", default=None
@@ -167,10 +166,13 @@ class Vuln(BaseXmlModel):
     code_modified_datetime: datetime.datetime | None = element(
         tag="CODE_MODIFIED_DATETIME", default=None
     )
-    bugtraq_list: list[Bugtraq] = wrapped(
+    bugtraq_list: list[Bugtraq] | None = wrapped(
         "BUGTRAQ_LIST", element(tag="BUGTRAQ", default_factory=list)
     )
-    patchable: bool | None = element(tag="PATCHABLE", default=None)
+    patchable: bool = element(tag="PATCHABLE")
+    patch_published_date: datetime.datetime | None = element(
+        tag="PATCH_PUBLISHED_DATE", default=None
+    )
     software_list: list[Software] = wrapped(
         "SOFTWARE_LIST", element(tag="SOFTWARE", default_factory=list)
     )
