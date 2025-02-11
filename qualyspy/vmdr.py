@@ -469,9 +469,7 @@ class KnowledgebaseORM(VmdrAPI, QualysORMMixin):
 
     def load(self, **kwargs: Any) -> None:
         vulns = self.knowledgebase(**kwargs)
-        to_load = [qutils.to_orm_object(vuln, knowledgebase_orm.Vuln) for vuln in vulns]
+        to_load = qutils.to_orm_objects(vulns, knowledgebase_orm.Vuln)
         with orm.Session(self.engine) as session:
-            for vuln in to_load:
-                session.merge(vuln)
-                
+            session.add_all(to_load)   
             session.commit()

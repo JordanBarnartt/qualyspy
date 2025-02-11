@@ -1,11 +1,13 @@
 """Utility functions for qualyspy.  Primarily for internal use."""
 
+import copy
+import dataclasses
 import importlib
 import inspect
 import re
-import copy
-from typing import Any, TypeVar
-import dataclasses
+from typing import Any, Sequence, TypeVar
+
+from sqlalchemy import inspect as sqlalchemy_inspect
 
 _D = TypeVar("_D")
 _RE_QUALYSPY_CLASSNAME = re.compile(r"(qualyspy[\w._]*)")
@@ -89,6 +91,74 @@ def to_orm_object(
     except TypeError:  # Type is Pydantic model
         obj_dict = obj.dict()
     return _to_orm_object(obj_dict, out_cls)
+
+
+def to_orm_objects(objs: Sequence[Any], out_cls: type[_D]) -> list[_D]:
+    obj_cache: dict[type[Any], dict[tuple[Any, ...], Any]] = {}
+
+    def get_primary_key_values(
+        cls: type[Any], inst: dict[str, Any]
+    ) -> tuple[Any, ...]:
+        mapper = sqlalchemy_inspect(cls)
+        if mapper is None:
+            raise ValueError("Class is not a mapped class.")
+
+        pk_names = [col.name for col in mapper.primary_key]
+
+        return tuple(inst.get(pk_name) for pk_name in pk_names)
+
+    def to_orm_object(obj: dict[str, Any], out_cls: type[_D]) -> _D:
+        nonlocal obj_cache
+
+        out_cls_cache = obj_cache.get(out_cls)
+        if out_cls_cache is not None:
+            out_cls_cache_key = get_primary_key_values(out_cls, obj)
+            if out_cls_cache_key is not None:
+                orm_obj = out_cls_cache.get(out_cls_cache_key)
+                if orm_obj is not None:
+                    return orm_obj  # type: ignore
+
+        obj_copy = copy.deepcopy(obj)
+        annots = inspect.get_annotations(out_cls)
+        for k, v in obj_copy.items():
+            if isinstance(v, dict):
+                mapped_cls = str(annots[k])
+                child_cls = _get_cls_inst_from_annot(mapped_cls)
+                if child_cls is None:
+                    continue
+                obj_copy[k] = to_orm_object(v, child_cls)
+            elif isinstance(v, list) and len(v) > 0:
+                mapped_cls = str(annots[k])
+                child_cls = _get_cls_inst_from_annot(mapped_cls)
+                if child_cls is None:
+                    continue
+                if isinstance(v[0], dict):
+                    v = [to_orm_object(item, child_cls) for item in v]
+                else:
+                    child_annots = inspect.get_annotations(child_cls)
+                    param = next(iter(child_annots))
+                    v = [child_cls(**{param: item}) for item in v]
+                obj_copy[k] = v
+
+        orm_obj = out_cls(**obj_copy)
+        primary_key_values = get_primary_key_values(out_cls, obj)
+        if primary_key_values != (None,):
+            if out_cls_cache is None:
+                obj_cache[out_cls] = {primary_key_values: orm_obj}
+            else:
+                out_cls_cache[primary_key_values] = orm_obj
+        return orm_obj
+
+    orm_objs = []
+    for obj in objs:
+        try:
+            obj_dict = dataclasses.asdict(obj)
+        except TypeError:  # Type is Pydantic model
+            obj_dict = obj.dict()
+        orm_obj = to_orm_object(obj_dict, out_cls)
+        orm_objs.append(orm_obj)
+
+    return orm_objs
 
 
 def from_orm_object(obj: Any, output_class: Any) -> Any:

@@ -102,7 +102,7 @@ class TestORM(unittest.TestCase):
     def test_orm_knowledgebase(self):
         api = vmdr.KnowledgebaseORM()
         api.init_db()
-        api.load(details="All", id_min=110000, id_max=120000)
+        api.load(details="All")
         stmt = sa.select(vmdr.knowledgebase_orm.Vuln).where(
             vmdr.knowledgebase_orm.Vuln.qid == 6
         )
