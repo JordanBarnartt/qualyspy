@@ -90,6 +90,7 @@ class TestORM(unittest.TestCase):
 
     def test_orm_vm_detection(self):
         api = vmdr.HostListVMDetectionORM()
+        api.drop()
         api.init_db()
         api.load(show_igs=True)
         stmt = sa.select(host_list_vm_detection_orm.Host).where(

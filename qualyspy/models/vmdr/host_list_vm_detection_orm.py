@@ -62,13 +62,18 @@ class DnsData(Base):
 
 class Qds(Base):
     __tablename__ = "qds"
+    __table_args__ = (
+        sa.ForeignKeyConstraint(
+            ["detection_unqiue_vuln_id", "detection_qid"],
+            ["detection.unique_vuln_id", "detection.qid"],
+        ),
+    )
 
     severity: orm.Mapped[str] = orm.mapped_column(primary_key=True)
     value: orm.Mapped[int] = orm.mapped_column(primary_key=True)
 
-    detection_id: orm.Mapped[int] = orm.mapped_column(
-        sa.ForeignKey("detection.unique_vuln_id")
-    )
+    detection_unqiue_vuln_id: orm.Mapped[int]
+    detection_qid: orm.Mapped[int]
     detection: orm.Mapped["Detection"] = orm.relationship(back_populates="qds")
 
 
@@ -128,15 +133,20 @@ class Google(Base):
 
 class QdsFactors(Base):
     __tablename__ = "qds_factors"
+    __table_args__ = (
+        sa.ForeignKeyConstraint(
+            ["detection_unqiue_vuln_id", "detection_qid"],
+            ["detection.unique_vuln_id", "detection.qid"],
+        ),
+    )
 
     id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
     qds_factor: orm.Mapped[list[QdsFactor]] = orm.relationship(
         back_populates="qds_factors"
     )
 
-    detection_id: orm.Mapped[int] = orm.mapped_column(
-        sa.ForeignKey("detection.unique_vuln_id")
-    )
+    detection_unqiue_vuln_id: orm.Mapped[int]
+    detection_qid: orm.Mapped[int]
     detection: orm.Mapped["Detection"] = orm.relationship(back_populates="qds_factors")
 
 
@@ -144,7 +154,7 @@ class Detection(Base):
     __tablename__ = "detection"
 
     unique_vuln_id: orm.Mapped[int] = orm.mapped_column(primary_key=True)
-    qid: orm.Mapped[int]
+    qid: orm.Mapped[int] = orm.mapped_column(primary_key=True)
     type: orm.Mapped[str | None]
     severity: orm.Mapped[int | None]
     port: orm.Mapped[int | None]

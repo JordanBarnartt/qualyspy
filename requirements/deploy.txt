@@ -1,7 +1,0 @@
-httpx
-python-dateutil
-pydantic
-SQLAlchemy
-psycopg[binary]
-pydantic-xml
-python-decouple

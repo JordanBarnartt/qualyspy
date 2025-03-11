@@ -32,6 +32,7 @@ from .models.vmdr import (
     map_report_list,
     simple_return,
 )
+from xml.etree.ElementTree import ParseError
 
 
 class VmdrAPI(QualysAPIBase):
@@ -433,7 +434,7 @@ class HostListVMDetectionORM(VmdrAPI, QualysORMMixin):
 
         Args:
             load_func (Any): Function to call to get hosts.
-            **kwargs (Any): Keyword arguments to pass to host_list.
+            **kwargs (Any): Keyword arguments to pass to host_list_vm_detection.
         """
 
         def load_set(to_load: list[host_list_vm_detection_orm.Host]) -> None:
@@ -444,20 +445,36 @@ class HostListVMDetectionORM(VmdrAPI, QualysORMMixin):
             """
             with orm.Session(self.engine) as session:
                 session.add_all(to_load)
-                for obj in to_load:
-                    session.merge(obj)
+                # for obj in to_load:
+                #     session.merge(obj)
                 session.commit()
 
-        kwargs.setdefault("truncation_limit", 1000)
+        kwargs.setdefault("truncation_limit", 250)
         truncated = True
         next_id_min = None
         while truncated:
             kwargs["id_min"] = next_id_min
-            hosts, truncated, next_id_min = self.host_list_vm_detection(**kwargs)
-            to_load = [
-                qutils.to_orm_object(host, host_list_vm_detection_orm.Host)
-                for host in hosts
-            ]
+            success = False
+            # Attempt to fetch hosts, halving the truncation limit on errors
+            # which typically means lxml ran out of memory, presumably due to the size of the input.
+            while not success:
+                try:
+                    print(kwargs)
+                    hosts, truncated, next_id_min = self.host_list_vm_detection(
+                        **kwargs
+                    )
+                    success = True
+                except (ParseError, OverflowError):
+                    if kwargs["truncation_limit"] > 1:
+                        kwargs["truncation_limit"] //= 2
+                    else:
+                        raise
+            kwargs["truncation_limit"] = 250
+            # to_load = [
+            #     qutils.to_orm_object(host, host_list_vm_detection_orm.Host)
+            #     for host in hosts
+            # ]
+            to_load = qutils.to_orm_objects(hosts, host_list_vm_detection_orm.Host)
             load_set(to_load)
 
 
@@ -471,5 +488,5 @@ class KnowledgebaseORM(VmdrAPI, QualysORMMixin):
         vulns = self.knowledgebase(**kwargs)
         to_load = qutils.to_orm_objects(vulns, knowledgebase_orm.Vuln)
         with orm.Session(self.engine) as session:
-            session.add_all(to_load)   
+            session.add_all(to_load)
             session.commit()

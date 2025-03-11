@@ -1,7 +1,0 @@
--r deploy.txt
-mypy
-Sphinx
-sphinx-rtd-theme
-types-python-dateutil
-build
-twine

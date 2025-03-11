@@ -21,7 +21,7 @@ class Qds(BaseXmlModel):
 
 
 class Detection(BaseXmlModel):
-    unique_vuln_id: str = element(tag="UNIQUE_VULN_ID")
+    unique_vuln_id: int = element(tag="UNIQUE_VULN_ID")
     qid: int = element(tag="QID")
     type: str = element(tag="TYPE")
     severity: int | None = element(tag="SEVERITY", default=None)
