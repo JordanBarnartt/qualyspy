@@ -459,7 +459,6 @@ class HostListVMDetectionORM(VmdrAPI, QualysORMMixin):
             # which typically means lxml ran out of memory, presumably due to the size of the input.
             while not success:
                 try:
-                    print(kwargs)
                     hosts, truncated, next_id_min = self.host_list_vm_detection(
                         **kwargs
                     )
