@@ -31,6 +31,9 @@ dependencies = [
   "python-decouple",
 ]
 
+[project.optional-dependencies]
+dev = ["twine"]
+
 [project.urls]
 "Homepage" = "https://github.com/JordanBarnartt/qualyspy"
 "Bug Tracker" = "https://github.com/JordanBarnartt/qualyspy/issues"
