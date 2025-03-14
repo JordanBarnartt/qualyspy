@@ -16,8 +16,10 @@ import datetime
 import ipaddress
 import re
 from typing import Any, Literal
+from xml.etree.ElementTree import ParseError
 
 import sqlalchemy.orm as orm
+from psycopg import OperationalError
 
 from . import URLS, qutils
 from .base import QualysAPIBase, QualysORMMixin
@@ -32,7 +34,6 @@ from .models.vmdr import (
     map_report_list,
     simple_return,
 )
-from xml.etree.ElementTree import ParseError
 
 
 class VmdrAPI(QualysAPIBase):
@@ -466,6 +467,14 @@ class HostListVMDetectionORM(VmdrAPI, QualysORMMixin):
                 except (ParseError, OverflowError):
                     if kwargs["truncation_limit"] > 1:
                         kwargs["truncation_limit"] //= 2
+                    else:
+                        raise
+                except OperationalError as e:
+                    if "EOF detected" in str(e):
+                        if kwargs["truncation_limit"] > 1:
+                            kwargs["truncation_limit"] //= 2
+                        else:
+                            raise
                     else:
                         raise
             kwargs["truncation_limit"] = 250
