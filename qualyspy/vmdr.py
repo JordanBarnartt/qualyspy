@@ -19,7 +19,7 @@ from typing import Any, Literal
 from xml.etree.ElementTree import ParseError
 
 import sqlalchemy.orm as orm
-from psycopg import OperationalError
+from sqlalchemy.exc import OperationalError
 
 from . import URLS, qutils
 from .base import QualysAPIBase, QualysORMMixin
@@ -470,7 +470,7 @@ class HostListVMDetectionORM(VmdrAPI, QualysORMMixin):
                     else:
                         raise
                 except OperationalError as e:
-                    if "EOF detected" in str(e):
+                    if "SSL error: bad length" in str(e):
                         if kwargs["truncation_limit"] > 1:
                             kwargs["truncation_limit"] //= 2
                         else:
