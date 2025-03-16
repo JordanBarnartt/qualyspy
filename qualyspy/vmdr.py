@@ -498,7 +498,6 @@ class KnowledgebaseORM(VmdrAPI, QualysORMMixin):
         for id_min in range(1, MAX_QID, NUM_PER_CALL):
             kwargs["id_min"] = id_min
             kwargs["id_max"] = id_min + (NUM_PER_CALL - 1)
-            print(kwargs)
             vulns = self.knowledgebase(**kwargs)
             to_load = qutils.to_orm_objects(vulns, knowledgebase_orm.Vuln)
             with orm.Session(self.engine) as session:
