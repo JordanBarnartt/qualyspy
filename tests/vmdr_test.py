@@ -102,6 +102,7 @@ class TestORM(unittest.TestCase):
 
     def test_orm_knowledgebase(self):
         api = vmdr.KnowledgebaseORM()
+        api.drop()
         api.init_db()
         api.load(details="All")
         stmt = sa.select(vmdr.knowledgebase_orm.Vuln).where(

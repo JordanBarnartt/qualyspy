@@ -24,9 +24,9 @@ idna==3.10
     # via
     #   anyio
     #   httpx
-psycopg[binary]==3.2.5
+psycopg[binary]==3.2.6
     # via QualysPy (pyproject.toml)
-psycopg-binary==3.2.5
+psycopg-binary==3.2.6
     # via psycopg
 pydantic==2.10.6
     # via

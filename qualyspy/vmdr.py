@@ -19,7 +19,8 @@ from typing import Any, Literal
 from xml.etree.ElementTree import ParseError
 
 import sqlalchemy.orm as orm
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import OperationalError as saOperationalError
+from psycopg import OperationalError as pgOperationalError
 
 from . import URLS, qutils
 from .base import QualysAPIBase, QualysORMMixin
@@ -457,24 +458,24 @@ class HostListVMDetectionORM(VmdrAPI, QualysORMMixin):
             kwargs["id_min"] = next_id_min
             success = False
             # Attempt to fetch hosts, halving the truncation limit on errors
-            # which typically means lxml ran out of memory, presumably due to the size of the input.
+            # which typically means the system ran out of memory, presumably due to the size
+            # of the input.
             while not success:
                 try:
                     hosts, truncated, next_id_min = self.host_list_vm_detection(
                         **kwargs
                     )
+                    to_load = qutils.to_orm_objects(hosts, host_list_vm_detection_orm.Host)
+                    load_set(to_load)
                     success = True
-                except (ParseError, OverflowError):
+                except (
+                    ParseError,
+                    OverflowError,
+                    pgOperationalError,
+                    saOperationalError,
+                ):
                     if kwargs["truncation_limit"] > 1:
                         kwargs["truncation_limit"] //= 2
-                    else:
-                        raise
-                except OperationalError as e:
-                    if "SSL error: bad length" in str(e):
-                        if kwargs["truncation_limit"] > 1:
-                            kwargs["truncation_limit"] //= 2
-                        else:
-                            raise
                     else:
                         raise
             kwargs["truncation_limit"] = 250
@@ -482,8 +483,7 @@ class HostListVMDetectionORM(VmdrAPI, QualysORMMixin):
             #     qutils.to_orm_object(host, host_list_vm_detection_orm.Host)
             #     for host in hosts
             # ]
-            to_load = qutils.to_orm_objects(hosts, host_list_vm_detection_orm.Host)
-            load_set(to_load)
+            
 
 
 class KnowledgebaseORM(VmdrAPI, QualysORMMixin):
@@ -493,8 +493,15 @@ class KnowledgebaseORM(VmdrAPI, QualysORMMixin):
         QualysORMMixin.__init__(self, self, echo=echo)
 
     def load(self, **kwargs: Any) -> None:
-        vulns = self.knowledgebase(**kwargs)
-        to_load = qutils.to_orm_objects(vulns, knowledgebase_orm.Vuln)
-        with orm.Session(self.engine) as session:
-            session.add_all(to_load)
-            session.commit()
+        MAX_QID = 10000000
+        NUM_PER_CALL = 100000
+        for id_min in range(1, MAX_QID, NUM_PER_CALL):
+            kwargs["id_min"] = id_min
+            kwargs["id_max"] = id_min + (NUM_PER_CALL - 1)
+            print(kwargs)
+            vulns = self.knowledgebase(**kwargs)
+            to_load = qutils.to_orm_objects(vulns, knowledgebase_orm.Vuln)
+            with orm.Session(self.engine) as session:
+                for item in to_load:
+                    session.merge(item)
+                session.commit()
