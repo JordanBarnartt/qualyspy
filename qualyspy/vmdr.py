@@ -16,11 +16,13 @@ import datetime
 import ipaddress
 import re
 from typing import Any, Literal
-from lxml.etree import XMLSyntaxError
 
 import sqlalchemy.orm as orm
-from sqlalchemy.exc import OperationalError as saOperationalError
+from lxml import etree
+from lxml.etree import XMLSyntaxError
 from psycopg import OperationalError as pgOperationalError
+from pydantic_xml.model import BaseXmlModel
+from sqlalchemy.exc import OperationalError as saOperationalError
 
 from . import URLS, qutils
 from .base import QualysAPIBase, QualysORMMixin
@@ -35,6 +37,23 @@ from .models.vmdr import (
     map_report_list,
     simple_return,
 )
+
+
+# Monkey patching pydantic_xml to use huge_tree=True
+def _from_xml(cls, source, context=None):  # type: ignore
+    """
+    Deserializes an xml string to an object of `cls` type.
+
+    :param source: xml string
+    :param context: pydantic validation context
+    :return: deserialized object
+    """
+
+    parser = etree.XMLParser(huge_tree=True)
+    return cls.from_xml_tree(etree.fromstring(source, parser), context=context)
+
+
+BaseXmlModel.from_xml = classmethod(_from_xml)  # type: ignore
 
 
 class VmdrAPI(QualysAPIBase):
@@ -451,7 +470,7 @@ class HostListVMDetectionORM(VmdrAPI, QualysORMMixin):
                 #     session.merge(obj)
                 session.commit()
 
-        kwargs.setdefault("truncation_limit", 250)
+        kwargs.setdefault("truncation_limit", 1000)
         truncated = True
         next_id_min = None
         while truncated:
@@ -465,7 +484,9 @@ class HostListVMDetectionORM(VmdrAPI, QualysORMMixin):
                     hosts, truncated, next_id_min = self.host_list_vm_detection(
                         **kwargs
                     )
-                    to_load = qutils.to_orm_objects(hosts, host_list_vm_detection_orm.Host)
+                    to_load = qutils.to_orm_objects(
+                        hosts, host_list_vm_detection_orm.Host
+                    )
                     load_set(to_load)
                     success = True
                 except (
@@ -478,12 +499,11 @@ class HostListVMDetectionORM(VmdrAPI, QualysORMMixin):
                         kwargs["truncation_limit"] //= 2
                     else:
                         raise
-            kwargs["truncation_limit"] = 250
+            kwargs["truncation_limit"] = 1000
             # to_load = [
             #     qutils.to_orm_object(host, host_list_vm_detection_orm.Host)
             #     for host in hosts
             # ]
-            
 
 
 class KnowledgebaseORM(VmdrAPI, QualysORMMixin):
