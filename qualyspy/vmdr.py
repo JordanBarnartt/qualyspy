@@ -16,7 +16,7 @@ import datetime
 import ipaddress
 import re
 from typing import Any, Literal
-from xml.etree.ElementTree import ParseError
+from lxml.etree import XMLSyntaxError
 
 import sqlalchemy.orm as orm
 from sqlalchemy.exc import OperationalError as saOperationalError
@@ -469,7 +469,7 @@ class HostListVMDetectionORM(VmdrAPI, QualysORMMixin):
                     load_set(to_load)
                     success = True
                 except (
-                    ParseError,
+                    XMLSyntaxError,
                     OverflowError,
                     pgOperationalError,
                     saOperationalError,
