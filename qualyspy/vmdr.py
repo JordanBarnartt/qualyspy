@@ -514,7 +514,7 @@ class KnowledgebaseORM(VmdrAPI, QualysORMMixin):
 
     def load(self, **kwargs: Any) -> None:
         MAX_QID = 10000000
-        NUM_PER_CALL = 100000
+        NUM_PER_CALL = 50000
         for id_min in range(1, MAX_QID, NUM_PER_CALL):
             kwargs["id_min"] = id_min
             kwargs["id_max"] = id_min + (NUM_PER_CALL - 1)
