@@ -61,6 +61,13 @@ class TestOutputModels(unittest.TestCase):
 
         self.assertEqual(text, "New vm scan launched")
 
+    def test_vm_scan_list(self):
+        api = vmdr.VmdrAPI()
+        resp = api.vm_scan_list()
+        scan = resp.response.scan_list[0]
+
+        self.assertTrue(scan.ref.startswith("scan/"))
+
     def test_map_report_list(self):
         api = vmdr.VmdrAPI()
         reports = api.map_report_list(last=True)

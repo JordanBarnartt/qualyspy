@@ -35,6 +35,7 @@ from .models.vmdr import (
     knowledgebase_output,
     map_report,
     map_report_list,
+    scan_list_output,
     simple_return,
 )
 
@@ -362,6 +363,18 @@ class VmdrAPI(QualysAPIBase):
             )
 
         return launch_vm_scan_output_obj
+
+    def vm_scan_list(self, *, scan_ref: str | None = None) -> scan_list_output.ScanListOutput:
+        params = {"scan_ref": scan_ref}
+        params["action"] = "list"
+        params_cleaned = qutils.clean_dict(params)
+
+        raw_response = self.get(URLS.vm_scan_list, params=params_cleaned).text.encode(
+            "utf-8"
+        )
+        vm_scan_list_output_obj = scan_list_output.ScanListOutput.from_xml(raw_response)
+
+        return vm_scan_list_output_obj
 
     def map_report_list(
         self, *, last: bool | None = None, domain: str | None = None

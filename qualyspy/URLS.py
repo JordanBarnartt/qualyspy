@@ -6,6 +6,7 @@ host_list = "/api/4.0/fo/asset/host/"
 knowledgebase = "/api/3.0/fo/knowledge_base/vuln/"
 ignore_vuln = "/api/2.0/fo/ignore_vuln/index.php/"
 launch_vm_scan = "/api/2.0/fo/scan/"
+vm_scan_list = "/api/3.0/fo/scan/"
 map_report_list = "/msp/map_report_list.php"
 download_saved_map_report = "/msp/map_report.php"
 
