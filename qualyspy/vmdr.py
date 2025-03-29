@@ -21,7 +21,6 @@ import sqlalchemy.orm as orm
 from lxml import etree
 from lxml.etree import XMLSyntaxError
 from psycopg import OperationalError as pgOperationalError
-from pydantic_xml.model import BaseXmlModel
 from sqlalchemy.exc import OperationalError as saOperationalError
 
 from . import URLS, qutils
@@ -38,23 +37,6 @@ from .models.vmdr import (
     scan_list_output,
     simple_return,
 )
-
-
-# Monkey patching pydantic_xml to use huge_tree=True
-def _from_xml(cls, source, context=None):  # type: ignore
-    """
-    Deserializes an xml string to an object of `cls` type.
-
-    :param source: xml string
-    :param context: pydantic validation context
-    :return: deserialized object
-    """
-
-    parser = etree.XMLParser(huge_tree=True)
-    return cls.from_xml_tree(etree.fromstring(source, parser), context=context)
-
-
-BaseXmlModel.from_xml = classmethod(_from_xml)  # type: ignore
 
 
 class VmdrAPI(QualysAPIBase):
@@ -262,6 +244,10 @@ class VmdrAPI(QualysAPIBase):
         cleaned_params = qutils.clean_dict(params)
         cleaned_params["action"] = "list"
 
+        # Detections results can be quite large, so we need to set the parser to allow for large
+        # trees.
+        parser = etree.XMLParser(huge_tree=True)
+
         raw_response = self.get(URLS.host_list_vm_detection, params=cleaned_params).text
         match = re.search(
             r"<HOST_LIST_VM_DETECTION_OUTPUT>.*?</HOST_LIST_VM_DETECTION_OUTPUT>",
@@ -273,7 +259,7 @@ class VmdrAPI(QualysAPIBase):
         host_list_vm_detection_output_str = match.group(0)
         host_list_vm_detection_output_obj = (
             host_list_vm_detection_output.HostListVMDetectionOutput.from_xml(
-                host_list_vm_detection_output_str
+                host_list_vm_detection_output_str, parser=parser
             )
         )
         if host_list_vm_detection_output_obj.response.host_list is None:
@@ -364,7 +350,9 @@ class VmdrAPI(QualysAPIBase):
 
         return launch_vm_scan_output_obj
 
-    def vm_scan_list(self, *, scan_ref: str | None = None) -> scan_list_output.ScanListOutput:
+    def vm_scan_list(
+        self, *, scan_ref: str | None = None
+    ) -> scan_list_output.ScanListOutput:
         params = {"scan_ref": scan_ref}
         params["action"] = "list"
         params_cleaned = qutils.clean_dict(params)

@@ -1,15 +1,13 @@
-import datetime as dt
+import datetime
 import ipaddress
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
 
 class Model(BaseModel):
-    class Config:
-        populate_by_name = True
-        alias_generator = to_camel
+    model_config = ConfigDict(validate_by_name=True, alias_generator=to_camel)
 
 
 class Taxonomy(Model):
@@ -67,8 +65,8 @@ class OpenPortItem(Model):
     description: str
     protocol: str
     detected_service: str | None
-    first_found: dt.datetime | None
-    last_updated: dt.datetime | None
+    first_found: datetime.datetime | None
+    last_updated: datetime.datetime | None
 
 
 class OpenPortListData(Model):
@@ -94,7 +92,7 @@ class NetworkInterfaceItem(Model):
     dns_address: str | None
     gateway_address: str
     manufacturer: str | None
-    mac_vendor_intro_date: dt.datetime | None
+    mac_vendor_intro_date: datetime.datetime | None
     netmask: str | None
     addresses: str | None
 
@@ -120,10 +118,10 @@ class SoftwareItem(Model):
     version: str | None
     update: str | None
     architecture: str | None
-    install_date: dt.datetime | None
+    install_date: datetime.datetime | None
     install_path: str | None
-    last_updated: dt.datetime | None
-    last_use_date: dt.datetime | None
+    last_updated: datetime.datetime | None
+    last_use_date: datetime.datetime | None
     language: str | None
     formerly_known_as: str | None
     is_package: bool | None
@@ -157,7 +155,7 @@ class Oci_Compute(Model):
     region: str | None
     availability_domain: str | None
     fault_domain: str | None
-    creation_date: dt.datetime
+    creation_date: datetime.datetime
     has_agent: bool
     qualys_scanner: bool
 
@@ -183,9 +181,9 @@ class Agent(Model):
     configuration_profile: str | None
     activations: list[Activation] | None
     connected_from: str | None
-    last_activity: dt.datetime
-    last_checked_in: dt.datetime
-    last_inventory: dt.datetime
+    last_activity: datetime.datetime
+    last_checked_in: datetime.datetime
+    last_inventory: datetime.datetime
     udc_manifest_assigned: bool | None
     error_status: bool | None
 
@@ -198,15 +196,15 @@ class Agent(Model):
 class Sensor(Model):
     activated_for_modules: list[str]
     pending_activation_for_modules: list[str] | None
-    last_v_m_scan: dt.datetime
-    last_compliance_scan: dt.datetime
-    last_full_scan: dt.datetime
-    last_vm_scan_date_scanner: dt.datetime
-    last_vm_scan_date_agent: dt.datetime
-    last_pc_scan_date_scanner: dt.datetime
-    last_pc_scan_date_agent: dt.datetime
-    first_easm_scan_date: dt.datetime | None
-    last_easm_scan_date: dt.datetime | None
+    last_v_m_scan: datetime.datetime
+    last_compliance_scan: datetime.datetime
+    last_full_scan: datetime.datetime
+    last_vm_scan_date_scanner: datetime.datetime
+    last_vm_scan_date_agent: datetime.datetime
+    last_pc_scan_date_scanner: datetime.datetime
+    last_pc_scan_date_agent: datetime.datetime
+    first_easm_scan_date: datetime.datetime | None
+    last_easm_scan_date: datetime.datetime | None
 
 
 class Container(Model):
@@ -219,13 +217,13 @@ class Container(Model):
 
 class Inventory(Model):
     source: str
-    created: dt.datetime
-    last_updated: dt.datetime
+    created: datetime.datetime
+    last_updated: datetime.datetime
 
 
 class Activity(Model):
     source: str
-    last_scanned_date: dt.datetime
+    last_scanned_date: datetime.datetime
 
 
 class TagItem(Model):
@@ -263,7 +261,7 @@ class LastLocation(Model):
 class Criticality(Model):
     score: int
     is_default: bool
-    last_updated: dt.datetime | None
+    last_updated: datetime.datetime | None
 
 
 class Processor(Model):
@@ -280,10 +278,10 @@ class AssetItem(Model):
     asset_id: int
     assetUUID: str | None
     host_id: int | None
-    last_modified_date: dt.datetime
+    last_modified_date: datetime.datetime
     agent_id: str | None
-    created_date: dt.datetime
-    sensor_last_updated_date: dt.datetime
+    created_date: datetime.datetime
+    sensor_last_updated_date: datetime.datetime
     asset_type: str | None
     address: ipaddress.IPv4Address | ipaddress.IPv6Address
     dns_name: str | None
@@ -291,7 +289,7 @@ class AssetItem(Model):
     netbios_name: str | None
     time_zone: str | None
     bios_description: str | None
-    last_boot: dt.datetime | None
+    last_boot: datetime.datetime | None
     total_memory: int | None
     cpu_count: int | None
     last_logged_on_user: str | None

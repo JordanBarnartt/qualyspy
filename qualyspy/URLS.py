@@ -24,4 +24,5 @@ get_asset_info = "/qps/rest/2.0/get/am/asset"
 update_asset = "/qps/rest/2.0/update/am/asset"
 search_assets = "/qps/rest/2.0/search/am/asset"
 
+list_instances = "/certview/v2/instances"
 add_bulk_external_sites = "/certview/v1/externalSites/bulkAdd"
