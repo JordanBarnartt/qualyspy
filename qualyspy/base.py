@@ -11,6 +11,7 @@ api.get("/msp/about.php")
 # mypy: allow-untyped-calls
 
 import datetime
+import sys
 import urllib.parse
 from abc import ABC, abstractmethod
 from typing import Any
@@ -352,6 +353,83 @@ class QualysORMMixin(ABC):
     def load(self, **kwargs: Any) -> None:
         """Load data into the database."""
         ...
+
+    def load_safe(self, **kwargs: Any) -> None:
+        """Safely load data by creating a temporary schema if the base schema exists,
+        loading data there, and rolling back in case of error. If loading succeeds,
+        replace the old schema with the new one.
+        """
+        base_schema = self.orm_base.metadata.schema
+        if not base_schema:
+            raise exceptions.ConfigError("Schema not set in ORM base.")
+
+        # Check if base_schema already exists
+        with self.engine.connect() as conn:
+            schema_exists = (
+                conn.execute(
+                    sa.text("""
+                    SELECT 1
+                    FROM information_schema.schemata
+                    WHERE schema_name = :schema
+                """),
+                    {"schema": base_schema},
+                ).scalar()
+                is not None
+            )
+
+        # If the base schema doesn't exist, just use normal init + load
+        if not schema_exists:
+            self.init_db()
+            try:
+                self.load(**kwargs)
+            except Exception as e:
+                print(e, file=sys.stderr)
+            return
+
+        # If the base schema does exist, create a temp schema with a timestamp
+        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        temp_schema = f"{base_schema}_{timestamp}"
+
+        # Create the new temp schema at the database level
+        with self.engine.connect() as conn:
+            conn.execute(sa.schema.CreateSchema(temp_schema))
+            conn.commit()
+
+        self.engine = self.engine.execution_options(
+            schema_translate_map={base_schema: temp_schema}
+        )
+
+        try:
+            # Create the tables in the temp schema
+            self.orm_base.metadata.create_all(self.engine)
+
+            # Attempt the data load in the temp schema
+            self.load(**kwargs)
+
+        except Exception as e:
+            # Drop the temp schema if any error occurs
+            with self.engine.connect() as conn:
+                conn.execute(sa.schema.DropSchema(temp_schema, cascade=True))
+                conn.commit()
+            self.engine = self.engine.execution_options(
+                schema_translate_map={base_schema: base_schema}
+            )
+            print(e, file=sys.stderr)
+            return
+
+        # If load is successful, drop the old schema and rename the temp to the old name
+        with self.engine.connect() as conn:
+            conn.execute(sa.schema.DropSchema(base_schema, cascade=True))
+            # Rename the temp schema to the original base schema
+            conn.execute(
+                sa.text(f"ALTER SCHEMA {temp_schema} RENAME TO {base_schema}"),
+            )
+            conn.commit()
+
+        # Revert the engine to use the original base schema
+        self.engine = self.engine.execution_options(
+            schema_translate_map={base_schema: base_schema}
+        )
 
     def drop(self) -> None:
         """Drop the database."""

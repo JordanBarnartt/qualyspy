@@ -5,10 +5,7 @@ import sqlalchemy.orm as orm
 
 
 class Base(orm.DeclarativeBase):
-    pass
-
-
-Base.metadata.schema = "knowledgebase"
+    metadata = sa.MetaData(schema="knowledgebase")
 
 
 class ChangeLog(Base):
@@ -106,7 +103,7 @@ class CVSSBase(Base):
     __tablename__ = "cvss_base"
 
     id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
-    source: orm.Mapped[str| None]
+    source: orm.Mapped[str | None]
     value: orm.Mapped[str]
 
     cvss_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("cvss.id"))
@@ -144,7 +141,9 @@ class CVSS(Base):
     __tablename__ = "cvss"
 
     id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
-    base: orm.Mapped[CVSSBase | None] = orm.relationship(back_populates="cvss", uselist=False)
+    base: orm.Mapped[CVSSBase | None] = orm.relationship(
+        back_populates="cvss", uselist=False
+    )
     temporal: orm.Mapped[float | None]
     vector_string: orm.Mapped[str | None]
     cvss3_version: orm.Mapped[str | None]

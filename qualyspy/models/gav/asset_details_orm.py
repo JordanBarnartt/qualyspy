@@ -1,6 +1,5 @@
 import datetime as dt
 import ipaddress
-from typing import Optional
 
 import sqlalchemy as sa
 import sqlalchemy.dialects.postgresql as sa_pg
@@ -10,10 +9,7 @@ from .. import sa_types
 
 
 class Base(orm.DeclarativeBase):
-    pass
-
-
-Base.metadata.schema = "asset_details"
+    metadata = sa.MetaData(schema="asset_details")
 
 
 class Taxonomy(Base):
@@ -28,14 +24,14 @@ class Taxonomy(Base):
     operating_system_id: orm.Mapped[int | None] = orm.mapped_column(
         sa.ForeignKey("operating_system.id")
     )
-    operating_system: orm.Mapped[Optional["OperatingSystem"]] = orm.relationship(
+    operating_system: orm.Mapped["OperatingSystem" | None] = orm.relationship(
         back_populates="taxonomy"
     )
 
     hardware_id: orm.Mapped[int | None] = orm.mapped_column(
         sa.ForeignKey("hardware.id")
     )
-    hardware: orm.Mapped[Optional["Hardware"]] = orm.relationship(
+    hardware: orm.Mapped["Hardware" | None] = orm.relationship(
         back_populates="taxonomy"
     )
 
@@ -216,9 +212,9 @@ class NetworkInterfaceItem(Base):
     network_interface_list_data_id: orm.Mapped[int] = orm.mapped_column(
         sa.ForeignKey("network_interface_list_data.id")
     )
-    network_interface_list_data: orm.Mapped[
-        "NetworkInterfaceListData"
-    ] = orm.relationship(back_populates="network_interface")
+    network_interface_list_data: orm.Mapped["NetworkInterfaceListData"] = (
+        orm.relationship(back_populates="network_interface")
+    )
 
 
 class NetworkInterfaceListData(Base):
@@ -599,9 +595,9 @@ class AssetItem(Base):
     created_date: orm.Mapped[dt.datetime]
     sensor_last_updated_date: orm.Mapped[dt.datetime]
     asset_type: orm.Mapped[str | None]
-    address: orm.Mapped[
-        ipaddress.IPv4Address | ipaddress.IPv6Address
-    ] = orm.mapped_column("address", sa_types.IPAddressGenericType)
+    address: orm.Mapped[ipaddress.IPv4Address | ipaddress.IPv6Address] = (
+        orm.mapped_column("address", sa_types.IPAddressGenericType)
+    )
     dns_name: orm.Mapped[str | None]
     asset_name: orm.Mapped[str]
     netbios_name: orm.Mapped[str | None]
@@ -631,9 +627,9 @@ class AssetItem(Base):
     volume_list_data: orm.Mapped[VolumeListData] = orm.relationship(
         back_populates="asset_item", uselist=False
     )
-    network_interface_list_data: orm.Mapped[
-        NetworkInterfaceListData | None
-    ] = orm.relationship(back_populates="asset_item", uselist=False)
+    network_interface_list_data: orm.Mapped[NetworkInterfaceListData | None] = (
+        orm.relationship(back_populates="asset_item", uselist=False)
+    )
     software_list_data: orm.Mapped[SoftwareListData] = orm.relationship(
         back_populates="asset_item", uselist=False
     )

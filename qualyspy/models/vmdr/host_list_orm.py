@@ -11,10 +11,7 @@ from .. import sa_types
 
 
 class Base(orm.DeclarativeBase):
-    pass
-
-
-Base.metadata.schema = "host_list"
+    metadata = sa.MetaData(schema="host_list")
 
 
 class AssetGroup(Base):
