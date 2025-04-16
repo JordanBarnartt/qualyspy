@@ -2,7 +2,6 @@
 
 import datetime as dt
 import ipaddress
-from typing import Optional
 
 import sqlalchemy as sa
 import sqlalchemy.orm as orm
@@ -25,13 +24,11 @@ class Attribute(Base):
     last_error: orm.Mapped[str | None]
 
     azure_id: orm.Mapped[int | None] = orm.mapped_column(sa.ForeignKey("azure.id"))
-    azure: orm.Mapped[Optional["Azure"]] = orm.relationship(back_populates="attribute")
+    azure: orm.Mapped["Azure | None"] = orm.relationship(back_populates="attribute")
     google_id: orm.Mapped[int | None] = orm.mapped_column(sa.ForeignKey("google.id"))
-    google: orm.Mapped[Optional["Google"]] = orm.relationship(
-        back_populates="attribute"
-    )
+    google: orm.Mapped["Google | None"] = orm.relationship(back_populates="attribute")
     ec2_id: orm.Mapped[int | None] = orm.mapped_column(sa.ForeignKey("ec2.id"))
-    ec2: orm.Mapped[Optional["Ec2"]] = orm.relationship(back_populates="attribute")
+    ec2: orm.Mapped["Ec2 | None"] = orm.relationship(back_populates="attribute")
 
 
 class CloudTag(Base):

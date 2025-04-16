@@ -12,10 +12,10 @@ class Base(orm.DeclarativeBase):
     metadata = sa.MetaData(schema="asset_details")
 
 
-class Taxonomy(Base):
-    __tablename__ = "taxonomy"
+class OperatingSystemTaxonomy(Base):
+    __tablename__ = "operating_system_taxonomy"
 
-    orm_id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
+    pk: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
     id: orm.Mapped[int | None]
     name: orm.Mapped[str]
     category1: orm.Mapped[str | None]
@@ -24,14 +24,24 @@ class Taxonomy(Base):
     operating_system_id: orm.Mapped[int | None] = orm.mapped_column(
         sa.ForeignKey("operating_system.id")
     )
-    operating_system: orm.Mapped["OperatingSystem" | None] = orm.relationship(
+    operating_system: orm.Mapped["OperatingSystem | None"] = orm.relationship(
         back_populates="taxonomy"
     )
+
+
+class HardwareTaxonomy(Base):
+    __tablename__ = "hardware_taxonomy"
+
+    pk: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
+    id: orm.Mapped[int | None]
+    name: orm.Mapped[str]
+    category1: orm.Mapped[str | None]
+    category2: orm.Mapped[str | None]
 
     hardware_id: orm.Mapped[int | None] = orm.mapped_column(
         sa.ForeignKey("hardware.id")
     )
-    hardware: orm.Mapped["Hardware" | None] = orm.relationship(
+    hardware: orm.Mapped["Hardware | None"] = orm.relationship(
         back_populates="taxonomy"
     )
 
@@ -53,7 +63,7 @@ class OperatingSystem(Base):
     update: orm.Mapped[str | None]
     architecture: orm.Mapped[str | None]
     lifecycle: orm.Mapped[str | None]
-    taxonomy: orm.Mapped[Taxonomy] = orm.relationship(
+    taxonomy: orm.Mapped[OperatingSystemTaxonomy] = orm.relationship(
         back_populates="operating_system", uselist=False
     )
     product_url: orm.Mapped[str | None]
@@ -81,7 +91,7 @@ class Hardware(Base):
     product_name: orm.Mapped[str]
     model: orm.Mapped[str | None]
     lifecycle: orm.Mapped[str | None]
-    taxonomy: orm.Mapped[Taxonomy] = orm.relationship(
+    taxonomy: orm.Mapped[HardwareTaxonomy] = orm.relationship(
         back_populates="hardware", uselist=False
     )
     product_url: orm.Mapped[str | None]
