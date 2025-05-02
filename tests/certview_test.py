@@ -14,6 +14,17 @@ from qualyspy import certview  # noqa: E402
 
 
 class TestCertViewAPI(unittest.TestCase):
+    def test_list_instances(self):
+        api = certview.CertViewAPI()
+        filter_request = certview.FilterRequest(
+            filters=[
+                certview.Filter(field="asset.id", value="42967118", operator="EQUALS"),
+            ],
+        )
+        instances = api.list_instances(filter_request=filter_request)
+        self.assertEqual(instances[0].service, "https")
+
+
     def test_add_bulk_external_sites(self):
         api = certview.CertViewAPI()
         sites = [

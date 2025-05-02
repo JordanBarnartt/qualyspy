@@ -11,18 +11,20 @@ class Model(BaseModel):
 
 
 class ProtocolSupportInfo(Model):
-    SSLv2: bool
-    SSLv3: bool
-    TLSv1: bool
-    TLSv1_1: bool = Field(alias="TLSv1.1")
-    TLSv1_2: bool = Field(alias="TLSv1.2")
-    TLSv1_3: bool = Field(alias="TLSv1.3")
+    sslv2: bool = Field(alias="SSLv2")
+    sslv3: bool = Field(alias="SSLv3")
+    tlsv1: bool = Field(alias="TLSv1")
+    tlsv1_1: bool = Field(alias="TLSv1.1")
+    tlsv1_2: bool = Field(alias="TLSv1.2")
+    tlsv1_3: bool = Field(alias="TLSv1.3")
+
 
 class CipherStrengthInfo(Model):
     less_than_128: bool = Field(alias="< 128 bits (e.g., 40, 56)")
     zero_bits: bool = Field(alias="0 bits (no encryption)")
     greater_equal_256: bool = Field(alias=">= 256 bits (e.g., 256)")
     less_than_256: bool = Field(alias="< 256 bits (e.g., 128, 168)")
+
 
 class KeyExchangeInfo(BaseModel):
     key_or_dh_param_strength_lt_2048: bool = Field(
@@ -31,18 +33,14 @@ class KeyExchangeInfo(BaseModel):
     key_or_dh_param_strength_lt_512: bool = Field(
         alias="Key or DH parameter strength < 512 bits"
     )
-    weak_key_debian_openssl: bool = Field(
-        alias="Weak key (Debian OpenSSL flaw)"
-    )
+    weak_key_debian_openssl: bool = Field(alias="Weak key (Debian OpenSSL flaw)")
     key_or_dh_param_strength_lt_4096: bool = Field(
         alias="Key or DH parameter strength < 4096 bits (e.g., 2048)"
     )
     key_or_dh_param_strength_ge_4096: bool = Field(
         alias="Key or DH parameter strength >= 4096 bits (e.g., 4096)"
     )
-    exportable_key_exchange: bool = Field(
-        alias="Exportable key exchange"
-    )
+    exportable_key_exchange: bool = Field(alias="Exportable key exchange")
     anonymous_key_exchange: bool = Field(
         alias="Anonymous key exchange (no authentication)"
     )
@@ -51,8 +49,20 @@ class KeyExchangeInfo(BaseModel):
     )
 
 
+class CipherSuite(Model):
+    name: str
+    key_exchange: str
+    encryption_key_strength: int
+    category: str
+
+
 class CipherSuites(Model):
-    ...
+    sslv2: list[CipherSuite] | None = Field(alias="SSLv2", default=None)
+    sslv3: list[CipherSuite] | None = Field(alias="SSLv3", default=None)
+    tlsv1: list[CipherSuite] | None = Field(alias="TLSv1", default=None)
+    tlsv1_1: list[CipherSuite] | None = Field(alias="TLSv1.1", default=None)
+    tlsv1_2: list[CipherSuite] | None = Field(alias="TLSv1.2", default=None)
+    tlsv1_3: list[CipherSuite] | None = Field(alias="TLSv1.3", default=None)
 
 
 class Asset(Model):
@@ -79,7 +89,7 @@ class Certificate(Model):
 class GradeSummary(Model):
     grade: str
     grade_with_trust_ignored: str
-    crtificate_score: int
+    certificate_score: int
     protocol_support_score: int
     key_exchange_score: int
     cipher_strength_score: int
