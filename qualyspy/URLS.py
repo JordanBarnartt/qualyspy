@@ -10,7 +10,7 @@ vm_scan_list = "/api/3.0/fo/scan/"
 map_report_list = "/msp/map_report_list.php"
 download_saved_map_report = "/msp/map_report.php"
 
-gateway_auth = "/auth/"
+gateway_auth = "/auth"
 
 asset_details = "/rest/2.0/get/am/asset"
 all_asset_details = "/rest/2.0/search/am/asset"

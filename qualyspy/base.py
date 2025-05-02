@@ -11,7 +11,10 @@ api.get("/msp/about.php")
 # mypy: allow-untyped-calls
 
 import datetime
+import json
+import logging
 import sys
+import textwrap
 import urllib.parse
 from abc import ABC, abstractmethod
 from typing import Any
@@ -22,6 +25,7 @@ import sqlalchemy.orm as orm
 from decouple import config  # type: ignore
 
 from . import URLS, exceptions
+from .qualyspy_logging import bootstrap_logger
 
 _USE_API_SERVER = ["msp", "api", "qps"]
 _USE_API_GATEWAY = ["rest", "certview"]
@@ -83,6 +87,15 @@ class QualysAPIBase:
         self.ratelimit_towait_sec: int | None = None
         self.concurrency_limit_limit: int | None = None
         self.concurrency_limit_running: int | None = None
+
+        # Set up logging
+        self.log = bootstrap_logger()
+        self.log.debug(
+            "Initialised QualysAPIBase (server=%s, gateway=%s)",
+            self.api_server,
+            self.api_gateway,
+        )
+
         self.get(URLS.about)  # Set ratelimit and concurrency limit
 
     def _choose_url(self, url: str) -> str:
@@ -161,6 +174,26 @@ class QualysAPIBase:
             response.headers, "X-ConcurrencyRunning"
         )
 
+    def _log_http(
+        self,
+        *,
+        method: str,
+        params: dict[str, str] | None,
+        resp: httpx.Response,
+    ) -> None:
+        sent_headers = dict(resp.request.headers)
+        if "authorization" in sent_headers:
+            sent_headers["authorization"] = "<redacted>"
+        meta = {
+            "method": method,
+            "url": str(resp.request.url),
+            "status": resp.status_code,
+            "params": params,
+            "sent_headers": sent_headers,
+        }
+        # One-line JSON for machines; pretty on DEBUG for humans
+        self.log.info(json.dumps(meta, separators=(",", ":")))
+
     def get(
         self,
         url: str,
@@ -217,6 +250,7 @@ class QualysAPIBase:
             raise exceptions.QualysAPIError(response.text) from e
 
         self._update_limits(response)
+        self._log_http(method="GET", params=params, resp=response)
         return response
 
     def post(
@@ -286,6 +320,7 @@ class QualysAPIBase:
             raise exceptions.QualysAPIError(response.text) from e
 
         self._update_limits(response)
+        self._log_http(method="POST", params=params, resp=response)
         return response
 
 

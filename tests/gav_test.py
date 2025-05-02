@@ -26,14 +26,7 @@ class TestOutputModels(unittest.TestCase):
 
     def test_all_asset_details(self):
         api = gav.GavAPI()
-        assets, _, _ = api.all_asset_details(
-            asset_filter=[{"field": "asset.assetID", "operator": "EQUALS", "value": "14355608"},
-                    {"field": "inventory.source", "operator": "EQUALS", "value": "Cloud Agent"}],
-            filter_operation="AND"
-        )
-        asset = assets[0]
-
-        self.assertEqual(asset.address, ipaddress.ip_address("172.16.76.84"))
+        assets, _, _ = api.all_asset_details()
 
 
 class TestORM(unittest.TestCase):

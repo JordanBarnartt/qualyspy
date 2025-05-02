@@ -313,9 +313,16 @@ class VmdrAPI(QualysAPIBase):
         if match is None:
             raise ValueError("Cannot find KNOWLEDGE_BASE_VULN_LIST_OUTPUT in response.")
         knowledge_base_output_str = match.group(0)
-        knowledge_base_output_obj = knowledgebase_output.KnowledgeBaseOutput.from_xml(
-            knowledge_base_output_str
-        )
+        try:
+            knowledge_base_output_obj = (
+                knowledgebase_output.KnowledgeBaseOutput.from_xml(
+                    knowledge_base_output_str
+                )
+            )
+        except XMLSyntaxError as e:
+            self.log.error(
+                f"Error parsing XML response: {e}\nResponse:\n{knowledge_base_output_str}"
+            )
         if knowledge_base_output_obj.response.vuln_list is None:
             raise ValueError("Response has no vuln_list")
 
