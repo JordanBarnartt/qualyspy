@@ -9,6 +9,7 @@ launch_vm_scan = "/api/2.0/fo/scan/"
 vm_scan_list = "/api/3.0/fo/scan/"
 map_report_list = "/msp/map_report_list.php"
 download_saved_map_report = "/msp/map_report.php"
+asset_group = "/api/2.0/fo/asset/group/"
 
 gateway_auth = "/auth"
 

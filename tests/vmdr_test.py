@@ -84,6 +84,31 @@ class TestOutputModels(unittest.TestCase):
 
         self.assertEqual(report.value, report_ref)
 
+    def test_asset_group_list(self):
+        api = vmdr.VmdrAPI()
+        asset_groups = api.asset_group_list()
+        asset_group_names = [ag.title for ag in asset_groups]
+
+        self.assertIn("Health", asset_group_names)
+
+    def test_edit_asset_group(self):
+        api = vmdr.VmdrAPI()
+        asset_groups = api.asset_group_list()
+        test_group = next(
+            (ag for ag in asset_groups if ag.title == "QualysPy Test"), None
+        )
+        if test_group:
+            edit = api.edit_asset_group(
+                id=test_group.id,
+                set_ips=[
+                    "129.97.83.104",
+                    ipaddress.ip_address("172.16.76.49"),
+                    ipaddress.ip_network("172.19.15.0/27"),
+                ],
+            )
+
+            self.assertEqual(edit.response.text, "Asset Group Updated Successfully")
+
 
 class TestORM(unittest.TestCase):
     def test_orm_host_list(self):

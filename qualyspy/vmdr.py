@@ -26,6 +26,7 @@ from sqlalchemy.exc import OperationalError as saOperationalError
 from . import URLS, qutils
 from .base import QualysAPIBase, QualysORMMixin
 from .models.vmdr import (
+    asset_group_list_output,
     host_list_orm,
     host_list_output,
     host_list_vm_detection_orm,
@@ -398,6 +399,47 @@ class VmdrAPI(QualysAPIBase):
         map_report_output_obj = map_report.Map.from_xml(raw_response)
 
         return map_report_output_obj
+
+    def asset_group_list(self) -> list[asset_group_list_output.AssetGroup]:
+        params = {"action": "list"}
+        params_cleaned = qutils.clean_dict(params)
+
+        raw_response = self.get(URLS.asset_group, params=params_cleaned).text.encode(
+            "utf-8"
+        )
+        asset_group_list_output_obj = (
+            asset_group_list_output.AssetGroupListOutput.from_xml(raw_response)
+        )
+        if asset_group_list_output_obj.response.asset_group_list is None:
+            raise ValueError("Response has no asset_group_list")
+
+        return asset_group_list_output_obj.response.asset_group_list
+
+    def edit_asset_group(
+        self,
+        *,
+        id: int,
+        set_ips: list[str | ipaddress.IPv4Address | ipaddress.IPv4Network] | None = None,
+    ) -> simple_return.SimpleReturn:
+        params = {"action": "edit", "id": id}
+        if set_ips is not None:
+            ips_str = ",".join([str(ip) for ip in set_ips])
+            params["set_ips"] = ips_str
+        params_cleaned = qutils.clean_dict(params)
+
+        raw_response = self.post(URLS.asset_group, params=params_cleaned).text.encode(
+            "utf-8"
+        )
+        edit_asset_group_output_obj = simple_return.SimpleReturn.from_xml(raw_response)
+
+        if (
+            edit_asset_group_output_obj.response.text
+            != "Asset Group Updated Successfully"
+        ):
+            raise ValueError(
+                f"Failed to edit asset group.  Response: {edit_asset_group_output_obj.response.text}"
+            )
+        return edit_asset_group_output_obj
 
 
 class HostListORM(VmdrAPI, QualysORMMixin):
