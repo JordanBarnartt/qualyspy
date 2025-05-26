@@ -12,9 +12,7 @@ api.get("/msp/about.php")
 
 import datetime
 import json
-import logging
 import sys
-import textwrap
 import urllib.parse
 from abc import ABC, abstractmethod
 from typing import Any

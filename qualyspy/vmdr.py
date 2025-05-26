@@ -419,17 +419,21 @@ class VmdrAPI(QualysAPIBase):
         self,
         *,
         id: int,
-        set_ips: list[str | ipaddress.IPv4Address | ipaddress.IPv4Network] | None = None,
+        set_ips: list[str | ipaddress.IPv4Address | ipaddress.IPv4Network]
+        | None = None,
     ) -> simple_return.SimpleReturn:
-        params = {"action": "edit", "id": id}
+        params = {"action": "edit"}
+        data = {"id": str(id)}
         if set_ips is not None:
             ips_str = ",".join([str(ip) for ip in set_ips])
-            params["set_ips"] = ips_str
-        params_cleaned = qutils.clean_dict(params)
+            data["set_ips"] = ips_str
 
-        raw_response = self.post(URLS.asset_group, params=params_cleaned).text.encode(
-            "utf-8"
-        )
+        raw_response = self.post(
+            URLS.asset_group,
+            params=params,
+            data=data,
+            content_type="application/x-www-form-urlencoded",
+        ).text.encode("utf-8")
         edit_asset_group_output_obj = simple_return.SimpleReturn.from_xml(raw_response)
 
         if (
