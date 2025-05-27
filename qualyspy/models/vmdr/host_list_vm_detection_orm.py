@@ -10,7 +10,7 @@ from .. import sa_types
 
 
 class Base(orm.DeclarativeBase):
-    metadata = sa.MetaData(schema="host_list_vm_detection")
+    metadata = sa.MetaData(schema="qualys_host_list_vm_detection")
 
 
 class Attribute(Base):

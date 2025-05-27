@@ -11,7 +11,7 @@ from .. import sa_types
 
 
 class Base(orm.DeclarativeBase):
-    metadata = sa.MetaData(schema="host_list")
+    metadata = sa.MetaData(schema="qualys_host_list")
 
 
 class AssetGroup(Base):

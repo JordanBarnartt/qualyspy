@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "QualysPy"
-version = "0.5.10.1"
+version = "0.5.10.2"
 authors = [
   { name="Jordan Barnartt", email="jbarnart@uwaterloo.ca" },
 ]
@@ -51,6 +51,7 @@ reportUnknownMemberType = false
 reportGeneralTypeIssues = false
 reportUntypedBaseClass = false
 reportInvalidTypeVarUse = false
+typeCheckingMode = "strict"
 
 [[tool.mypy.overrides]]
 module = "sqlalchemy"

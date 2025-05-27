@@ -9,7 +9,7 @@ from .. import sa_types
 
 
 class Base(orm.DeclarativeBase):
-    metadata = sa.MetaData(schema="asset_details")
+    metadata = sa.MetaData(schema="qualys_asset_details")
 
 
 class OperatingSystemTaxonomy(Base):

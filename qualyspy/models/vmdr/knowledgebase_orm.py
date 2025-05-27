@@ -5,7 +5,7 @@ import sqlalchemy.orm as orm
 
 
 class Base(orm.DeclarativeBase):
-    metadata = sa.MetaData(schema="knowledgebase")
+    metadata = sa.MetaData(schema="qualys_knowledgebase")
 
 
 class ChangeLog(Base):
