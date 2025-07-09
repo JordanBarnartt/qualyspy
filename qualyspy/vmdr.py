@@ -322,10 +322,9 @@ class VmdrAPI(QualysAPIBase):
             )
         except XMLSyntaxError as e:
             self.log.error(
-                f"Error parsing XML response: {e}\nResponse:\n{knowledge_base_output_str}"
+                f"Error parsing XML response: {e}\nResponse:\n{raw_response}"
             )
-        if knowledge_base_output_obj.response.vuln_list is None:
-            raise ValueError("Response has no vuln_list")
+            raise
 
         return knowledge_base_output_obj.response.vuln_list
 
