@@ -605,7 +605,7 @@ class AssetItem(Base):
     created_date: orm.Mapped[dt.datetime]
     sensor_last_updated_date: orm.Mapped[dt.datetime]
     asset_type: orm.Mapped[str | None]
-    address: orm.Mapped[ipaddress.IPv4Address | ipaddress.IPv6Address] = (
+    address: orm.Mapped[ipaddress.IPv4Address | ipaddress.IPv6Address | None] = (
         orm.mapped_column("address", sa_types.IPAddressGenericType)
     )
     dns_name: orm.Mapped[str | None]
@@ -622,10 +622,10 @@ class AssetItem(Base):
     bios_serial_number: orm.Mapped[str | None]
     bios_asset_tag: orm.Mapped[str | None]
     is_container_host: orm.Mapped[bool | None]
-    operating_system: orm.Mapped[OperatingSystem] = orm.relationship(
+    operating_system: orm.Mapped[OperatingSystem | None] = orm.relationship(
         back_populates="asset_item", uselist=False
     )
-    hardware: orm.Mapped[Hardware] = orm.relationship(
+    hardware: orm.Mapped[Hardware | None] = orm.relationship(
         back_populates="asset_item", uselist=False
     )
     user_account_list_data: orm.Mapped[UserAccountListData] = orm.relationship(
@@ -650,16 +650,16 @@ class AssetItem(Base):
     agent: orm.Mapped[Agent | None] = orm.relationship(
         back_populates="asset_item", uselist=False
     )
-    sensor: orm.Mapped[Sensor] = orm.relationship(
+    sensor: orm.Mapped[Sensor | None] = orm.relationship(
         back_populates="asset_item", uselist=False
     )
     container: orm.Mapped[Container | None] = orm.relationship(
         back_populates="asset_item", uselist=False
     )
-    inventory: orm.Mapped[Inventory] = orm.relationship(
+    inventory: orm.Mapped[Inventory | None] = orm.relationship(
         back_populates="asset_item", uselist=False
     )
-    activity: orm.Mapped[Activity] = orm.relationship(
+    activity: orm.Mapped[Activity | None] = orm.relationship(
         back_populates="asset_item", uselist=False
     )
     tag_list: orm.Mapped[TagList | None] = orm.relationship(
@@ -671,7 +671,7 @@ class AssetItem(Base):
     last_location: orm.Mapped[LastLocation | None] = orm.relationship(
         back_populates="asset_item", uselist=False
     )
-    criticality: orm.Mapped[Criticality] = orm.relationship(
+    criticality: orm.Mapped[Criticality | None] = orm.relationship(
         back_populates="asset_item", uselist=False
     )
     business_information: orm.Mapped[str | None]

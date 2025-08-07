@@ -283,7 +283,7 @@ class AssetItem(Model):
     created_date: datetime.datetime
     sensor_last_updated_date: datetime.datetime
     asset_type: str | None
-    address: ipaddress.IPv4Address | ipaddress.IPv6Address
+    address: ipaddress.IPv4Address | ipaddress.IPv6Address | None
     dns_name: str | None
     asset_name: str
     netbios_name: str | None
@@ -297,9 +297,9 @@ class AssetItem(Model):
     hwUUID: str | None
     bios_serial_number: str | None
     bios_asset_tag: str | None
-    is_container_host: bool
-    operating_system: OperatingSystem
-    hardware: Hardware
+    is_container_host: bool | None
+    operating_system: OperatingSystem | None
+    hardware: Hardware | None
     user_account_list_data: UserAccountListData | None
     open_port_list_data: OpenPortListData | None
     volume_list_data: VolumeListData | None
@@ -308,14 +308,14 @@ class AssetItem(Model):
     provider: str | None
     cloud_provider: CloudProvider | None
     agent: Agent | None
-    sensor: Sensor
+    sensor: Sensor | None
     container: Container | None
-    inventory: Inventory
-    activity: Activity
+    inventory: Inventory | None
+    activity: Activity | None
     tag_list: TagList | None
     service_list: ServiceList | None
     last_location: LastLocation | None
-    criticality: Criticality
+    criticality: Criticality | None
     business_information: str | None
     assigned_location: str | None
     business_app_list_data: str | None
