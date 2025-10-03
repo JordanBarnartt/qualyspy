@@ -6,7 +6,7 @@
 #
 annotated-types==0.7.0
     # via pydantic
-anyio==4.10.0
+anyio==4.11.0
     # via httpx
 backports-tarfile==1.2.0
     # via jaraco-context
@@ -15,13 +15,13 @@ certifi==2025.8.3
     #   httpcore
     #   httpx
     #   requests
-cffi==1.17.1
+cffi==2.0.0
     # via cryptography
-charset-normalizer==3.4.2
+charset-normalizer==3.4.3
     # via requests
-cryptography==45.0.6
+cryptography==46.0.2
     # via secretstorage
-docutils==0.22
+docutils==0.22.2
     # via readme-renderer
 exceptiongroup==1.3.0
     # via anyio
@@ -46,7 +46,7 @@ jaraco-classes==3.4.0
     # via keyring
 jaraco-context==6.0.1
     # via keyring
-jaraco-functools==4.2.1
+jaraco-functools==4.3.0
     # via keyring
 jeepney==0.9.0
     # via
@@ -54,15 +54,15 @@ jeepney==0.9.0
     #   secretstorage
 keyring==25.6.0
     # via twine
-lxml==6.0.0
+lxml==6.0.2
     # via QualysPy (pyproject.toml)
 lxml-stubs==0.5.1
     # via QualysPy (pyproject.toml)
-markdown-it-py==3.0.0
+markdown-it-py==4.0.0
     # via rich
 mdurl==0.1.2
     # via markdown-it-py
-more-itertools==10.7.0
+more-itertools==10.8.0
     # via
     #   jaraco-classes
     #   jaraco-functools
@@ -70,13 +70,13 @@ nh3==0.3.0
     # via readme-renderer
 packaging==25.0
     # via twine
-psycopg[binary]==3.2.9
+psycopg[binary]==3.2.10
     # via QualysPy (pyproject.toml)
-psycopg-binary==3.2.9
+psycopg-binary==3.2.10
     # via psycopg
-pycparser==2.22
+pycparser==2.23
     # via cffi
-pydantic==2.11.7
+pydantic==2.11.9
     # via
     #   QualysPy (pyproject.toml)
     #   pydantic-xml
@@ -96,7 +96,7 @@ python-decouple==3.8
     # via QualysPy (pyproject.toml)
 readme-renderer==44.0
     # via twine
-requests==2.32.4
+requests==2.32.5
     # via
     #   id
     #   requests-toolbelt
@@ -107,26 +107,27 @@ rfc3986==2.0.0
     # via twine
 rich==14.1.0
     # via twine
-secretstorage==3.3.3
+secretstorage==3.4.0
     # via keyring
 six==1.17.0
     # via python-dateutil
 sniffio==1.3.1
     # via anyio
-sqlalchemy==2.0.42
+sqlalchemy==2.0.43
     # via QualysPy (pyproject.toml)
-twine==6.1.0
+twine==6.2.0
     # via QualysPy (pyproject.toml)
-typing-extensions==4.14.1
+typing-extensions==4.15.0
     # via
     #   anyio
+    #   cryptography
     #   exceptiongroup
     #   psycopg
     #   pydantic
     #   pydantic-core
     #   sqlalchemy
     #   typing-inspection
-typing-inspection==0.4.1
+typing-inspection==0.4.2
     # via pydantic
 urllib3==2.5.0
     # via
