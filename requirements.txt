@@ -8,7 +8,7 @@ annotated-types==0.7.0
     # via pydantic
 anyio==4.11.0
     # via httpx
-certifi==2025.8.3
+certifi==2025.10.5
     # via
     #   httpcore
     #   httpx
@@ -22,25 +22,25 @@ httpcore==1.0.9
     # via httpx
 httpx==0.28.1
     # via QualysPy (pyproject.toml)
-idna==3.10
+idna==3.11
     # via
     #   anyio
     #   httpx
 lxml==6.0.2
     # via QualysPy (pyproject.toml)
-psycopg[binary]==3.2.10
+psycopg[binary]==3.2.12
     # via QualysPy (pyproject.toml)
-psycopg-binary==3.2.10
+psycopg-binary==3.2.12
     # via psycopg
-pydantic==2.11.9
+pydantic==2.12.4
     # via
     #   QualysPy (pyproject.toml)
     #   pydantic-xml
-pydantic-core==2.33.2
+pydantic-core==2.41.5
     # via
     #   pydantic
     #   pydantic-xml
-pydantic-xml==2.17.3
+pydantic-xml==2.18.0
     # via QualysPy (pyproject.toml)
 python-dateutil==2.9.0.post0
     # via QualysPy (pyproject.toml)
@@ -50,7 +50,7 @@ six==1.17.0
     # via python-dateutil
 sniffio==1.3.1
     # via anyio
-sqlalchemy==2.0.43
+sqlalchemy==2.0.44
     # via QualysPy (pyproject.toml)
 typing-extensions==4.15.0
     # via

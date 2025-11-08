@@ -133,7 +133,7 @@ class VendorReference(BaseXmlModel):
 
 
 class Software(BaseXmlModel):
-    product: str = element(tag="PRODUCT")
+    product: str | None = element(tag="PRODUCT", default=None)
     vendor: str = element(tag="VENDOR")
 
 

@@ -274,7 +274,7 @@ class Software(Base):
     __tablename__ = "software"
 
     id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
-    product: orm.Mapped[str]
+    product: orm.Mapped[str | None]
     vendor: orm.Mapped[str]
 
     vuln_id: orm.Mapped[int] = orm.mapped_column(sa.ForeignKey("vuln.qid"))

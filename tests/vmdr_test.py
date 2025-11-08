@@ -38,7 +38,7 @@ class TestOutputModels(unittest.TestCase):
     def test_host_list_vm_detection(self):
         api = vmdr.VmdrAPI()
         host_list, _, _ = api.host_list_vm_detection(
-            ids=27908753, qids=254422, show_igs=True, show_arf_data=True
+            ids=11619472, show_igs=True, show_arf_data=True
         )
         host = host_list[0]
 
