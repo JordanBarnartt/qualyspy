@@ -1,9 +1,22 @@
 import datetime
 import ipaddress
-from typing import Any
+from typing import Any, Annotated
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, BeforeValidator
 from pydantic.alias_generators import to_camel
+
+
+def ensure_datetime(value: Any) -> datetime.datetime | None:
+    """
+    For lifecycle date fields, Qualys sometimes returns strings (ex. "Not Announced").
+    For now, we'll convert those to None.
+    """
+    if value is None:
+        return None
+    try:
+        return datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%fZ")
+    except ValueError:
+        return None
 
 
 class Model(BaseModel):
@@ -15,6 +28,17 @@ class Taxonomy(Model):
     name: str
     category1: str | None
     category2: str | None
+
+
+class OperatingSystemLifecycle(Model):
+    ga_date: Annotated[datetime.datetime | None, BeforeValidator(ensure_datetime)]
+    eol_date: Annotated[datetime.datetime | None, BeforeValidator(ensure_datetime)]
+    eos_date: Annotated[datetime.datetime | None, BeforeValidator(ensure_datetime)]
+    stage: str | None
+    lifecycle_confidence: str | None = Field(alias="lifeCycleConfidence")
+    eol_support_stage: str | None
+    eos_support_stage: str | None
+    detection_score: int | None
 
 
 class OperatingSystem(Model):
@@ -30,12 +54,21 @@ class OperatingSystem(Model):
     version: str | None
     update: str | None
     architecture: str | None
-    lifecycle: str | None
+    lifecycle: OperatingSystemLifecycle | None
     taxonomy: Taxonomy
     product_url: str | None
     product_family: str | None
     install_date: str | None
     release: str | None
+
+
+class HardwareLifecycle(Model):
+    intro_date: Annotated[datetime.datetime | None, BeforeValidator(ensure_datetime)]
+    ga_date: Annotated[datetime.datetime | None, BeforeValidator(ensure_datetime)]
+    eos_date: Annotated[datetime.datetime | None, BeforeValidator(ensure_datetime)]
+    obsolete_date: Annotated[datetime.datetime | None, BeforeValidator(ensure_datetime)]
+    stage: str | None
+    lifecycle_confidence: str | None = Field(alias="lifeCycleConfidence")
 
 
 class Hardware(Model):
@@ -46,7 +79,7 @@ class Hardware(Model):
     manufacturer: str | None
     product_name: str
     model: str | None
-    lifecycle: str | None
+    lifecycle: HardwareLifecycle | None
     taxonomy: Taxonomy
     product_url: str | None
     product_family: str | None
@@ -101,6 +134,22 @@ class NetworkInterfaceListData(Model):
     network_interface: list[NetworkInterfaceItem]
 
 
+class SoftwareLicense(Model):
+    category: str | None
+    subcategory: str | None
+
+
+class SoftwareLifecycle(Model):
+    ga_date: Annotated[datetime.datetime | None, BeforeValidator(ensure_datetime)]
+    eol_date: Annotated[datetime.datetime | None, BeforeValidator(ensure_datetime)]
+    eos_date: Annotated[datetime.datetime | None, BeforeValidator(ensure_datetime)]
+    stage: str | None
+    lifecycle_confidence: str | None = Field(alias="lifeCycleConfidence")
+    eol_support_stage: str | None
+    eos_support_stage: str | None
+    detection_score: int | None
+
+
 class SoftwareItem(Model):
     id: int
     full_name: str | None
@@ -128,9 +177,9 @@ class SoftwareItem(Model):
     is_package_component: bool | None
     package_name: str | None
     product_url: str | None
-    lifecycle: str | None
+    lifecycle: SoftwareLifecycle | None
     support_stage_desc: str | None
-    license: str | None
+    license: SoftwareLicense | None
     authorization: str | None
 
 

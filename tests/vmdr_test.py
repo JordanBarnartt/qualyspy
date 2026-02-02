@@ -21,7 +21,7 @@ class TestOutputModels(unittest.TestCase):
     def test_host_list(self):
         api = vmdr.VmdrAPI()
         host_list, _, _ = api.host_list(
-            ids=11619472, show_trurisk=True, show_trurisk_factors=True
+            ids=32381680, show_trurisk=True, show_trurisk_factors=True
         )
         host = host_list[0]
 
@@ -38,7 +38,7 @@ class TestOutputModels(unittest.TestCase):
     def test_host_list_vm_detection(self):
         api = vmdr.VmdrAPI()
         host_list, _, _ = api.host_list_vm_detection(
-            ids=11619472, show_igs=True, show_arf_data=True
+            ids=32381680, show_igs=True, show_arf_data=True
         )
         host = host_list[0]
 

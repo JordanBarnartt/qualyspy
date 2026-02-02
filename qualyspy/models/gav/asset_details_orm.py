@@ -46,6 +46,27 @@ class HardwareTaxonomy(Base):
     )
 
 
+class OperatingSystemLifecycle(Base):
+    __tablename__ = "operating_system_lifecycle"
+
+    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
+    ga_date: orm.Mapped[dt.datetime | None]
+    eol_date: orm.Mapped[dt.datetime | None]
+    eos_date: orm.Mapped[dt.datetime | None]
+    stage: orm.Mapped[str | None]
+    lifecycle_confidence: orm.Mapped[str | None]
+    eol_support_stage: orm.Mapped[str | None]
+    eos_support_stage: orm.Mapped[str | None]
+    detection_score: orm.Mapped[int | None]
+
+    operating_system_id: orm.Mapped[int | None] = orm.mapped_column(
+        sa.ForeignKey("operating_system.id")
+    )
+    operating_system: orm.Mapped["OperatingSystem | None"] = orm.relationship(
+        back_populates="lifecycle"
+    )
+
+
 class OperatingSystem(Base):
     __tablename__ = "operating_system"
 
@@ -62,7 +83,9 @@ class OperatingSystem(Base):
     version: orm.Mapped[str | None]
     update: orm.Mapped[str | None]
     architecture: orm.Mapped[str | None]
-    lifecycle: orm.Mapped[str | None]
+    lifecycle: orm.Mapped[OperatingSystemLifecycle] = orm.relationship(
+        back_populates="operating_system", uselist=False
+    )
     taxonomy: orm.Mapped[OperatingSystemTaxonomy] = orm.relationship(
         back_populates="operating_system", uselist=False
     )
@@ -79,6 +102,25 @@ class OperatingSystem(Base):
     )
 
 
+class HardwareLifecycle(Base):
+    __tablename__ = "hardware_lifecycle"
+
+    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
+    intro_date: orm.Mapped[dt.datetime | None]
+    ga_date: orm.Mapped[dt.datetime | None]
+    eos_date: orm.Mapped[dt.datetime | None]
+    obsolete_date: orm.Mapped[dt.datetime | None]
+    stage: orm.Mapped[str | None]
+    lifecycle_confidence: orm.Mapped[str | None]
+
+    hardware_id: orm.Mapped[int | None] = orm.mapped_column(
+        sa.ForeignKey("hardware.id")
+    )
+    hardware: orm.Mapped["Hardware | None"] = orm.relationship(
+        back_populates="lifecycle"
+    )
+
+
 class Hardware(Base):
     __tablename__ = "hardware"
 
@@ -90,7 +132,9 @@ class Hardware(Base):
     manufacturer: orm.Mapped[str | None]
     product_name: orm.Mapped[str]
     model: orm.Mapped[str | None]
-    lifecycle: orm.Mapped[str | None]
+    lifecycle: orm.Mapped[HardwareLifecycle] = orm.relationship(
+        back_populates="hardware", uselist=False
+    )
     taxonomy: orm.Mapped[HardwareTaxonomy] = orm.relationship(
         back_populates="hardware", uselist=False
     )
@@ -243,6 +287,42 @@ class NetworkInterfaceListData(Base):
     )
 
 
+class SoftwareLicense(Base):
+    __tablename__ = "software_license"
+
+    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
+    category: orm.Mapped[str | None]
+    subcategory: orm.Mapped[str | None]
+
+    software_item_id: orm.Mapped[int | None] = orm.mapped_column(
+        sa.ForeignKey("software_item.orm_id")
+    )
+    software_item: orm.Mapped["SoftwareItem | None"] = orm.relationship(
+        back_populates="license"
+    )
+
+
+class SoftwareLifecycle(Base):
+    __tablename__ = "software_lifecycle"
+
+    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
+    ga_date: orm.Mapped[dt.datetime | None]
+    eol_date: orm.Mapped[dt.datetime | None]
+    eos_date: orm.Mapped[dt.datetime | None]
+    stage: orm.Mapped[str | None]
+    lifecycle_confidence: orm.Mapped[str | None]
+    eol_support_stage: orm.Mapped[str | None]
+    eos_support_stage: orm.Mapped[str | None]
+    detection_score: orm.Mapped[int | None]
+
+    software_item_id: orm.Mapped[int | None] = orm.mapped_column(
+        sa.ForeignKey("software_item.orm_id")
+    )
+    software_item: orm.Mapped["SoftwareItem | None"] = orm.relationship(
+        back_populates="lifecycle"
+    )
+
+
 class SoftwareItem(Base):
     __tablename__ = "software_item"
 
@@ -273,9 +353,13 @@ class SoftwareItem(Base):
     is_package_component: orm.Mapped[bool | None]
     package_name: orm.Mapped[str | None]
     product_url: orm.Mapped[str | None]
-    lifecycle: orm.Mapped[str | None]
+    lifecycle: orm.Mapped[SoftwareLifecycle | None] = orm.relationship(
+        back_populates="software_item", uselist=False
+    )
     support_stage_desc: orm.Mapped[str | None]
-    license: orm.Mapped[str | None]
+    license: orm.Mapped[SoftwareLicense | None] = orm.relationship(
+        back_populates="software_item", uselist=False
+    )
     authorization: orm.Mapped[str | None]
 
     software_list_data_id: orm.Mapped[int] = orm.mapped_column(

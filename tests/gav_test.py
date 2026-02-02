@@ -20,7 +20,7 @@ from qualyspy.models.gav import asset_details_orm  # noqa: E402
 class TestOutputModels(unittest.TestCase):
     def test_asset_details(self):
         api = gav.GavAPI()
-        asset = api.asset_details(asset_id=14355608)
+        asset = api.asset_details(asset_id=61389689)
 
         self.assertEqual(asset.address, ipaddress.ip_address("172.16.76.84"))
 
@@ -36,7 +36,7 @@ class TestORM(unittest.TestCase):
         api.init_db()
         api.load()
         stmt = sa.select(asset_details_orm.AssetItem).where(
-            asset_details_orm.AssetItem.asset_id == 14355608
+            asset_details_orm.AssetItem.asset_id == 61389689
         )
         result = api.query(stmt)
         asset = result[0][0]
