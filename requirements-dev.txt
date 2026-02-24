@@ -19,13 +19,13 @@ cffi==2.0.0
     # via cryptography
 charset-normalizer==3.4.4
     # via requests
-cryptography==46.0.4
+cryptography==46.0.5
     # via secretstorage
 docutils==0.22.4
     # via readme-renderer
 exceptiongroup==1.3.1
     # via anyio
-greenlet==3.3.1
+greenlet==3.3.2
     # via sqlalchemy
 h11==0.16.0
     # via httpcore
@@ -33,7 +33,7 @@ httpcore==1.0.9
     # via httpx
 httpx==0.28.1
     # via QualysPy (pyproject.toml)
-id==1.6.0
+id==1.6.1
     # via twine
 idna==3.11
     # via
@@ -66,13 +66,13 @@ more-itertools==10.8.0
     # via
     #   jaraco-classes
     #   jaraco-functools
-nh3==0.3.2
+nh3==0.3.3
     # via readme-renderer
 packaging==26.0
     # via twine
-psycopg[binary]==3.3.2
+psycopg[binary]==3.3.3
     # via QualysPy (pyproject.toml)
-psycopg-binary==3.3.2
+psycopg-binary==3.3.3
     # via psycopg
 pycparser==3.0
     # via cffi
@@ -84,7 +84,7 @@ pydantic-core==2.41.5
     # via
     #   pydantic
     #   pydantic-xml
-pydantic-xml==2.18.0
+pydantic-xml==2.19.0
     # via QualysPy (pyproject.toml)
 pygments==2.19.2
     # via
@@ -104,7 +104,7 @@ requests-toolbelt==1.0.0
     # via twine
 rfc3986==2.0.0
     # via twine
-rich==14.3.1
+rich==14.3.3
     # via twine
 secretstorage==3.5.0
     # via keyring

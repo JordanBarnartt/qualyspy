@@ -1,8 +1,8 @@
 import datetime
 import ipaddress
-from typing import Any, Annotated
+from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, BeforeValidator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 
@@ -313,6 +313,21 @@ class Criticality(Model):
     last_updated: datetime.datetime | None
 
 
+class Whois(Model):
+    domain: str | None
+    created_date: datetime.datetime | None
+    dnssec: str | None
+    domain_status: str | None
+    registrant_organization: str | None
+    registrant_name: str | None
+    registrant_email: str | None
+    registrant_contact: str | None
+    registrar: str | None
+    registrant_country: str | None
+    expiration_date: datetime.datetime | None
+    updated_date: datetime.datetime | None
+
+
 class Processor(Model):
     description: str | None
     speed: int | None
@@ -372,10 +387,10 @@ class AssetItem(Model):
     passive_sensor: str | None
     domain: list[str] | None
     subdomain: list[str] | None
-    whois: list[str] | None
+    whois: list[Whois] | None
     isp: str | None
     asn: str | None
-    easm_tags: str | None
+    easm_tags: list[str] | None
     hosting_category1: str | None
     custom_attributes: str | None
     processor: Processor | None

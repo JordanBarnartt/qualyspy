@@ -660,6 +660,29 @@ class Criticality(Base):
     asset_item: orm.Mapped["AssetItem"] = orm.relationship(back_populates="criticality")
 
 
+class Whois(Base):
+    __tablename__ = "whois"
+
+    id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
+    domain: orm.Mapped[str]
+    created_date: orm.Mapped[dt.datetime | None]
+    dnssec: orm.Mapped[str | None]
+    domain_status: orm.Mapped[str | None]
+    registrant_organization: orm.Mapped[str | None]
+    registrant_name: orm.Mapped[str | None]
+    registrant_email: orm.Mapped[str | None]
+    registrant_contact: orm.Mapped[str | None]
+    registrar: orm.Mapped[str | None]
+    registrant_country: orm.Mapped[str | None]
+    expiration_date: orm.Mapped[dt.datetime | None]
+    updated_date: orm.Mapped[dt.datetime | None]
+
+    asset_item_id: orm.Mapped[int] = orm.mapped_column(
+        sa.ForeignKey("asset_item.asset_id")
+    )
+    asset_item: orm.Mapped["AssetItem"] = orm.relationship(back_populates="whois")
+
+
 class Processor(Base):
     __tablename__ = "processor"
 
@@ -766,10 +789,12 @@ class AssetItem(Base):
     domain: orm.Mapped[list[str] | None] = orm.mapped_column(sa_pg.ARRAY(sa.String))
     subdomain: orm.Mapped[list[str] | None] = orm.mapped_column(sa_pg.ARRAY(sa.String))
     missing_software: orm.Mapped[str | None]
-    whois: orm.Mapped[list[str] | None] = orm.mapped_column(sa_pg.ARRAY(sa.String))
+    whois: orm.Mapped[list[Whois]] = orm.relationship(
+        back_populates="asset_item"
+    )
     isp: orm.Mapped[str | None]
     asn: orm.Mapped[str | None]
-    easm_tags: orm.Mapped[str | None]
+    easm_tags: orm.Mapped[list[str] | None] = orm.mapped_column(sa_pg.ARRAY(sa.String))
     hosting_category1: orm.Mapped[str | None]
     custom_attributes: orm.Mapped[str | None]
     processor: orm.Mapped[Processor] = orm.relationship(

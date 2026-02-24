@@ -21,6 +21,35 @@ class GavAPI(QualysAPIBase):
             return ips.split(", ")
         return [ips]
 
+    def _clean_asset_details_response(
+        self, response_json: dict[str, Any]
+    ) -> dict[str, Any]:
+        """
+        Cleans the asset details response by converting IP address strings to lists of IP address strings,
+        converts None values for lists to empty lists, etc.
+        """
+        for asset in response_json["assetListData"]["asset"]:
+            if asset["networkInterfaceListData"] is not None:
+                for interface in asset["networkInterfaceListData"]["networkInterface"]:
+                    interface["addressIpV4"] = self._convert_ipaddress(
+                        interface["addressIpV4"]
+                    )
+                    interface["addressIpV6"] = self._convert_ipaddress(
+                        interface["addressIpV6"]
+                    )
+
+            if (
+                asset["cloudProvider"] is not None
+                and asset["cloudProvider"]["oci"] is not None
+            ):
+                if asset["cloudProvider"]["oci"]["tags"] is None:
+                    asset["cloudProvider"]["oci"]["tags"] = []
+
+            if asset["whois"] is None:
+                asset["whois"] = []
+
+        return response_json
+
     def asset_details(self, *, asset_id: int) -> asset_details_output.AssetItem | None:
         params = {"assetId": asset_id}
         params_cleaned = qutils.clean_dict(params)
@@ -29,19 +58,7 @@ class GavAPI(QualysAPIBase):
         if raw_response.status_code == 204:
             return None
         response_json = raw_response.json()
-        if (
-            response_json["assetListData"]["asset"][0]["networkInterfaceListData"]
-            is not None
-        ):
-            for interface in response_json["assetListData"]["asset"][0][
-                "networkInterfaceListData"
-            ]["networkInterface"]:
-                interface["addressIpV4"] = self._convert_ipaddress(
-                    interface["addressIpV4"]
-                )
-                interface["addressIpV6"] = self._convert_ipaddress(
-                    interface["addressIpV6"]
-                )
+        response_json = self._clean_asset_details_response(response_json)
         response = asset_details_output.AssetDetailsOutput(**response_json)
         return response.asset_list_data.asset[0]
 
@@ -57,22 +74,7 @@ class GavAPI(QualysAPIBase):
         }
         params_cleaned = qutils.clean_dict(params)
         raw_response = self.post(URLS.all_asset_details, params=params_cleaned).json()
-
-        for asset in raw_response["assetListData"]["asset"]:
-            if asset["networkInterfaceListData"] is not None:
-                for interface in asset["networkInterfaceListData"]["networkInterface"]:
-                    interface["addressIpV4"] = self._convert_ipaddress(
-                        interface["addressIpV4"]
-                    )
-                    interface["addressIpV6"] = self._convert_ipaddress(
-                        interface["addressIpV6"]
-                    )
-            if (
-                asset["cloudProvider"] is not None
-                and asset["cloudProvider"]["oci"] is not None
-            ):
-                if asset["cloudProvider"]["oci"]["tags"] is None:
-                    asset["cloudProvider"]["oci"]["tags"] = []
+        raw_response = self._clean_asset_details_response(raw_response)
 
         response = asset_details_output.AssetDetailsOutput(**raw_response)
 
