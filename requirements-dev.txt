@@ -6,26 +6,26 @@
 #
 annotated-types==0.7.0
     # via pydantic
-anyio==4.12.1
+anyio==4.13.0
     # via httpx
 backports-tarfile==1.2.0
     # via jaraco-context
-certifi==2026.1.4
+certifi==2026.2.25
     # via
     #   httpcore
     #   httpx
     #   requests
 cffi==2.0.0
     # via cryptography
-charset-normalizer==3.4.4
+charset-normalizer==3.4.7
     # via requests
-cryptography==46.0.5
+cryptography==46.0.7
     # via secretstorage
 docutils==0.22.4
     # via readme-renderer
 exceptiongroup==1.3.1
     # via anyio
-greenlet==3.3.2
+greenlet==3.4.0
     # via sqlalchemy
 h11==0.16.0
     # via httpcore
@@ -40,11 +40,11 @@ idna==3.11
     #   anyio
     #   httpx
     #   requests
-importlib-metadata==8.7.1
+importlib-metadata==9.0.0
     # via keyring
 jaraco-classes==3.4.0
     # via keyring
-jaraco-context==6.1.0
+jaraco-context==6.1.2
     # via keyring
 jaraco-functools==4.4.0
     # via keyring
@@ -54,7 +54,7 @@ jeepney==0.9.0
     #   secretstorage
 keyring==25.7.0
     # via twine
-lxml==6.0.2
+lxml==6.0.4
     # via QualysPy (pyproject.toml)
 lxml-stubs==0.5.1
     # via QualysPy (pyproject.toml)
@@ -62,11 +62,11 @@ markdown-it-py==4.0.0
     # via rich
 mdurl==0.1.2
     # via markdown-it-py
-more-itertools==10.8.0
+more-itertools==11.0.2
     # via
     #   jaraco-classes
     #   jaraco-functools
-nh3==0.3.3
+nh3==0.3.4
     # via readme-renderer
 packaging==26.0
     # via twine
@@ -76,17 +76,17 @@ psycopg-binary==3.3.3
     # via psycopg
 pycparser==3.0
     # via cffi
-pydantic==2.12.5
+pydantic==2.13.0
     # via
     #   QualysPy (pyproject.toml)
     #   pydantic-xml
-pydantic-core==2.41.5
+pydantic-core==2.46.0
     # via
     #   pydantic
     #   pydantic-xml
-pydantic-xml==2.19.0
+pydantic-xml==2.20.0
     # via QualysPy (pyproject.toml)
-pygments==2.19.2
+pygments==2.20.0
     # via
     #   readme-renderer
     #   rich
@@ -96,7 +96,7 @@ python-decouple==3.8
     # via QualysPy (pyproject.toml)
 readme-renderer==44.0
     # via twine
-requests==2.32.5
+requests==2.33.1
     # via
     #   requests-toolbelt
     #   twine
@@ -104,13 +104,13 @@ requests-toolbelt==1.0.0
     # via twine
 rfc3986==2.0.0
     # via twine
-rich==14.3.3
+rich==15.0.0
     # via twine
 secretstorage==3.5.0
     # via keyring
 six==1.17.0
     # via python-dateutil
-sqlalchemy==2.0.46
+sqlalchemy==2.0.49
     # via QualysPy (pyproject.toml)
 twine==6.2.0
     # via QualysPy (pyproject.toml)
@@ -131,5 +131,5 @@ urllib3==2.6.3
     #   id
     #   requests
     #   twine
-zipp==3.23.0
+zipp==3.23.1
     # via importlib-metadata

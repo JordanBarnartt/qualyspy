@@ -3,7 +3,7 @@
 about = "/msp/about.php/"
 host_list_vm_detection = "/api/5.0/fo/asset/host/vm/detection/"
 host_list = "/api/5.0/fo/asset/host/"
-knowledgebase = "/api/3.0/fo/knowledge_base/vuln/"
+knowledgebase = "/api/4.0/fo/knowledge_base/vuln/"
 ignore_vuln = "/api/2.0/fo/ignore_vuln/index.php/"
 launch_vm_scan = "/api/2.0/fo/scan/"
 vm_scan_list = "/api/3.0/fo/scan/"

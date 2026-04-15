@@ -603,7 +603,7 @@ class ServiceItem(Base):
     id: orm.Mapped[int] = orm.mapped_column(primary_key=True, autoincrement=True)
     description: orm.Mapped[str | None]
     name: orm.Mapped[str]
-    status: orm.Mapped[str]
+    status: orm.Mapped[str | None]
 
     service_list_id = orm.mapped_column(sa.ForeignKey("service_list.id"))
     service_list: orm.Mapped["ServiceList"] = orm.relationship(

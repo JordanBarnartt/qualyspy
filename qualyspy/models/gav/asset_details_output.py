@@ -291,7 +291,7 @@ class TagList(Model):
 class ServiceItem(Model):
     description: str | None
     name: str
-    status: str
+    status: str | None
 
 
 class ServiceList(Model):
